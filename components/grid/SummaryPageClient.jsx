@@ -1,0 +1,789 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { BarChart3, ChevronDown, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, FilterX } from 'lucide-react';
+import { useSettings } from '@/providers/settings-provider';
+import { DatePicker } from '@/components/ui/date-picker';
+import { MonthPicker } from '@/components/ui/month-picker';
+
+function fmtRefMonthShort(ym) {
+  if (!ym) return 'Expected';
+  try {
+    const d = new Date(`${ym}-01`);
+    const month = d.toLocaleString('en-US', { month: 'short' });
+    const year  = String(d.getFullYear()).slice(2);
+    return `Exp. ${month}'${year}`;
+  } catch { return 'Expected'; }
+}
+
+// ── constants ─────────────────────────────────────────────────────────────────
+
+const REGION_ORDER = ['NR', 'WR', 'SR', 'ER', 'NER'];
+const SOURCE_ORDER = ['WIND', 'SOLAR', 'BESS', 'HYBRID', 'COAL', 'HYDRO', 'PSP'];
+
+const SOURCE_COLORS = {
+  WIND:   'bg-sky-100 text-sky-800',
+  SOLAR:  'bg-amber-100 text-amber-800',
+  BESS:   'bg-violet-100 text-violet-800',
+  HYBRID: 'bg-teal-100 text-teal-800',
+  COAL:   'bg-stone-100 text-stone-700',
+  HYDRO:  'bg-blue-100 text-blue-800',
+  PSP:    'bg-emerald-100 text-emerald-800',
+  Total:  'bg-muted text-foreground',
+};
+
+const REGION_COLORS = {
+  NR: 'bg-indigo-50 text-indigo-800',
+  WR: 'bg-orange-50 text-orange-800',
+  SR: 'bg-pink-50 text-pink-800',
+  ER: 'bg-cyan-50 text-cyan-800',
+  NER: 'bg-lime-50 text-lime-800',
+};
+
+function fmt(v, decimals = 2) {
+  if (!v && v !== 0) return '—';
+  const n = Number(v);
+  if (n === 0) return '0';
+  // Use toFixed then add thousands separators
+  const parts = n.toFixed(decimals).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  // Strip trailing zeros after decimal
+  const dec = parts[1]?.replace(/0+$/, '');
+  return dec ? `${parts[0]}.${dec}` : parts[0];
+}
+
+function fmtMonth(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m) - 1]}'${y.slice(2)}`;
+}
+
+// ── shared helpers ────────────────────────────────────────────────────────────
+
+function Badge({ label, colorCls }) {
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${colorCls ?? 'bg-muted text-foreground'}`}>
+      {label}
+    </span>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
+  const colors = {
+    blue:    'bg-blue-50 text-blue-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    amber:   'bg-amber-50 text-amber-600',
+    violet:  'bg-violet-50 text-violet-600',
+    rose:    'bg-rose-50 text-rose-600',
+    slate:   'bg-slate-50 text-slate-600',
+  };
+  return (
+    <div className="rounded-xl border bg-card p-4 flex items-start gap-3">
+      <div className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${colors[color]}`}>
+        <Icon className="size-5" />
+      </div>
+      <div>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className="text-xl font-bold text-foreground leading-tight">
+          {typeof value === 'number' ? Math.round(value).toLocaleString('en-IN') : value}
+          {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Pipeline Table (Tables 2 & 5) ─────────────────────────────────────────────
+
+function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected' }) {
+  if (!rows?.length) return <Empty />;
+
+  const isRegionPrimary = primaryKey === 'region';
+
+  return (
+    <div className="overflow-x-auto rounded-xl border">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="bg-muted/50 border-b">
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/50 min-w-[80px]">
+              {isRegionPrimary ? 'Region' : 'Source'}
+            </th>
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap sticky left-[80px] bg-muted/50 min-w-[80px]">
+              {isRegionPrimary ? 'Source' : 'Region'}
+            </th>
+            <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">Total Cap (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">CONTD-4 (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">Applied (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-emerald-600 whitespace-nowrap">FTC Approved</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-amber-600 whitespace-nowrap">FTC Pending</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-blue-600 whitespace-nowrap">TOC Issued</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-amber-600 whitespace-nowrap">TOC Pending</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-violet-600 whitespace-nowrap">COD Done</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-rose-600 whitespace-nowrap">COD Pending</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-teal-600 whitespace-nowrap">{refMonthLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const isTotal    = row.isTotal;
+            const isSubtotal = row.isSubtotal && !isTotal;
+            const primary    = isRegionPrimary ? row.region : row.source;
+            const secondary  = isRegionPrimary ? row.source : row.region;
+
+            const rowCls = isTotal
+              ? 'bg-foreground/5 font-bold border-t-2 border-foreground/20'
+              : isSubtotal
+              ? 'bg-muted/40 font-semibold border-t border-border'
+              : 'hover:bg-muted/20 border-t border-border/50';
+
+            const prevRow = rows[i - 1];
+            const sameGroup = !isSubtotal && !isTotal && prevRow &&
+              !prevRow.isSubtotal && !prevRow.isTotal &&
+              (isRegionPrimary ? prevRow.region === row.region : prevRow.source === row.source);
+
+            return (
+              <tr key={i} className={`${rowCls} transition-colors`}>
+                <td className="px-3 py-2 sticky left-0 bg-card border-r border-border/30">
+                  {!sameGroup && (isTotal
+                    ? <span className="text-xs font-bold">All India</span>
+                    : isSubtotal
+                    ? <span className="text-xs">{isRegionPrimary ? primary : ''}</span>
+                    : <Badge label={primary} colorCls={
+                        isRegionPrimary
+                          ? REGION_COLORS[primary]
+                          : SOURCE_COLORS[primary]
+                      } />
+                  )}
+                </td>
+                <td className="px-3 py-2 sticky left-[80px] bg-card border-r border-border/30">
+                  {isTotal || isSubtotal
+                    ? <span className="text-[10px] font-semibold text-muted-foreground uppercase">Total</span>
+                    : <Badge label={secondary} colorCls={
+                        isRegionPrimary
+                          ? SOURCE_COLORS[secondary]
+                          : REGION_COLORS[secondary]
+                      } />
+                  }
+                </td>
+                <Num v={row.totalCapacityMw}  bold={isSubtotal || isTotal} />
+                <Num v={row.contd4CapacityMw} bold={isSubtotal || isTotal} muted />
+                <Num v={row.appliedMw}        bold={isSubtotal || isTotal} />
+                <Num v={row.ftcApprovedMw}    bold={isSubtotal || isTotal} color="emerald" />
+                <Num v={row.ftcPendingMw}     bold={isSubtotal || isTotal} color="amber" />
+                <Num v={row.tocIssuedMw}      bold={isSubtotal || isTotal} color="blue" />
+                <Num v={row.tocPendingMw}     bold={isSubtotal || isTotal} color="amber" />
+                <Num v={row.codCompletedMw}   bold={isSubtotal || isTotal} color="violet" />
+                <Num v={row.codPendingMw}     bold={isSubtotal || isTotal} color="rose" />
+                <Num v={row.expectedMw}       bold={isSubtotal || isTotal} color="teal" />
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Num({ v, bold, color, muted }) {
+  const colorMap = {
+    emerald: 'text-emerald-700',
+    amber:   'text-amber-700',
+    blue:    'text-blue-700',
+    violet:  'text-violet-700',
+    rose:    'text-rose-700',
+    teal:    'text-teal-700',
+  };
+  const cls = [
+    'px-3 py-2 text-right tabular-nums',
+    bold ? 'font-semibold' : '',
+    muted ? 'text-muted-foreground' : color ? colorMap[color] : '',
+  ].filter(Boolean).join(' ');
+
+  return <td className={cls}>{fmt(v)}</td>;
+}
+
+// ── CONTD-4 Study Table ───────────────────────────────────────────────────────
+
+function Contd4StudyTable({ contd4Study }) {
+  const { rows, allMonths } = contd4Study ?? {};
+  if (!rows?.length) return <Empty />;
+
+  return (
+    <div className="overflow-x-auto rounded-xl border">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="bg-muted/50 border-b">
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/50">Region</th>
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground whitespace-nowrap sticky left-[64px] bg-muted/50">Source</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">Total Cap (MW)</th>
+            {allMonths.map(m => (
+              <th key={m} className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">
+                {fmtMonth(m)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const isTotal    = row.isTotal;
+            const isSubtotal = row.isSubtotal && !isTotal;
+            const prev = rows[i - 1];
+            const sameRegion = !isSubtotal && !isTotal && prev && !prev.isSubtotal && !prev.isTotal && prev.region === row.region;
+            const rowCls = isTotal
+              ? 'bg-foreground/5 font-bold border-t-2 border-foreground/20'
+              : isSubtotal
+              ? 'bg-muted/40 font-semibold border-t border-border'
+              : 'border-t border-border/50 hover:bg-muted/20';
+            return (
+              <tr key={i} className={rowCls}>
+                <td className="px-3 py-2 sticky left-0 bg-card border-r border-border/30">
+                  {!sameRegion && (isTotal
+                    ? <span className="text-xs font-bold">All India</span>
+                    : isSubtotal
+                    ? null
+                    : <Badge label={row.region} colorCls={REGION_COLORS[row.region]} />
+                  )}
+                </td>
+                <td className="px-3 py-2 sticky left-[64px] bg-card border-r border-border/30">
+                  {isTotal || isSubtotal
+                    ? <span className="text-[10px] font-semibold text-muted-foreground uppercase">Total</span>
+                    : <Badge label={row.source} colorCls={SOURCE_COLORS[row.source]} />
+                  }
+                </td>
+                <td className={`px-3 py-2 text-right tabular-nums ${isSubtotal || isTotal ? 'font-semibold' : 'font-medium'}`}>{fmt(row.totalMw)}</td>
+                {allMonths.map(m => (
+                  <td key={m} className={`px-3 py-2 text-right tabular-nums ${(row.months?.[m] ?? 0) > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
+                    {(row.months?.[m] ?? 0) > 0 ? fmt(row.months[m]) : '—'}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Hybrid Breakdown Table ────────────────────────────────────────────────────
+
+function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected' }) {
+  if (!hybridRows?.length) return <Empty />;
+
+  return (
+    <div className="overflow-x-auto rounded-xl border">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="bg-muted/50 border-b">
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground sticky left-0 bg-muted/50 min-w-[64px]">Region</th>
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground min-w-[160px]">Hybrid Type</th>
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground">Source</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">Total (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground whitespace-nowrap">Applied (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-emerald-600 whitespace-nowrap">FTC (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-blue-600 whitespace-nowrap">TOC (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-violet-600 whitespace-nowrap">COD (MW)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-teal-600 whitespace-nowrap">{refMonthLabel}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {hybridRows.map((row, i) => {
+            const prev = hybridRows[i - 1];
+            const sameRegion = prev && prev.region === row.region;
+            const sameHybrid = sameRegion && prev.hybridType === row.hybridType;
+            return (
+              <tr key={i} className="border-t border-border/50 hover:bg-muted/20">
+                <td className="px-3 py-2 sticky left-0 bg-card border-r border-border/30">
+                  {!sameRegion && <Badge label={row.region} colorCls={REGION_COLORS[row.region]} />}
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  {!sameHybrid && <span className="text-[11px] font-medium text-foreground">{row.hybridType}</span>}
+                </td>
+                <td className="px-3 py-2">
+                  <Badge label={row.sourceType} colorCls={SOURCE_COLORS[row.sourceType]} />
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmt(row.totalMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmt(row.appliedMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-emerald-700">{fmt(row.ftcMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-blue-700">{fmt(row.tocMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-violet-700">{fmt(row.codMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-teal-700">{fmt(row.expectedMw)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Transmission Table ────────────────────────────────────────────────────────
+
+const CAT_LABELS = {
+  LINE_RE:    'Trans. Line (RE)',
+  LINE_NONRE: 'Trans. Line (Non-RE)',
+  ICT_RE:     'ICT (RE)',
+  ICT_NONRE:  'ICT (Non-RE)',
+  GT:         'GT',
+  ST:         'ST',
+};
+
+function TransmissionTable({ transmissionRows }) {
+  if (!transmissionRows?.length) return <Empty />;
+
+  return (
+    <div className="overflow-x-auto rounded-xl border">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="bg-muted/50 border-b">
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground sticky left-0 bg-muted/50">Region</th>
+            <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground">Element Type</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-emerald-600 whitespace-nowrap">FTC Done (No.)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-emerald-600 whitespace-nowrap">FTC Done (MVA/km)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-amber-600 whitespace-nowrap">FTC Pending (No.)</th>
+            <th className="px-3 py-2.5 text-right font-semibold text-amber-600 whitespace-nowrap">FTC Pending (MVA/km)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transmissionRows.map((row, i) => {
+            const prev = transmissionRows[i - 1];
+            const sameRegion = prev && prev.region === row.region;
+            const isLine = row.category.startsWith('LINE');
+            const completedVal = isLine ? row.completedKm  : row.completedMva;
+            const pendingVal   = isLine ? row.pendingKm    : row.pendingMva;
+            return (
+              <tr key={i} className="border-t border-border/50 hover:bg-muted/20">
+                <td className="px-3 py-2 sticky left-0 bg-card border-r border-border/30">
+                  {!sameRegion && <Badge label={row.region} colorCls={REGION_COLORS[row.region]} />}
+                </td>
+                <td className="px-3 py-2 text-[11px] text-foreground font-medium">
+                  {CAT_LABELS[row.category] ?? row.category}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-emerald-700 font-medium">{row.completedCount || '—'}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-emerald-700">{fmt(completedVal)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-amber-700 font-medium">{row.pendingCount || '—'}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-amber-700">{fmt(pendingVal)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Monthly COD Table ─────────────────────────────────────────────────────────
+
+function MonthlyCodeTable({ monthlyCod }) {
+  const { rows, months } = monthlyCod ?? {};
+  if (!rows?.length) return <Empty />;
+
+  return (
+    <div className="space-y-6">
+      {months.map(month => {
+        // Check if this month has any data at all
+        const monthTotal = rows.reduce((s, r) => s + REGION_ORDER.reduce((rs, reg) => rs + (r.byRegion?.[reg]?.[month] ?? 0), 0), 0);
+        return (
+          <div key={month}>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-semibold text-foreground">
+                COD Declared — {fmtMonth(month)}
+              </h3>
+              {monthTotal === 0 && (
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">No data</span>
+              )}
+              {monthTotal > 0 && (
+                <span className="text-xs text-violet-700 font-semibold bg-violet-50 px-2 py-0.5 rounded">
+                  {fmt(monthTotal)} MW total
+                </span>
+              )}
+            </div>
+            <div className="overflow-x-auto rounded-xl border">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/50 border-b">
+                    <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground sticky left-0 bg-muted/50">Source</th>
+                    {REGION_ORDER.map(r => (
+                      <th key={r} className="px-3 py-2.5 text-right font-semibold text-muted-foreground">{r}</th>
+                    ))}
+                    <th className="px-3 py-2.5 text-right font-semibold text-foreground">All India</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => {
+                    const allIndia = REGION_ORDER.reduce((s, r) => s + (row.byRegion?.[r]?.[month] ?? 0), 0);
+                    if (allIndia === 0 && !row.isTotal) return null;
+                    return (
+                      <tr key={i} className={`border-t border-border/50 ${row.isTotal ? 'bg-muted/40 font-semibold border-t-2 border-border' : 'hover:bg-muted/20'}`}>
+                        <td className="px-3 py-2 sticky left-0 bg-card border-r border-border/30">
+                          <Badge label={row.source} colorCls={SOURCE_COLORS[row.source] ?? 'bg-muted text-foreground'} />
+                        </td>
+                        {REGION_ORDER.map(r => {
+                          const v = row.byRegion?.[r]?.[month] ?? 0;
+                          return (
+                            <td key={r} className={`px-3 py-2 text-right tabular-nums ${v > 0 ? 'text-violet-700 font-medium' : 'text-muted-foreground'}`}>
+                              {v > 0 ? fmt(v) : '—'}
+                            </td>
+                          );
+                        })}
+                        <td className={`px-3 py-2 text-right tabular-nums font-bold ${allIndia > 0 ? 'text-violet-700' : 'text-muted-foreground'}`}>
+                          {allIndia > 0 ? fmt(allIndia) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Empty() {
+  return (
+    <div className="rounded-xl border bg-muted/20 p-12 text-center text-sm text-muted-foreground">
+      No data to display. Add projects and commissioning phases to see the summary.
+    </div>
+  );
+}
+
+// ── Filter bar ────────────────────────────────────────────────────────────────
+
+function DateField({ label, type, value, onChange }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+        {label}
+      </label>
+      {type === 'month'
+        ? <MonthPicker value={value ?? ''} onChange={v => onChange(v || null)} className="h-9" />
+        : <DatePicker  value={value ?? ''} onChange={v => onChange(v || null)} className="h-9" />}
+    </div>
+  );
+}
+
+function FilterBar({ asOf, fromMonth, toMonth }) {
+  const router = useRouter();
+  const sp     = useSearchParams();
+  const [open, setOpen] = useState(false);
+  const { settings, storeOption } = useSettings();
+  const refMonth = settings.referenceMonth ?? '2026-04';
+
+  const update = useCallback((key, value) => {
+    const params = new URLSearchParams(sp.toString());
+    if (value) params.set(key, value);
+    else        params.delete(key);
+    router.push(`/dashboard?${params.toString()}`);
+  }, [router, sp]);
+
+  const clearAll = () => router.push('/dashboard');
+  const hasFilter = asOf || fromMonth || toMonth;
+
+  const buildExportUrl = () => {
+    const params = new URLSearchParams();
+    if (asOf)      params.set('asOf',  asOf);
+    if (fromMonth) params.set('from',  fromMonth);
+    if (toMonth)   params.set('to',    toMonth);
+    return `/api/grid/export?${params.toString()}`;
+  };
+
+  return (
+    <div className="rounded-xl border bg-card shadow-sm">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-muted/40 transition-colors rounded-t-xl"
+      >
+        <svg className="size-3.5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Filters &amp; Export</span>
+        {hasFilter && (
+          <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            Active
+          </span>
+        )}
+        <ChevronDown
+          className={`size-4 text-muted-foreground ml-auto transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+        />
+      </button>
+
+      {open && (
+        <div className="border-t">
+        <div className="flex flex-wrap items-end gap-4 px-4 py-3">
+        {/* Section: Pipeline date */}
+        <div className="flex flex-col gap-1">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-0.5">
+            Pipeline Snapshot
+          </p>
+          <div className="w-[180px]">
+            <DateField
+              label="As of Date"
+              type="date"
+              value={asOf}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={v => update('asOf', v)}
+            />
+          </div>
+        </div>
+
+        <div className="h-10 w-px bg-border self-end mb-1 hidden sm:block" />
+
+        {/* Section: Monthly COD range */}
+        <div className="flex flex-col gap-1">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-0.5">
+            Monthly COD Range
+          </p>
+          <div className="flex items-end gap-2">
+            <div className="w-[148px]">
+              <DateField
+                label="From"
+                type="month"
+                value={fromMonth}
+                max={toMonth ?? undefined}
+                onChange={v => update('from', v)}
+              />
+            </div>
+            <span className="mb-2 text-muted-foreground text-sm">→</span>
+            <div className="w-[148px]">
+              <DateField
+                label="To"
+                type="month"
+                value={toMonth}
+                min={fromMonth ?? undefined}
+                onChange={v => update('to', v)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="h-10 w-px bg-border self-end mb-1 hidden sm:block" />
+
+        {/* Section: Reference Month */}
+        <div className="flex flex-col gap-1">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-0.5">
+            Expected Capacity Month
+          </p>
+          <div className="w-[148px]">
+            <DateField
+              label="Reference Month"
+              type="month"
+              value={refMonth}
+              onChange={v => storeOption('referenceMonth', v || '2026-04')}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-end gap-2 ml-auto pb-0.5">
+          {hasFilter && (
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <FilterX className="size-3.5" />
+              Clear
+            </button>
+          )}
+          <a
+            href={buildExportUrl()}
+            download
+            className="flex items-center gap-1.5 h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+          >
+            <Download className="size-3.5" />
+            Download Excel
+          </a>
+        </div>
+
+        </div>
+
+        {/* Active filter pills */}
+        {hasFilter && (
+          <div className="flex flex-wrap gap-2 border-t bg-amber-50/50 px-4 py-2">
+            {asOf && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800">
+                <CalendarDays className="size-3" />
+                Pipeline as of {new Date(asOf + 'T00:00:00').toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}
+                <button onClick={() => update('asOf', null)} className="ml-0.5 hover:text-amber-900 font-bold">×</button>
+              </span>
+            )}
+            {(fromMonth || toMonth) && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-800">
+                <CalendarDays className="size-3" />
+                COD {fromMonth ? fmtMonth(fromMonth) : '…'} → {toMonth ? fmtMonth(toMonth) : '…'}
+                <button onClick={() => {
+                  const params = new URLSearchParams(sp.toString());
+                  params.delete('from'); params.delete('to');
+                  router.push(`/dashboard?${params.toString()}`);
+                }} className="ml-0.5 hover:text-blue-900 font-bold">×</button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Client ───────────────────────────────────────────────────────────────
+
+export function SummaryPageClient({
+  regionLabel,
+  asOf,
+  fromMonth,
+  toMonth,
+  stats,
+  table2Rows,
+  table5Rows,
+  contd4Study,
+  transmissionRows,
+  hybridRows,
+  monthlyCod,
+}) {
+  const [activeTab, setActiveTab] = useState('pipeline');
+  const { settings } = useSettings();
+  const refMonthLabel = fmtRefMonthShort(settings.referenceMonth);
+
+  const tabs = [
+    { id: 'pipeline',     label: 'FTC Pipeline',      icon: TrendingUp  },
+    { id: 'contd4',       label: 'CONTD-4 Study',     icon: Layers      },
+    { id: 'hybrid',       label: 'Hybrid Breakdown',  icon: GitBranch   },
+    { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3     },
+    { id: 'transmission', label: 'Transmission',       icon: Cable       },
+    { id: 'monthlycod',   label: 'Monthly COD',        icon: CalendarDays },
+  ];
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="size-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <BarChart3 className="size-5 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Generation &amp; Transmission Summary</h1>
+            <p className="text-sm text-muted-foreground">
+              {regionLabel}
+              {asOf && <span className="ml-2 text-amber-600 font-medium">· As of {new Date(asOf).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</span>}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <FilterBar asOf={asOf} fromMonth={fromMonth} toMonth={toMonth} />
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <StatCard icon={Zap}         label="Applied for FTC"  value={stats.totalApplied}  color="blue"    />
+        <StatCard icon={TrendingUp}  label="FTC Completed"    value={stats.totalFtc}      color="emerald" />
+        <StatCard icon={BarChart3}   label="TOC Issued"       value={stats.totalToc}      color="amber"   />
+        <StatCard icon={Zap}         label="COD Declared"     value={stats.totalCod}      color="violet"  />
+        <StatCard icon={Layers}      label="Active CONTD-4"   value={stats.contd4Active}  unit="projects" color="rose"   />
+        <StatCard icon={Cable}       label="Tx Pending FTC"   value={stats.txPending}     unit="elements" color="slate"  />
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b">
+        <nav className="-mb-px flex gap-0 overflow-x-auto">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  active
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Tab content */}
+      <div>
+        {activeTab === 'pipeline' && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="FTC Pipeline — Region × Source"
+              desc="Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process (capacityUnderFtcMw), not simply unapproved."
+            />
+            <PipelineTable rows={table2Rows} primaryKey="region" refMonthLabel={refMonthLabel} />
+          </section>
+        )}
+
+        {activeTab === 'contd4' && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="CONTD-4 Study — Expected Completion by Month"
+              desc="Active (PENDING / RECEIVED) CONTD-4 applications, grouped by region and source type, showing the declared capacity per target month."
+            />
+            <Contd4StudyTable contd4Study={contd4Study} />
+          </section>
+        )}
+
+        {activeTab === 'hybrid' && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="Hybrid Capacity Breakdown — by Source Component"
+              desc="Hybrid projects split into their constituent source types (Wind, Solar, BESS, PSP) with per-source FTC → TOC → COD pipeline."
+            />
+            <HybridBreakdownTable hybridRows={hybridRows} refMonthLabel={refMonthLabel} />
+          </section>
+        )}
+
+        {activeTab === 'sourcewise' && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="FTC Pipeline — Source × Region"
+              desc="Same pipeline data pivoted: rows grouped by source type, columns show each region. Useful for All-India source-level tracking."
+            />
+            <PipelineTable rows={table5Rows} primaryKey="source" refMonthLabel={refMonthLabel} />
+          </section>
+        )}
+
+        {activeTab === 'transmission' && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="Transmission Elements — FTC Status"
+              desc="Transmission lines and ICTs grouped by region and type (RE/Non-RE). FTC Done = elements where pendingFtc = false."
+            />
+            <TransmissionTable transmissionRows={transmissionRows} />
+          </section>
+        )}
+
+        {activeTab === 'monthlycod' && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="Monthly COD — Capacity Commissioned"
+              desc="COD declared capacity (MW) by source type and region, per calendar month. Based on codDeclaredDate."
+            />
+            <MonthlyCodeTable monthlyCod={monthlyCod} />
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, desc }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-base font-semibold text-foreground">{title}</h2>
+      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+    </div>
+  );
+}

@@ -1,0 +1,229 @@
+/* ============================================================
+   Government Loader — Design Tokens + Styles
+   Canonical implementation from gov-loader design package.
+   ============================================================ */
+
+:root {
+  --brand-navy:         #0B2A5B;
+  --brand-navy-deep:    #061A3A;
+  --brand-navy-soft:    #1B3D74;
+  --brand-saffron:      #E8821C;
+  --brand-saffron-soft: #F4A85A;
+  --brand-yellow:       #F2B233;
+  --brand-green:        #2E7D4F;
+  --brand-green-soft:   #4FA372;
+  --brand-paper:        #F5F3EE;
+
+  --ink-900: #0F1626;
+  --ink-700: #2A3247;
+  --ink-500: #5B6478;
+  --ink-300: #9AA2B3;
+  --ink-100: #D9DDE4;
+  --ink-050: #EDEFF3;
+  --ink-000: #FFFFFF;
+
+  --gov-fg-primary:    var(--ink-900);
+  --gov-fg-secondary:  var(--ink-500);
+  --gov-fg-muted:      var(--ink-300);
+  --gov-fg-on-navy:    #ffffff;
+  --gov-fg-on-navy-2:  rgba(255,255,255,0.72);
+  --gov-bg-navy:       var(--brand-navy);
+  --gov-bg-page:       var(--brand-paper);
+  --gov-border-subtle: var(--ink-100);
+
+  --gov-font-sans:  "Inter", "Helvetica Neue", Arial, sans-serif;
+  --gov-font-serif: "Source Serif 4", Georgia, serif;
+  --gov-font-mono:  "JetBrains Mono", ui-monospace, monospace;
+
+  --gov-ease-standard:  cubic-bezier(0.4, 0.0, 0.2, 1);
+  --gov-ease-emphasized: cubic-bezier(0.2, 0.0, 0, 1);
+  --gov-ease-decel:     cubic-bezier(0.0, 0.0, 0.2, 1);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+
+.gov-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  --gov-loader-fg:    var(--gov-fg-on-navy);
+  --gov-loader-fg-2:  var(--gov-fg-on-navy-2);
+  --gov-loader-track: rgba(255,255,255,0.10);
+}
+
+/* ---------- Themes ---------- */
+.gov-loader--navy  { background: var(--brand-navy); }
+
+.gov-loader--paper {
+  --gov-loader-fg:    var(--gov-fg-primary);
+  --gov-loader-fg-2:  var(--gov-fg-secondary);
+  --gov-loader-track: rgba(11,42,91,0.10);
+  background: var(--gov-bg-page);
+}
+
+/* ---------- Page + inline fill their container ---------- */
+.gov-loader--page,
+.gov-loader--inline {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Hairline at top of full-page loader */
+.gov-loader--page.gov-loader--navy::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.gov-loader--page.gov-loader--paper::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--gov-border-subtle);
+}
+
+/* ---------- Plate ---------- */
+.gov-loader__plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gov-loader__copy {
+  text-align: center;
+  max-width: 320px;
+}
+
+.gov-loader__label {
+  font: 600 18px/1.35 var(--gov-font-sans);
+  color: var(--gov-loader-fg);
+  letter-spacing: -0.005em;
+  margin-bottom: 8px;
+}
+
+.gov-loader--inline .gov-loader__label {
+  font: 600 14px/1.35 var(--gov-font-sans);
+}
+
+.gov-loader__sublabel {
+  font: 400 13px/1.5 var(--gov-font-sans);
+  color: var(--gov-loader-fg-2);
+}
+
+.gov-loader--inline .gov-loader__sublabel {
+  font: 400 12px/1.4 var(--gov-font-sans);
+}
+
+/* ---------- Ring + seal ---------- */
+.gov-loader__ring-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gov-loader__ring {
+  position: absolute;
+  inset: 0;
+}
+
+.gov-loader__seal {
+  position: relative;
+  z-index: 1;
+  display: block;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.45));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.gov-loader--paper .gov-loader__seal {
+  filter: drop-shadow(0 4px 12px rgba(11,42,91,0.18));
+}
+
+/* ---------- Indeterminate motion — 1.6s, no bounce ---------- */
+.gov-loader__ring-active {
+  transform-origin: center;
+  animation:
+    govRingSpin 1600ms linear infinite,
+    govRingDash 1600ms var(--gov-ease-standard) infinite;
+}
+
+@keyframes govRingSpin {
+  from { transform: rotate(-90deg); }
+  to   { transform: rotate(270deg); }
+}
+
+@keyframes govRingDash {
+  0%   { stroke-dasharray:  20 420; }
+  50%  { stroke-dasharray: 180 260; }
+  100% { stroke-dasharray:  20 420; }
+}
+
+/* ============================================================
+   Overlay — blurred backdrop over working page
+   ============================================================ */
+
+.gov-loader--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(11, 42, 91, 0.45) !important;
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  animation: govOverlayIn 240ms var(--gov-ease-decel);
+}
+
+.gov-loader--overlay.gov-loader--paper {
+  background: rgba(245, 243, 238, 0.65) !important;
+}
+
+/* Inside an overlay the loader floats — no plate background, no card */
+.gov-loader--overlay .gov-loader__plate {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0 !important;
+  animation: govPlateIn 320ms var(--gov-ease-decel);
+}
+
+/* Label colours flip because there is no plate to anchor them */
+.gov-loader--overlay .gov-loader__label         { color: #ffffff; }
+.gov-loader--overlay .gov-loader__sublabel      { color: rgba(255,255,255,0.72); }
+.gov-loader--overlay.gov-loader--paper .gov-loader__label    { color: var(--gov-fg-primary); }
+.gov-loader--overlay.gov-loader--paper .gov-loader__sublabel { color: var(--gov-fg-secondary); }
+
+/* Overlay suppresses the hairline — it's decorative on a solid bg only */
+.gov-loader--overlay::before { display: none !important; }
+
+@keyframes govOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes govPlateIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Button-sized inline spinner
+   ============================================================ */
+
+.gov-loader--button {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  background: transparent;
+  color: currentColor;
+}
+
+.gov-loader--button .gov-loader__ring-active {
+  transform-origin: center;
+}

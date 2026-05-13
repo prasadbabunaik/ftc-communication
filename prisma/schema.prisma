@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SRLDC
+  NRLDC
+  ERLDC
+  WRLDC
+  NERLDC
+  NLDC
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         UserRole @default(NLDC)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens        RefreshToken[]
+  createdProjects      GenerationProject[]    @relation("ProjectCreator")
+  projectNotes         ProjectNote[]          @relation("NoteAuthor")
+  transmissionAuditLogs TransmissionAuditLog[] @relation("TxAuditAuthor")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+// ─── GRID TRACKER: MASTER TABLES ──────────────────────────────────────────────
+
+model GridRegion {
+  id   String @id @default(cuid())
+  code String @unique
+  name String
+
+  poolingStations      PoolingStation[]
+  projects             GenerationProject[]
+  transmissionElements TransmissionElement[]
+
+  @@map("grid_regions")
+}
+
+model PlantType {
+  id       String             @id @default(cuid())
+  code     String             @unique
+  label    String
+  category GenerationCategory
+  isHybrid Boolean            @default(false)
+
+  projects GenerationProject[]
+
+  @@map("plant_types")
+}
+
+model PoolingStation {
+  id        String     @id @default(cuid())
+  name      String
+  voltageKv Int?
+  regionId  String
+  region    GridRegion @relation(fields: [regionId], references: [id])
+
+  projects GenerationProject[]
+
+  @@unique([name, regionId])
+  @@map("pooling_stations")
+}
+
+// ─── GRID TRACKER: CORE DOMAIN ────────────────────────────────────────────────
+
+model GenerationProject {
+  id               String          @id @default(cuid())
+  name             String
+  developerName    String?
+  regionId         String
+  region           GridRegion      @relation(fields: [regionId], references: [id])
+  plantTypeId      String
+  plantType        PlantType       @relation(fields: [plantTypeId], references: [id])
+  poolingStationId String?
+  poolingStation   PoolingStation? @relation(fields: [poolingStationId], references: [id])
+
+  totalCapacityMw Decimal  @db.Decimal(10, 2)
+  windCapacityMw  Decimal? @db.Decimal(10, 2)
+  solarCapacityMw Decimal? @db.Decimal(10, 2)
+  bessCapacityMw  Decimal? @db.Decimal(10, 2)
+
+  createdById String
+  createdBy   User   @relation("ProjectCreator", fields: [createdById], references: [id])
+
+  contd4 Contd4Application?
+  phases CommissioningPhase[]
+  notes  ProjectNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([regionId])
+  @@map("generation_projects")
+}
+
+model Contd4Application {
+  id        String            @id @default(cuid())
+  projectId String            @unique
+  project   GenerationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  applicationDate DateTime
+  proposedFtcDate DateTime?
+  capacityApr26Mw Decimal?     @db.Decimal(10, 2)
+  capacityMonth   String?
+  status          Contd4Status @default(PENDING)
+  remarks         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contd4_applications")
+}
+
+model CommissioningPhase {
+  id        String            @id @default(cuid())
+  projectId String
+  project   GenerationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  sourceType        SourceType
+  capacityAppliedMw Decimal    @db.Decimal(10, 2)
+
+  ftcCompletedMw     Decimal?  @db.Decimal(10, 2)
+  ftcCompletedDate   DateTime?
+  proposedFtcDate    DateTime?
+  capacityUnderFtcMw Decimal?  @db.Decimal(10, 2)
+
+  tocIssuedMw        Decimal?  @db.Decimal(10, 2)
+  tocIssuedDate      DateTime?
+  capacityUnderTocMw Decimal?  @db.Decimal(10, 2)
+
+  codDeclaredMw   Decimal?  @db.Decimal(10, 2)
+  codDeclaredDate DateTime?
+  expectedApr26Mw Decimal?  @db.Decimal(10, 2)
+
+  delayCategory String?
+  delayRemarks  String?
+  otherRemarks  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notes ProjectNote[]
+
+  @@index([projectId])
+  @@map("commissioning_phases")
+}
+
+// ─── GRID TRACKER: AUDIT FEED ─────────────────────────────────────────────────
+
+model ProjectNote {
+  id        String             @id @default(cuid())
+  projectId String
+  project   GenerationProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phaseId   String?
+  phase     CommissioningPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User               @relation("NoteAuthor", fields: [userId], references: [id])
+  text      String
+  source    NoteSource         @default(MANUAL)
+  field     String?
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime           @default(now())
+
+  @@index([projectId])
+  @@index([phaseId])
+  @@map("project_notes")
+}
+
+model TransmissionAuditLog {
+  id          String               @id @default(cuid())
+  elementId   String?
+  element     TransmissionElement? @relation(fields: [elementId], references: [id], onDelete: SetNull)
+  elementName String?
+  userId      String
+  user        User                 @relation("TxAuditAuthor", fields: [userId], references: [id])
+  action      String
+  field       String?
+  oldValue    String?
+  newValue    String?
+  createdAt   DateTime             @default(now())
+
+  @@index([elementId])
+  @@map("transmission_audit_logs")
+}
+
+enum NoteSource {
+  MANUAL
+  SYSTEM
+}
+
+// ─── GRID TRACKER: TRANSMISSION ───────────────────────────────────────────────
+
+model TransmissionElement {
+  id       String     @id @default(cuid())
+  regionId String
+  region   GridRegion @relation(fields: [regionId], references: [id])
+
+  agencyOwner  String
+  elementName  String
+  elementType  TransmissionType
+  isRe         Boolean          @default(false)
+  voltageRatingKv Int?
+  capacityMva     Decimal?      @db.Decimal(10, 2)
+  lineLengthKm    Decimal?      @db.Decimal(10, 3)
+
+  firstEnergyDate DateTime?
+  pendingFtc      Boolean   @default(false)
+  proposedFtcDate DateTime?
+
+  capacityApr26Mva  Decimal? @db.Decimal(10, 2)
+  lineLengthApr26Km Decimal? @db.Decimal(10, 3)
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs TransmissionAuditLog[]
+
+  @@index([regionId])
+  @@map("transmission_elements")
+}
+
+// ─── GRID TRACKER: ENUMS ──────────────────────────────────────────────────────
+
+enum GenerationCategory {
+  RENEWABLE
+  CONVENTIONAL
+  STORAGE
+}
+
+enum SourceType {
+  WIND
+  SOLAR
+  COAL
+  HYDRO
+  PSP
+  BESS
+}
+
+enum Contd4Status {
+  PENDING
+  RECEIVED
+  CLEARED
+  REJECTED
+}
+
+enum TransmissionType {
+  LINE
+  ICT
+  GT
+  ST
+}
