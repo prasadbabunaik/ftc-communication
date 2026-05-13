@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Layers, Plus, Zap } from 'lucide-react';
+import { Layers, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FtcTable } from '@/components/grid/FtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
@@ -60,18 +59,10 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
         </div>
 
         {canEdit && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setPhaseOpen(true)}>
-              <Layers className="size-4 mr-2" />
-              Add Phase
-            </Button>
-            <Button asChild>
-              <Link href="/generation/new">
-                <Plus className="size-4 mr-2" />
-                Add Project
-              </Link>
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => setPhaseOpen(true)}>
+            <Layers className="size-4 mr-2" />
+            Add Phase
+          </Button>
         )}
       </div>
 

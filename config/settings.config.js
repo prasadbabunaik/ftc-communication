@@ -1,6 +1,11 @@
+function currentYearMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export const APP_SETTINGS = {
   layout: '',
-  referenceMonth: '2026-04',
+  referenceMonth: currentYearMonth(),
   layouts: {
     demo1: {
       sidebarCollapse: false,

@@ -78,6 +78,7 @@ export default async function DashboardPage({ searchParams }) {
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
       monthlyCod={JSON.parse(JSON.stringify(monthlyCod))}
+      projects={JSON.parse(JSON.stringify(projects))}
     />
   );
 }

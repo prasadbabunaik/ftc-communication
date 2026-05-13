@@ -1,0 +1,383 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(v) {
+  if (v == null) return '—';
+  const n = Number(v);
+  if (n === 0) return '0';
+  const parts = n.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const dec = parts[1]?.replace(/0+$/, '');
+  return dec ? `${parts[0]}.${dec}` : parts[0];
+}
+
+function DeltaCell({ val }) {
+  const n = Number(val ?? 0);
+  const abs = Math.abs(n);
+  if (abs < 0.01) return <td className="px-2 py-1 text-right text-xs text-slate-400">—</td>;
+  const color = n > 0 ? 'text-emerald-600' : 'text-red-600';
+  const Icon  = n > 0 ? TrendingUp : TrendingDown;
+  return (
+    <td className={`px-2 py-1 text-right text-xs font-semibold ${color}`}>
+      <span className="inline-flex items-center gap-0.5">
+        <Icon className="size-3" />
+        {n > 0 ? '+' : ''}{fmt(n)}
+      </span>
+    </td>
+  );
+}
+
+function NumCell({ v }) {
+  return <td className="px-2 py-1 text-right text-xs text-slate-700">{fmt(v)}</td>;
+}
+
+const SOURCE_BADGE = {
+  WIND:   'bg-sky-100 text-sky-700',
+  SOLAR:  'bg-amber-100 text-amber-700',
+  BESS:   'bg-violet-100 text-violet-700',
+  HYBRID: 'bg-teal-100 text-teal-700',
+  COAL:   'bg-stone-100 text-stone-700',
+  HYDRO:  'bg-blue-100 text-blue-700',
+  PSP:    'bg-emerald-100 text-emerald-700',
+};
+const REGION_BADGE = {
+  NR: 'bg-indigo-100 text-indigo-700', WR: 'bg-orange-100 text-orange-700',
+  SR: 'bg-pink-100 text-pink-700', ER: 'bg-cyan-100 text-cyan-700', NER: 'bg-lime-100 text-lime-700',
+};
+
+// ── T2 Diff table ─────────────────────────────────────────────────────────────
+
+const T2_COLS = [
+  { key: 'totalCapacityMw', label: 'Total MW' },
+  { key: 'ftcApprovedMw',   label: 'FTC OK'   },
+  { key: 'ftcPendingMw',    label: 'FTC Pend' },
+  { key: 'tocIssuedMw',     label: 'TOC OK'   },
+  { key: 'tocPendingMw',    label: 'TOC Pend' },
+  { key: 'codCompletedMw',  label: 'COD OK'   },
+  { key: 'codPendingMw',    label: 'COD Pend' },
+  { key: 'expectedMw',      label: 'Expected' },
+];
+
+function T2DiffTable({ changes }) {
+  if (!changes?.length) return <p className="text-sm text-muted-foreground py-4">No FTC Pipeline changes between these dates.</p>;
+  return (
+    <div className="overflow-x-auto rounded border border-border">
+      <table className="w-full text-xs min-w-[700px]">
+        <thead>
+          <tr className="bg-slate-700 text-white text-[10px]">
+            <th className="px-3 py-2 text-left whitespace-nowrap">Region</th>
+            <th className="px-3 py-2 text-left whitespace-nowrap">Source</th>
+            {T2_COLS.map(c => (
+              <th key={c.key} colSpan={3} className="px-2 py-2 text-center whitespace-nowrap border-l border-slate-600">{c.label}</th>
+            ))}
+          </tr>
+          <tr className="bg-slate-600 text-slate-200 text-[10px]">
+            <th colSpan={2} />
+            {T2_COLS.map(c => (
+              <>
+                <th key={c.key+'-f'} className="px-2 py-1 text-center border-l border-slate-500">From</th>
+                <th key={c.key+'-t'} className="px-2 py-1 text-center">To</th>
+                <th key={c.key+'-d'} className="px-2 py-1 text-center">Δ</th>
+              </>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {changes.map((row, i) => (
+            <tr key={row.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              <td className="px-3 py-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${REGION_BADGE[row.region] ?? 'bg-slate-100'}`}>{row.region}</span>
+              </td>
+              <td className="px-3 py-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? 'bg-slate-100'}`}>{row.source}</span>
+              </td>
+              {T2_COLS.map(c => (
+                <>
+                  <NumCell key={c.key+'-f'} v={row[c.key]?.from} />
+                  <NumCell key={c.key+'-t'} v={row[c.key]?.to}   />
+                  <DeltaCell key={c.key+'-d'} val={row[c.key]?.delta} />
+                </>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── T1 Diff table ─────────────────────────────────────────────────────────────
+
+function T1DiffTable({ changes }) {
+  if (!changes?.length) return <p className="text-sm text-muted-foreground py-4">No CONTD-4 Study changes between these dates.</p>;
+  return (
+    <div className="overflow-x-auto rounded border border-border">
+      <table className="w-full text-xs min-w-[500px]">
+        <thead>
+          <tr className="bg-slate-700 text-white text-[10px]">
+            <th className="px-3 py-2 text-left">Region</th>
+            <th className="px-3 py-2 text-left">Source</th>
+            <th className="px-2 py-2 text-center border-l border-slate-600" colSpan={3}>Total MW</th>
+            <th className="px-2 py-2 text-center border-l border-slate-600" colSpan={3}>Monthly Capacity</th>
+          </tr>
+          <tr className="bg-slate-600 text-slate-200 text-[10px]">
+            <th colSpan={2} />
+            <th className="px-2 py-1 text-center border-l border-slate-500">From</th>
+            <th className="px-2 py-1 text-center">To</th>
+            <th className="px-2 py-1 text-center">Δ</th>
+            <th className="px-2 py-1 text-center border-l border-slate-500" colSpan={3}>Month / From / To / Δ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {changes.map((row, i) => (
+            <tr key={row.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              <td className="px-3 py-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${REGION_BADGE[row.region] ?? 'bg-slate-100'}`}>{row.region}</span>
+              </td>
+              <td className="px-3 py-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? 'bg-slate-100'}`}>{row.source}</span>
+              </td>
+              <NumCell v={row.totalMw?.from} />
+              <NumCell v={row.totalMw?.to}   />
+              <DeltaCell val={row.totalMw?.delta} />
+              <td colSpan={3} className="px-3 py-1.5 border-l border-slate-100">
+                {Object.entries(row.months ?? {}).filter(([,d]) => Math.abs(d.delta) >= 0.01).map(([m, d]) => (
+                  <div key={m} className="text-[10px] flex items-center gap-1">
+                    <span className="text-slate-500">{m}:</span>
+                    <span>{fmt(d.from)}</span>
+                    <span className="text-slate-400">→</span>
+                    <span>{fmt(d.to)}</span>
+                    {Math.abs(d.delta) >= 0.01 && (
+                      <span className={d.delta > 0 ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>
+                        ({d.delta > 0 ? '+' : ''}{fmt(d.delta)})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── T3 Diff table ─────────────────────────────────────────────────────────────
+
+function T3DiffTable({ changes }) {
+  if (!changes?.length) return <p className="text-sm text-muted-foreground py-4">No Transmission changes between these dates.</p>;
+  const cols = [
+    { key: 'completedNo', label: 'Comp. No' },
+    { key: 'completedKm', label: 'Comp. Km' },
+    { key: 'completedMva', label: 'Comp. MVA' },
+    { key: 'pendingNo', label: 'Pend. No' },
+    { key: 'pendingKm', label: 'Pend. Km' },
+    { key: 'pendingMva', label: 'Pend. MVA' },
+  ];
+  return (
+    <div className="overflow-x-auto rounded border border-border">
+      <table className="w-full text-xs min-w-[600px]">
+        <thead>
+          <tr className="bg-slate-700 text-white text-[10px]">
+            <th className="px-3 py-2 text-left">Region</th>
+            <th className="px-3 py-2 text-left">Category</th>
+            {cols.map(c => (
+              <th key={c.key} colSpan={3} className="px-2 py-2 text-center border-l border-slate-600">{c.label}</th>
+            ))}
+          </tr>
+          <tr className="bg-slate-600 text-slate-200 text-[10px]">
+            <th colSpan={2} />
+            {cols.map(c => (
+              <>
+                <th key={c.key+'-f'} className="px-2 py-1 text-center border-l border-slate-500">From</th>
+                <th key={c.key+'-t'} className="px-2 py-1 text-center">To</th>
+                <th key={c.key+'-d'} className="px-2 py-1 text-center">Δ</th>
+              </>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {changes.map((row, i) => (
+            <tr key={row.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              <td className="px-3 py-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${REGION_BADGE[row.region] ?? 'bg-slate-100'}`}>{row.region}</span>
+              </td>
+              <td className="px-3 py-1.5 font-medium text-slate-700">{row.category}</td>
+              {cols.map(c => (
+                <>
+                  <NumCell key={c.key+'-f'} v={row[c.key]?.from} />
+                  <NumCell key={c.key+'-t'} v={row[c.key]?.to}   />
+                  <DeltaCell key={c.key+'-d'} val={row[c.key]?.delta} />
+                </>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export function SnapshotCompareTab() {
+  const [snapshots, setSnapshots] = useState([]);
+  const [fromDate, setFromDate]   = useState('');
+  const [toDate,   setToDate]     = useState('');
+  const [diff,     setDiff]       = useState(null);
+  const [loading,  setLoading]    = useState(false);
+  const [error,    setError]      = useState(null);
+
+  useEffect(() => {
+    fetch('/api/grid/snapshots')
+      .then(r => r.json())
+      .then(d => {
+        const snaps = d.data ?? [];
+        setSnapshots(snaps);
+        if (snaps.length >= 2) {
+          setFromDate(snaps[0].snapshotDate.slice(0, 10));
+          setToDate(snaps[snaps.length - 1].snapshotDate.slice(0, 10));
+        }
+      })
+      .catch(() => setError('Failed to load snapshots'));
+  }, []);
+
+  const loadDiff = async () => {
+    if (!fromDate || !toDate) return;
+    if (fromDate === toDate) { setError('Select two different dates'); return; }
+    setLoading(true); setError(null); setDiff(null);
+    try {
+      const res = await fetch(`/api/grid/snapshots/compare?from=${fromDate}&to=${toDate}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Error');
+      setDiff(json.data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso + 'T00:00:00Z');
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const totalChanges = (diff?.t2?.length ?? 0) + (diff?.t1?.length ?? 0) + (diff?.t3?.length ?? 0);
+
+  return (
+    <div className="space-y-5">
+      {/* Controls */}
+      <div className="bg-white border border-border rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Compare Two Dates</h3>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">From Date</label>
+            <select
+              value={fromDate}
+              onChange={e => setFromDate(e.target.value)}
+              className="border border-border rounded px-2 py-1.5 text-sm bg-white min-w-[150px]"
+            >
+              <option value="">Select date…</option>
+              {snapshots.map(s => (
+                <option key={s.id} value={s.snapshotDate.slice(0, 10)}>
+                  {fmtDate(s.snapshotDate.slice(0, 10))} {s.label && s.label !== s.snapshotDate.slice(0, 10) ? `— ${s.label}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">To Date</label>
+            <select
+              value={toDate}
+              onChange={e => setToDate(e.target.value)}
+              className="border border-border rounded px-2 py-1.5 text-sm bg-white min-w-[150px]"
+            >
+              <option value="">Select date…</option>
+              {snapshots.map(s => (
+                <option key={s.id} value={s.snapshotDate.slice(0, 10)}>
+                  {fmtDate(s.snapshotDate.slice(0, 10))} {s.label && s.label !== s.snapshotDate.slice(0, 10) ? `— ${s.label}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={loadDiff}
+            disabled={loading || !fromDate || !toDate}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Loading…' : 'Compare'}
+          </button>
+        </div>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      </div>
+
+      {/* Available snapshots */}
+      {!diff && snapshots.length > 0 && (
+        <div className="bg-slate-50 border border-border rounded-lg p-4">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Available Snapshots ({snapshots.length})</h4>
+          <div className="flex flex-wrap gap-2">
+            {snapshots.map(s => (
+              <span key={s.id} className="inline-flex items-center px-2 py-1 rounded bg-white border border-border text-xs text-slate-700 font-mono">
+                {s.snapshotDate.slice(0, 10)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {diff && (
+        <div className="space-y-6">
+          {/* Summary banner */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+            <div className="text-sm text-blue-800">
+              <span className="font-bold">{fmtDate(diff.from.date)}</span>
+              <span className="mx-2 text-blue-400">→</span>
+              <span className="font-bold">{fmtDate(diff.to.date)}</span>
+            </div>
+            <div className="ml-auto flex gap-3 text-xs">
+              <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 font-semibold">{diff.t2.length} FTC changes</span>
+              <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold">{diff.t1.length} CONTD-4 changes</span>
+              <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 font-semibold">{diff.t3.length} TX changes</span>
+            </div>
+          </div>
+
+          {totalChanges === 0 && (
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-slate-50 border border-border text-muted-foreground text-sm">
+              <Minus className="size-4" /> No changes detected between these dates.
+            </div>
+          )}
+
+          {diff.t2.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-foreground mb-2">FTC Pipeline Changes (T2)</h3>
+              <T2DiffTable changes={diff.t2} />
+            </section>
+          )}
+
+          {diff.t1.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-foreground mb-2">CONTD-4 Study Changes (T1)</h3>
+              <T1DiffTable changes={diff.t1} />
+            </section>
+          )}
+
+          {diff.t3.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-foreground mb-2">Transmission Changes (T3)</h3>
+              <T3DiffTable changes={diff.t3} />
+            </section>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

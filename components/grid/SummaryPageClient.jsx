@@ -2,10 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart3, ChevronDown, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, FilterX } from 'lucide-react';
+import { BarChart3, ChevronDown, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, FilterX, History, ListTree } from 'lucide-react';
 import { useSettings } from '@/providers/settings-provider';
 import { DatePicker } from '@/components/ui/date-picker';
 import { MonthPicker } from '@/components/ui/month-picker';
+import { SnapshotCompareTab } from '@/components/grid/SnapshotCompareTab';
+import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
+import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -39,11 +42,15 @@ function fmtMonth(ym) {
 const REGION_ORDER = ['NR', 'WR', 'SR', 'ER', 'NER'];
 const SOURCE_ORDER = ['WIND', 'SOLAR', 'BESS', 'HYBRID', 'COAL', 'HYDRO', 'PSP'];
 
+const HYBRID_BADGE = 'bg-teal-100 text-teal-800 border border-teal-200';
 const SOURCE_BADGE = {
   WIND:   'bg-sky-100 text-sky-800 border border-sky-200',
   SOLAR:  'bg-amber-100 text-amber-800 border border-amber-200',
   BESS:   'bg-violet-100 text-violet-800 border border-violet-200',
-  HYBRID: 'bg-teal-100 text-teal-800 border border-teal-200',
+  HYBRID: HYBRID_BADGE,
+  HYBRID_WS:  HYBRID_BADGE, HYBRID_SB: HYBRID_BADGE, HYBRID_WSB: HYBRID_BADGE,
+  HYBRID_WB:  HYBRID_BADGE, HYBRID_WP: HYBRID_BADGE, HYBRID_HP:  HYBRID_BADGE,
+  HYBRID_SP:  HYBRID_BADGE,
   COAL:   'bg-stone-100 text-stone-700 border border-stone-200',
   HYDRO:  'bg-blue-100 text-blue-800 border border-blue-200',
   PSP:    'bg-emerald-100 text-emerald-800 border border-emerald-200',
@@ -72,36 +79,37 @@ function Chip({ label, colorCls }) {
 function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   return (
     <thead className="sticky top-0 z-20 text-[10px]">
-      <tr className="bg-slate-800 text-white">
-        <th rowSpan={2} className="sticky left-0 z-30 bg-slate-800 px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap" style={{ minWidth: 76 }}>
+      <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+        <th rowSpan={2} className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
         </th>
-        <th rowSpan={2} className="sticky z-30 bg-slate-800 px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap" style={{ left: 76, minWidth: 80 }}>
+        <th rowSpan={2} className="sticky z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 80 }}>
           {isRegionPrimary ? 'Source' : 'Region'}
         </th>
-        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-600 whitespace-nowrap">Total Cap (MW)</th>
-        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-600 whitespace-nowrap text-slate-300">CONTD-4 (MW)</th>
-        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-400 whitespace-nowrap">Applied (MW)</th>
-        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-blue-700 border-r border-blue-500 whitespace-nowrap">FTC (MW)</th>
-        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-violet-700 border-r border-violet-500 whitespace-nowrap">TOC (MW)</th>
-        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-700 border-r border-emerald-500 whitespace-nowrap">COD (MW)</th>
-        <th rowSpan={2} className="px-3 py-2 text-center font-bold bg-amber-700 border-l border-amber-500 whitespace-nowrap">{refMonthLabel}</th>
+        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
+        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap text-slate-400">CONTD-4 (MW)</th>
+        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied (MW)</th>
+        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC (MW)</th>
+        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-violet-50 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC (MW)</th>
+        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD (MW)</th>
+        <th rowSpan={2} className="px-3 py-2 text-center font-bold bg-amber-50 text-amber-700 border-l border-amber-200 whitespace-nowrap">{refMonthLabel}</th>
       </tr>
       <tr className="text-[10px]">
-        <th className="px-3 py-1 text-right font-semibold bg-blue-600 text-white border-r border-blue-500 whitespace-nowrap">Approved</th>
-        <th className="px-3 py-1 text-right font-semibold bg-blue-800/60 text-blue-100 border-r border-slate-600 whitespace-nowrap">Pending</th>
-        <th className="px-3 py-1 text-right font-semibold bg-violet-600 text-white border-r border-violet-500 whitespace-nowrap">Issued</th>
-        <th className="px-3 py-1 text-right font-semibold bg-violet-800/60 text-violet-100 border-r border-slate-600 whitespace-nowrap">Pending</th>
-        <th className="px-3 py-1 text-right font-semibold bg-emerald-600 text-white border-r border-emerald-500 whitespace-nowrap">Done</th>
-        <th className="px-3 py-1 text-right font-semibold bg-emerald-800/60 text-emerald-100 border-r border-slate-600 whitespace-nowrap">Pending</th>
+        <th className="px-3 py-1 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">Approved</th>
+        <th className="px-3 py-1 text-right font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
+        <th className="px-3 py-1 text-right font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">Issued</th>
+        <th className="px-3 py-1 text-right font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap">Pending</th>
+        <th className="px-3 py-1 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">Done</th>
+        <th className="px-3 py-1 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
       </tr>
     </thead>
   );
 }
 
 function PipelineRow({ row, i, rows, isRegionPrimary }) {
-  const isTotal    = row.isTotal;
-  const isSubtotal = row.isSubtotal && !isTotal;
+  const isTotal          = row.isTotal;
+  const isSubtotal       = row.isSubtotal && !isTotal;
+  const isAllIndia       = row.isAllIndiaBreakdown;
   const primary    = isRegionPrimary ? row.region : row.source;
   const secondary  = isRegionPrimary ? row.source : row.region;
 
@@ -110,12 +118,16 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
     !prevRow.isSubtotal && !prevRow.isTotal &&
     (isRegionPrimary ? prevRow.region === row.region : prevRow.source === row.source);
 
-  const bg = isTotal ? 'bg-slate-100' : isSubtotal ? 'bg-slate-50/80' : 'bg-white';
+  const isFirstAllIndia = isAllIndia && !prevRow?.isAllIndiaBreakdown;
+
+  const bg = isTotal ? 'bg-slate-100' : isSubtotal ? 'bg-slate-50/80' : isAllIndia ? 'bg-slate-50/40' : 'bg-white';
 
   const rowCls = isTotal
     ? 'border-t-2 border-slate-400 text-[11px]'
     : isSubtotal
     ? 'border-t border-slate-200 text-[11px]'
+    : isFirstAllIndia
+    ? 'border-t-2 border-slate-300 text-[11px] transition-colors hover:bg-slate-100/60'
     : 'border-t border-gray-100 hover:bg-blue-50/20 text-[11px] transition-colors';
 
   const bold = isSubtotal || isTotal;
@@ -131,7 +143,9 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
       <td className={`px-3 py-2 sticky left-0 border-r border-gray-200 z-10 ${bg}`}>
         {isTotal && <span className="font-bold text-[11px] text-foreground">All India</span>}
         {!isTotal && !isSubtotal && !sameGroup && (
-          <Chip label={primary} colorCls={isRegionPrimary ? REGION_BADGE[primary] : SOURCE_BADGE[primary]} />
+          isAllIndia
+            ? <span className="text-[11px] font-bold text-slate-600">All India</span>
+            : <Chip label={primary} colorCls={isRegionPrimary ? REGION_BADGE[primary] : SOURCE_BADGE[primary]} />
         )}
       </td>
       <td className={`px-3 py-2 sticky border-r border-gray-200 z-10 ${bg}`} style={{ left: 76 }}>
@@ -162,9 +176,9 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm">
       {title && (
-        <div className="bg-slate-700 text-white px-4 py-2.5">
-          <p className="text-[11px] font-bold uppercase tracking-wide">{title}</p>
-          {desc && <p className="text-[10px] text-slate-300 mt-0.5">{desc}</p>}
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">{title}</p>
+          {desc && <p className="text-[10px] text-slate-500 mt-0.5">{desc}</p>}
         </div>
       )}
       <div className="overflow-auto" style={{ maxHeight: '62vh' }}>
@@ -189,19 +203,19 @@ function Contd4StudyTable({ contd4Study }) {
 
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm">
-      <div className="bg-slate-700 text-white px-4 py-2.5">
-        <p className="text-[11px] font-bold uppercase tracking-wide">Total Capacity (MW) Under CONTD-4 Study</p>
-        <p className="text-[10px] text-slate-300 mt-0.5">Active (PENDING / RECEIVED) applications — expected completion by month</p>
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Capacity (MW) Under CONTD-4 Study</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">Active (PENDING / RECEIVED) applications — expected completion by month</p>
       </div>
       <div className="overflow-auto" style={{ maxHeight: '58vh' }}>
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 z-20">
-            <tr className="bg-slate-700 text-white text-[10px]">
-              <th className="sticky left-0 z-30 bg-slate-700 px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
-              <th className="sticky z-30 bg-slate-700 px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap" style={{ left: 76, minWidth: 80 }}>Source</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-600 whitespace-nowrap">Total Cap (MW)</th>
+            <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
+              <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
+              <th className="sticky z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
+              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
               {allMonths.map(m => (
-                <th key={m} className="px-3 py-2 text-right font-bold border-r border-slate-600 whitespace-nowrap bg-blue-700">
+                <th key={m} className="px-3 py-2 text-right font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700">
                   {fmtMonth(m)}
                 </th>
               ))}
@@ -228,7 +242,7 @@ function Contd4StudyTable({ contd4Study }) {
                   <td className={`px-3 py-2 sticky z-10 border-r border-gray-200 ${bg}`} style={{ left: 76 }}>
                     {isSubtotal || isTotal
                       ? <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
-                      : <Chip label={row.source} colorCls={SOURCE_BADGE[row.source]} />}
+                      : <Chip label={CONTD4_SOURCE_LABEL[row.source] ?? row.source} colorCls={SOURCE_BADGE[row.source]} />}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(row.totalMw)}</td>
                   {allMonths.map(m => {
@@ -260,31 +274,34 @@ const CAT_LABELS = {
   ST:         'ST (Station Transformer)',
 };
 
-function TransmissionSummaryTable({ transmissionRows }) {
+function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected' }) {
   if (!transmissionRows?.length) return <Empty />;
 
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm">
-      <div className="bg-slate-700 text-white px-4 py-2.5">
-        <p className="text-[11px] font-bold uppercase tracking-wide">Transmission Elements — FTC Status</p>
-        <p className="text-[10px] text-slate-300 mt-0.5">Lines, ICTs and transformers by region and type</p>
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Transmission Elements — FTC Status</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">Lines, ICTs and transformers by region and type · {refMonthLabel} column shows commissioning expected by reference month</p>
       </div>
       <div className="overflow-auto" style={{ maxHeight: '58vh' }}>
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 z-20">
-            <tr className="bg-slate-700 text-white text-[10px]">
-              <th className="sticky left-0 z-30 bg-slate-700 px-3 py-2 text-left font-bold border-r border-slate-600" style={{ minWidth: 76 }}>Region</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-600" style={{ minWidth: 220 }}>Element Type</th>
-              <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-700 border-r border-emerald-500 whitespace-nowrap">FTC Completed</th>
-              <th colSpan={2} className="px-3 py-1 text-center font-bold bg-amber-700 border-r border-amber-500 whitespace-nowrap">FTC Pending</th>
+            <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
+              <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
+              <th className="px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
+              <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">FTC Completed</th>
+              <th colSpan={2} className="px-3 py-1 text-center font-bold bg-amber-50 text-amber-700 border-r border-amber-200 whitespace-nowrap">FTC Pending</th>
+              <th colSpan={2} className="px-3 py-1 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">Commissioning Expected ({refMonthLabel})</th>
             </tr>
-            <tr className="text-[10px]">
-              <th className="sticky left-0 z-30 bg-slate-700 border-r border-slate-600" />
-              <th className="bg-slate-700 border-r border-slate-600" />
-              <th className="px-3 py-1 text-right font-semibold bg-emerald-600 text-white border-r border-emerald-500 whitespace-nowrap">No. of Elements</th>
-              <th className="px-3 py-1 text-right font-semibold bg-emerald-800/60 text-emerald-100 border-r border-slate-600 whitespace-nowrap">ckt km / MVA</th>
-              <th className="px-3 py-1 text-right font-semibold bg-amber-600 text-white border-r border-amber-500 whitespace-nowrap">No. of Elements</th>
-              <th className="px-3 py-1 text-right font-semibold bg-amber-800/60 text-amber-100 whitespace-nowrap">ckt km / MVA</th>
+            <tr className="text-[10px] bg-slate-50">
+              <th className="sticky left-0 z-30 bg-slate-50 border-r border-slate-200" />
+              <th className="bg-slate-50 border-r border-slate-200" />
+              <th className="px-3 py-1 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">No. of Elements</th>
+              <th className="px-3 py-1 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
+              <th className="px-3 py-1 text-right font-semibold bg-amber-100 text-amber-700 border-r border-amber-200 whitespace-nowrap">No. of Elements</th>
+              <th className="px-3 py-1 text-right font-semibold bg-amber-50 text-amber-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
+              <th className="px-3 py-1 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">No. of Elements</th>
+              <th className="px-3 py-1 text-right font-semibold bg-blue-50 text-blue-500 whitespace-nowrap">ckt km / MVA</th>
             </tr>
           </thead>
           <tbody>
@@ -294,6 +311,7 @@ function TransmissionSummaryTable({ transmissionRows }) {
               const isLine = row.category.startsWith('LINE');
               const completedVal = isLine ? row.completedKm  : row.completedMva;
               const pendingVal   = isLine ? row.pendingKm    : row.pendingMva;
+              const expectedVal  = isLine ? row.expectedKm   : row.expectedMva;
               return (
                 <tr key={i} className="border-t border-gray-100 bg-white hover:bg-amber-50/20 transition-colors">
                   <td className="px-3 py-2 sticky left-0 bg-white border-r border-gray-200 z-10">
@@ -311,8 +329,14 @@ function TransmissionSummaryTable({ transmissionRows }) {
                   <td className="px-3 py-2 text-right tabular-nums bg-amber-50/30 text-amber-800 font-semibold border-r border-amber-100">
                     {row.pendingCount || '0'}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-amber-50/20 text-amber-700">
+                  <td className="px-3 py-2 text-right tabular-nums bg-amber-50/20 text-amber-700 border-r border-slate-200">
                     {fmt(pendingVal)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums bg-blue-50/30 text-blue-800 font-semibold border-r border-blue-100">
+                    {row.expectedCount || '0'}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums bg-blue-50/20 text-blue-700">
+                    {fmt(expectedVal)}
                   </td>
                 </tr>
               );
@@ -331,23 +355,23 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected' }) {
 
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm">
-      <div className="bg-slate-700 text-white px-4 py-2.5">
-        <p className="text-[11px] font-bold uppercase tracking-wide">Total Hybrid Capacity Details Under FTC / TOC / COD (MW)</p>
-        <p className="text-[10px] text-slate-300 mt-0.5">Hybrid projects split by constituent source components (Wind, Solar, BESS)</p>
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Hybrid Capacity Details Under FTC / TOC / COD (MW)</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">Hybrid projects split by constituent source components (Wind, Solar, BESS)</p>
       </div>
       <div className="overflow-auto" style={{ maxHeight: '58vh' }}>
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 z-20">
-            <tr className="bg-slate-700 text-white text-[10px]">
-              <th className="sticky left-0 z-30 bg-slate-700 px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap" style={{ minWidth: 180 }}>Hybrid Type</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-600 whitespace-nowrap">Source</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-600 whitespace-nowrap">Total (MW)</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-600 whitespace-nowrap">Applied (MW)</th>
-              <th className="px-3 py-2 text-right font-bold bg-blue-700 border-r border-blue-500 whitespace-nowrap">FTC Approved</th>
-              <th className="px-3 py-2 text-right font-bold bg-violet-700 border-r border-violet-500 whitespace-nowrap">TOC Issued</th>
-              <th className="px-3 py-2 text-right font-bold bg-emerald-700 border-r border-emerald-500 whitespace-nowrap">COD Done</th>
-              <th className="px-3 py-2 text-right font-bold bg-amber-700 whitespace-nowrap">{refMonthLabel}</th>
+            <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
+              <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
+              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 180 }}>Hybrid Type</th>
+              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source</th>
+              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total (MW)</th>
+              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied (MW)</th>
+              <th className="px-3 py-2 text-right font-bold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC Approved</th>
+              <th className="px-3 py-2 text-right font-bold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC Issued</th>
+              <th className="px-3 py-2 text-right font-bold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD Done</th>
+              <th className="px-3 py-2 text-right font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{refMonthLabel}</th>
             </tr>
           </thead>
           <tbody>
@@ -552,6 +576,14 @@ function FilterBar({ asOf, fromMonth, toMonth }) {
               <a href={buildExportUrl()} download className="flex items-center gap-1.5 h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors">
                 <Download className="size-3.5" />Download Excel
               </a>
+              <a
+                href={`/dashboard/print${asOf ? `?asOf=${asOf}` : ''}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-colors"
+              >
+                <Download className="size-3.5" />Print / PDF
+              </a>
             </div>
           </div>
           {hasFilter && (
@@ -610,7 +642,7 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
 export function SummaryPageClient({
   regionLabel, asOf, fromMonth, toMonth,
   stats, table2Rows, table5Rows, contd4Study,
-  transmissionRows, hybridRows, monthlyCod,
+  transmissionRows, hybridRows, monthlyCod, projects,
 }) {
   const [activeTab, setActiveTab] = useState('pipeline');
   const { settings } = useSettings();
@@ -623,6 +655,8 @@ export function SummaryPageClient({
     { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3      },
     { id: 'transmission', label: 'Transmission',       icon: Cable        },
     { id: 'monthlycod',   label: 'Monthly COD',        icon: CalendarDays },
+    { id: 'projects',     label: 'Project Details',   icon: ListTree     },
+    { id: 'changes',      label: 'Day-wise Changes',  icon: History      },
   ];
 
   return (
@@ -711,11 +745,19 @@ export function SummaryPageClient({
         )}
 
         {activeTab === 'transmission' && (
-          <TransmissionSummaryTable transmissionRows={transmissionRows} />
+          <TransmissionSummaryTable transmissionRows={transmissionRows} refMonthLabel={refMonthLabel} />
         )}
 
         {activeTab === 'monthlycod' && (
           <MonthlyCodeTable monthlyCod={monthlyCod} />
+        )}
+
+        {activeTab === 'projects' && (
+          <ProjectDetailsTab projects={projects} refMonthLabel={refMonthLabel} />
+        )}
+
+        {activeTab === 'changes' && (
+          <SnapshotCompareTab />
         )}
       </div>
     </div>

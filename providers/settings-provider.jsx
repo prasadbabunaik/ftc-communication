@@ -47,15 +47,20 @@ export const SettingsProvider = ({ children }) => {
   useEffect(() => {
     if (!isBrowser()) return;
 
+    const currentYM = APP_SETTINGS.referenceMonth; // already computed dynamically
+    const storedYM  = getLeafFromStorage('referenceMonth');
+    // Clear stale past reference months so the dynamic default is used
+    if (storedYM && storedYM < currentYM) {
+      localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}referenceMonth`);
+    }
+
     const init = structuredClone(APP_SETTINGS);
     Object.keys(localStorage)
       .filter((key) => key.startsWith(LOCAL_STORAGE_PREFIX))
       .forEach((key) => {
-        const path = key.replace(LOCAL_STORAGE_PREFIX, '');
+        const path  = key.replace(LOCAL_STORAGE_PREFIX, '');
         const value = getLeafFromStorage(path);
-        if (value !== undefined) {
-          setToPath(init, path, value);
-        }
+        if (value !== undefined) setToPath(init, path, value);
       });
     setSettings(init);
   }, []);

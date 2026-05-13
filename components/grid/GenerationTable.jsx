@@ -145,23 +145,20 @@ export function GenerationTable({ projects, userRole, onView }) {
         <table className="w-full text-sm">
           <thead className="bg-muted/30 border-b">
             <tr>
-              <PlainTh label="Sr. No" className="w-[52px]" />
+              <PlainTh label="Sr. No"         className="w-[52px]" />
               <Th col="name"            label="Generating Station"  className="min-w-[200px]" />
-              <PlainTh label="Pooling Station"                       className="min-w-[180px]" />
               <Th col="region"          label="Region"               className="w-[80px]" />
-              <PlainTh label="Generation Type"                       className="min-w-[130px]" />
-              <Th col="totalCapacityMw" label="Capacity (MW)"        className="w-[110px]" />
-              <PlainTh label="Application Date"                      className="min-w-[130px]" />
-              <PlainTh label="Proposed FTC Date"                     className="min-w-[130px]" />
-              <PlainTh label={targetCapLabel}                         className="w-[130px]" />
-              <PlainTh label="CONTD-4 Status"                        className="w-[120px]" />
-              <PlainTh label="Issues / Remarks"                      className="min-w-[200px]" />
+              <Th col="totalCapacityMw" label="Capacity (MW)"        className="w-[100px]" />
+              <PlainTh label="App. Date"       className="w-[105px]" />
+              <PlainTh label="Proposed FTC"    className="w-[105px]" />
+              <PlainTh label={targetCapLabel}  className="w-[110px]" />
+              <PlainTh label="CONTD-4 Status"  className="w-[120px]" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No projects found.
                 </td>
               </tr>
@@ -173,14 +170,24 @@ export function GenerationTable({ projects, userRole, onView }) {
                   className="hover:bg-muted/30 transition-colors cursor-pointer"
                 >
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
-                  <td className="px-3 py-3 font-medium text-foreground">{p.name}</td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground">{p.poolingStation?.name ?? '—'}</td>
+                  <td className="px-3 py-2.5 min-w-[200px]">
+                    <div className="font-medium text-foreground truncate max-w-[260px]" title={p.name}>{p.name}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 whitespace-nowrap">
+                        {p.plantType.label}
+                      </span>
+                      {p.poolingStation?.name && (
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[160px]" title={p.poolingStation.name}>
+                          {p.poolingStation.name}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {p.region.code}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">{p.plantType.label}</td>
                   <td className="px-3 py-3 font-mono text-sm tabular-nums">{Number(p.totalCapacityMw).toFixed(1)}</td>
                   <td className="px-3 py-3 text-xs whitespace-nowrap">{fmt(p.contd4?.applicationDate)}</td>
                   <td className="px-3 py-3 text-xs whitespace-nowrap">{fmt(p.contd4?.proposedFtcDate)}</td>
@@ -195,9 +202,6 @@ export function GenerationTable({ projects, userRole, onView }) {
                     ) : (
                       <span className="text-muted-foreground text-xs">—</span>
                     )}
-                  </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground max-w-[220px] truncate">
-                    {p.contd4?.remarks ?? '—'}
                   </td>
                 </tr>
               ))

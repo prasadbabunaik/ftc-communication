@@ -9,7 +9,7 @@
       "applicationDate": "2026-01-23",
       "proposedFtcDate": null,
       "capacityApr26Mw": 100.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Under Process (Final Grant is yet to be approved by CTUIL for BESS)",
       "status": "PENDING"
     },
@@ -22,7 +22,7 @@
       "applicationDate": "2025-05-08",
       "proposedFtcDate": null,
       "capacityApr26Mw": 125.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Meeting held on 22.04.2026 for expeditiously closing the CONN-TD-4",
       "status": "PENDING"
     },
@@ -35,7 +35,7 @@
       "applicationDate": "2025-02-10",
       "proposedFtcDate": null,
       "capacityApr26Mw": 125.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Review of Study Completed,\n Under Finalization, compliance sheet will be shared shortly",
       "status": "PENDING"
     },
@@ -48,7 +48,7 @@
       "applicationDate": "2025-06-10",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Review of Study Completed,\n Under Finalization, compliance sheet will be shared shortly",
       "status": "PENDING"
     },
@@ -61,7 +61,7 @@
       "applicationDate": "2026-12-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": 50.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Reply pending at plant end",
       "status": "PENDING"
     },
@@ -74,8 +74,21 @@
       "applicationDate": "2026-03-24",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Final Grant given for 281 MW (Solar + BESSS) in existing 180 MW SRI4L project at Bikaner-II PS",
+      "status": "PENDING"
+    },
+    {
+      "name": "Serentica Renewables India Private Ltd (BESS)",
+      "region": "NR",
+      "plantTypeCode": "BESS",
+      "poolingStation": "Bikaner-II",
+      "totalCapacityMw": 140.0,
+      "applicationDate": "2026-03-24",
+      "proposedFtcDate": null,
+      "capacityApr26Mw": 0.0,
+      "capacityMonth": null,
+      "remarks": "Final Grant given for 281 MW (Solar + BESS) in existing 180 MW SRI4L project at Bikaner-II PS",
       "status": "PENDING"
     },
     {
@@ -87,7 +100,7 @@
       "applicationDate": "2025-12-15",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Compliance sheet already shared (Closed)",
       "status": "PENDING"
     },
@@ -100,7 +113,7 @@
       "applicationDate": null,
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Under Process",
       "status": "PENDING"
     },
@@ -113,7 +126,7 @@
       "applicationDate": "2026-01-20",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Under Process",
       "status": "PENDING"
     },
@@ -126,7 +139,7 @@
       "applicationDate": "2025-12-30",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Reply pending at plant end. Models & reports not submitted.",
       "status": "PENDING"
     },
@@ -139,7 +152,7 @@
       "applicationDate": "2025-02-17",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "1. Technical details of the WTG, SVG, and PPC are pending.",
       "status": "PENDING"
     },
@@ -152,7 +165,7 @@
       "applicationDate": "2025-09-17",
       "proposedFtcDate": null,
       "capacityApr26Mw": 100.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "The complaince sheet is signed for 127 MW",
       "status": "PENDING"
     },
@@ -165,7 +178,7 @@
       "applicationDate": "2026-02-24",
       "proposedFtcDate": null,
       "capacityApr26Mw": 300.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -178,7 +191,7 @@
       "applicationDate": "2026-03-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": 50.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "CAT-2 signed for 140 MW.",
       "status": "PENDING"
     },
@@ -191,7 +204,7 @@
       "applicationDate": "2025-08-26",
       "proposedFtcDate": null,
       "capacityApr26Mw": 50.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "CAT-2 signed. FTC application is awaited.\nThe 50 MW capacity is ready. CEA inspection is expected by 30.04.2026",
       "status": "PENDING"
     },
@@ -204,7 +217,7 @@
       "applicationDate": "2025-10-29",
       "proposedFtcDate": null,
       "capacityApr26Mw": 50.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -217,7 +230,7 @@
       "applicationDate": "2025-12-23",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -230,7 +243,7 @@
       "applicationDate": "2026-03-19",
       "proposedFtcDate": null,
       "capacityApr26Mw": 50.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "CAT-II is signed for 157 MW as per CEA directives for allowing standalone study acceptance for the capacity ready up to Jun'26",
       "status": "PENDING"
     },
@@ -243,7 +256,7 @@
       "applicationDate": "2025-11-26",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer. Application closed by CTUIL.",
       "status": "PENDING"
     },
@@ -256,7 +269,7 @@
       "applicationDate": "2025-07-15",
       "proposedFtcDate": "2026-06-30",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -269,7 +282,7 @@
       "applicationDate": "2025-07-15",
       "proposedFtcDate": "2026-06-30",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -282,7 +295,7 @@
       "applicationDate": "2025-08-26",
       "proposedFtcDate": "2026-03-31",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "The connection agreement has been signed for 81 MW \nConnection agreement for 33 MW Solar capacity Under GNA 5.2 is awaited",
       "status": "PENDING"
     },
@@ -295,7 +308,7 @@
       "applicationDate": "2025-08-20",
       "proposedFtcDate": "2026-03-05",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -308,7 +321,7 @@
       "applicationDate": "2025-09-10",
       "proposedFtcDate": null,
       "capacityApr26Mw": 50.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -321,7 +334,7 @@
       "applicationDate": "2025-10-24",
       "proposedFtcDate": "2026-12-31",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Incomplete submission\n 1. Technical details of the inverter, SVG, and PPC are pending.\n 2. ICT overloading is observed beyond nameplate rating (up to 112%) in reactive POWER capability studies.\n 3. PSSE/PSCAD models can be reviewed only after receipt of pending unit-level technical details.",
       "status": "PENDING"
     },
@@ -334,7 +347,7 @@
       "applicationDate": "2025-11-19",
       "proposedFtcDate": "2026-12-31",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "The connection agreement has been signed for 165 MW \n 1. The reactive POWER capability study is not as per plant's operating philosophy, WTG terminal voltages are beyond the nominal rating.\n 2. Model improvement in PSCAD to be addressed. (Faster initialization, longer simulation run). Timeline will be included in the compliance sheet.",
       "status": "PENDING"
     },
@@ -347,7 +360,7 @@
       "applicationDate": "2025-09-10",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Incomplete submission:\n 1. PSSE and PSCAD model submission is pending",
       "status": "PENDING"
     },
@@ -360,7 +373,7 @@
       "applicationDate": "2025-02-12",
       "proposedFtcDate": "2026-09-30",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Pending points:\n 1. Reactive POWER capability study cases not submitted.\n 2. Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -373,7 +386,7 @@
       "applicationDate": "2025-12-12",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -386,7 +399,7 @@
       "applicationDate": null,
       "proposedFtcDate": "2026-11-19",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Technical data submission is pending",
       "status": "PENDING"
     },
@@ -399,7 +412,7 @@
       "applicationDate": "2026-11-01",
       "proposedFtcDate": "2026-06-30",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Pending points:\n 1. PSCAD model initialisation and slow run issues to be addressed\n 2. FFR response to be modeled properly \n 3. Difference in PSSE and PSCAD response to be resolved",
       "status": "PENDING"
     },
@@ -412,7 +425,7 @@
       "applicationDate": "2026-11-01",
       "proposedFtcDate": "2026-05-31",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Incomplete submission:\n 1. PSCAD models not submitted",
       "status": "PENDING"
     },
@@ -425,7 +438,7 @@
       "applicationDate": "2026-02-03",
       "proposedFtcDate": "2026-12-18",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -438,7 +451,7 @@
       "applicationDate": "2026-02-03",
       "proposedFtcDate": "2026-08-31",
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -451,7 +464,7 @@
       "applicationDate": "2026-03-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -464,7 +477,7 @@
       "applicationDate": "2026-04-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -477,7 +490,7 @@
       "applicationDate": "2026-03-23",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised PSCAD models are awaited from developer",
       "status": "PENDING"
     },
@@ -490,7 +503,7 @@
       "applicationDate": "2026-04-24",
       "proposedFtcDate": null,
       "capacityApr26Mw": 0.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Technical data submission is pending",
       "status": "PENDING"
     },
@@ -503,7 +516,7 @@
       "applicationDate": "2025-02-21",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied ,Revised models receievd on 06.04.2026 from CTUIL",
       "status": "PENDING"
     },
@@ -516,7 +529,7 @@
       "applicationDate": "2025-03-27",
       "proposedFtcDate": null,
       "capacityApr26Mw": 134.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Models complied and compliance sheet sent to CTUIL. CONNTD-4 Issued for 200MW on 31.03.2026 for installed capacity of 300.3MW",
       "status": "PENDING"
     },
@@ -529,7 +542,7 @@
       "applicationDate": "2026-02-26",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised models received on 09.03.2026,Model check is in progress.",
       "status": "PENDING"
     },
@@ -542,7 +555,7 @@
       "applicationDate": "2025-08-27",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD & PSSE not complied",
       "status": "PENDING"
     },
@@ -555,7 +568,7 @@
       "applicationDate": "2025-08-09",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Revised models received on 20.03.2026 and model check is in progress",
       "status": "PENDING"
     },
@@ -568,7 +581,7 @@
       "applicationDate": "2025-09-09",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Compliance sheet sent to CTUIL",
       "status": "PENDING"
     },
@@ -581,7 +594,7 @@
       "applicationDate": "2025-11-21",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied .Revised models received on 31.03.2026",
       "status": "PENDING"
     },
@@ -594,7 +607,7 @@
       "applicationDate": "2023-08-17",
       "proposedFtcDate": null,
       "capacityApr26Mw": 100.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "applied for connectivity enhacement,PSCAD dynamic model not complied ,Revised models receievd and observations sent to CTUIL on 01.04.2026",
       "status": "PENDING"
     },
@@ -607,7 +620,7 @@
       "applicationDate": "2025-07-12",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied .Revised models  received on 01.04.2026",
       "status": "PENDING"
     },
@@ -620,7 +633,7 @@
       "applicationDate": "2025-12-31",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD Harmonic, dynamic model & PSSE models not complied .Revised models awaited from developer",
       "status": "PENDING"
     },
@@ -633,7 +646,7 @@
       "applicationDate": "2026-01-21",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied",
       "status": "PENDING"
     },
@@ -646,7 +659,7 @@
       "applicationDate": null,
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied",
       "status": "PENDING"
     },
@@ -659,7 +672,7 @@
       "applicationDate": "2025-12-25",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "applied for connectivity enhacement ,Models received on 22.03.2026 and Observations sent on 06.04.2026",
       "status": "PENDING"
     },
@@ -672,7 +685,7 @@
       "applicationDate": "2023-11-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": 55.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "CONTD-4 issued for enhanced connectivity from 84MW to 136MW on 24.03.2026",
       "status": "PENDING"
     },
@@ -685,7 +698,7 @@
       "applicationDate": "2026-01-29",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied ,Revised models awaited from developer",
       "status": "PENDING"
     },
@@ -698,7 +711,7 @@
       "applicationDate": "2026-01-29",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied ,Revised models awaited from developer",
       "status": "PENDING"
     },
@@ -711,7 +724,7 @@
       "applicationDate": "2026-01-29",
       "proposedFtcDate": null,
       "capacityApr26Mw": 176.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Cat-2 signed on 22.03.2026",
       "status": "PENDING"
     },
@@ -724,7 +737,7 @@
       "applicationDate": "2026-01-28",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied ,Revised models awaited from developer",
       "status": "PENDING"
     },
@@ -737,7 +750,7 @@
       "applicationDate": "2026-02-20",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied ,Revised models awaited from developer",
       "status": "PENDING"
     },
@@ -750,7 +763,7 @@
       "applicationDate": "2026-12-02",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "PSCAD dynamic model & PSSE not complied ,Revised models awaited from developer",
       "status": "PENDING"
     },
@@ -763,7 +776,7 @@
       "applicationDate": "2026-09-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Model submitted on 10.03.2026 & Model check in progress",
       "status": "PENDING"
     },
@@ -776,7 +789,7 @@
       "applicationDate": "2026-09-03",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Model submitted on 10.03.2026 & Model check in progress",
       "status": "PENDING"
     },
@@ -789,7 +802,7 @@
       "applicationDate": "2023-08-28",
       "proposedFtcDate": null,
       "capacityApr26Mw": 60.0,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Model complied and cat-2 signed on 23.03.2026",
       "status": "PENDING"
     },
@@ -802,7 +815,7 @@
       "applicationDate": "2026-03-27",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Models received on 27.03.2026",
       "status": "PENDING"
     },
@@ -815,7 +828,7 @@
       "applicationDate": "2026-02-04",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Models received on 02.04.2026",
       "status": "PENDING"
     },
@@ -828,7 +841,7 @@
       "applicationDate": "2026-08-04",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Models received on 08.04.2026 AND model check is in progress",
       "status": "PENDING"
     },
@@ -841,7 +854,7 @@
       "applicationDate": "2026-10-04",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Models received on 10.04.2026 AND model check is in progress",
       "status": "PENDING"
     },
@@ -854,7 +867,7 @@
       "applicationDate": "2026-06-04",
       "proposedFtcDate": null,
       "capacityApr26Mw": null,
-      "capacityMonth": "2026-04",
+      "capacityMonth": "2026-05",
       "remarks": "Models received on 06.04.2026 AND model check is in progress",
       "status": "PENDING"
     }
@@ -1001,7 +1014,7 @@
         {
           "sourceType": "BESS",
           "capacityAppliedMw": 365.0,
-          "ftcCompletedMw": 465.0,
+          "ftcCompletedMw": 365.0,
           "ftcCompletedDate": "2026-03-16",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
@@ -1035,7 +1048,7 @@
           "tocIssuedDate": "2025-04-17",
           "capacityUnderTocMw": null,
           "codDeclaredMw": 87.5,
-          "codDeclaredDate": "2026-04-21",
+          "codDeclaredDate": "2026-04-19",
           "expectedApr26Mw": 62.5,
           "delayRemarks": null,
           "otherRemarks": null
@@ -1083,14 +1096,14 @@
           "ftcCompletedDate": "2026-04-27",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 166.665,
+          "tocIssuedMw": 233.333,
           "tocIssuedDate": "2026-03-31",
           "capacityUnderTocMw": null,
-          "codDeclaredMw": 166.665,
+          "codDeclaredMw": 233.333,
           "codDeclaredDate": null,
-          "expectedApr26Mw": 133.0,
+          "expectedApr26Mw": 66.66,
           "delayRemarks": null,
-          "otherRemarks": null
+          "otherRemarks": "33.33MW COD date was 02.04.2026(3rd lot)"
         }
       ]
     },
@@ -1130,17 +1143,17 @@
       "phases": [
         {
           "sourceType": "BESS",
-          "capacityAppliedMw": 178.571,
-          "ftcCompletedMw": 178.571,
-          "ftcCompletedDate": "2026-03-16",
+          "capacityAppliedMw": 250.0,
+          "ftcCompletedMw": 250.0,
+          "ftcCompletedDate": "2026-04-17",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 175.223,
-          "tocIssuedDate": "2026-03-23",
+          "tocIssuedMw": 210.938,
+          "tocIssuedDate": "2026-04-13",
           "capacityUnderTocMw": 0.0,
-          "codDeclaredMw": 175.223,
-          "codDeclaredDate": null,
-          "expectedApr26Mw": 74.777,
+          "codDeclaredMw": 210.938,
+          "codDeclaredDate": "2026-05-13",
+          "expectedApr26Mw": 39.062,
           "delayRemarks": null,
           "otherRemarks": null
         }
@@ -1157,18 +1170,18 @@
         {
           "sourceType": "SOLAR",
           "capacityAppliedMw": 234.57,
-          "ftcCompletedMw": 0.0,
+          "ftcCompletedMw": 234.57,
           "ftcCompletedDate": null,
           "proposedFtcDate": null,
-          "capacityUnderFtcMw": 234.57,
+          "capacityUnderFtcMw": null,
           "tocIssuedMw": null,
           "tocIssuedDate": null,
           "capacityUnderTocMw": null,
           "codDeclaredMw": null,
           "codDeclaredDate": null,
-          "expectedApr26Mw": 250.0,
+          "expectedApr26Mw": null,
           "delayRemarks": null,
-          "otherRemarks": "Annex. B Returned on 18.03.2026. Revised submitted on 30-03-26"
+          "otherRemarks": null
         }
       ]
     },
@@ -1183,18 +1196,18 @@
         {
           "sourceType": "SOLAR",
           "capacityAppliedMw": 93.75,
-          "ftcCompletedMw": 0.0,
+          "ftcCompletedMw": 93.75,
           "ftcCompletedDate": null,
           "proposedFtcDate": null,
-          "capacityUnderFtcMw": 93.75,
+          "capacityUnderFtcMw": null,
           "tocIssuedMw": null,
           "tocIssuedDate": null,
           "capacityUnderTocMw": null,
           "codDeclaredMw": null,
           "codDeclaredDate": null,
-          "expectedApr26Mw": 100.0,
+          "expectedApr26Mw": null,
           "delayRemarks": null,
-          "otherRemarks": "Annex. B Returned on 18.03.2026. Revised submitted on 30-03-26"
+          "otherRemarks": null
         }
       ]
     },
@@ -1213,11 +1226,11 @@
           "ftcCompletedDate": null,
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 69.0,
-          "tocIssuedDate": "2025-07-11",
+          "tocIssuedMw": 129.0,
+          "tocIssuedDate": "2025-11-07",
           "capacityUnderTocMw": null,
-          "codDeclaredMw": 69.0,
-          "codDeclaredDate": "2025-09-11",
+          "codDeclaredMw": 129.0,
+          "codDeclaredDate": "2025-11-09",
           "expectedApr26Mw": 60.6,
           "delayRemarks": null,
           "otherRemarks": null
@@ -1343,14 +1356,14 @@
           "ftcCompletedDate": null,
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": null,
-          "tocIssuedDate": null,
+          "tocIssuedMw": 211.0,
+          "tocIssuedDate": "2026-05-06",
           "capacityUnderTocMw": null,
-          "codDeclaredMw": null,
-          "codDeclaredDate": null,
-          "expectedApr26Mw": 400.0,
+          "codDeclaredMw": 211.0,
+          "codDeclaredDate": "2026-05-09",
+          "expectedApr26Mw": null,
           "delayRemarks": null,
-          "otherRemarks": "Annexure B returb 24.03.26"
+          "otherRemarks": null
         }
       ]
     },
@@ -1395,12 +1408,12 @@
           "ftcCompletedDate": "2026-01-04",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 148.0,
+          "tocIssuedMw": null,
           "tocIssuedDate": "2026-04-13",
           "capacityUnderTocMw": null,
-          "codDeclaredMw": 148.0,
-          "codDeclaredDate": "2026-04-13",
-          "expectedApr26Mw": 148.0,
+          "codDeclaredMw": 296.0,
+          "codDeclaredDate": "2026-04-15",
+          "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": null
         }
@@ -1446,13 +1459,39 @@
           "ftcCompletedMw": 660.0,
           "ftcCompletedDate": "2026-03-30",
           "proposedFtcDate": null,
-          "capacityUnderFtcMw": 660.0,
+          "capacityUnderFtcMw": null,
           "tocIssuedMw": null,
           "tocIssuedDate": null,
           "capacityUnderTocMw": null,
           "codDeclaredMw": null,
           "codDeclaredDate": null,
           "expectedApr26Mw": 660.0,
+          "delayRemarks": null,
+          "otherRemarks": null
+        }
+      ]
+    },
+    {
+      "name": "Serentica Renewables India 9 Private Limited (SRI9PL)",
+      "region": "NR",
+      "plantTypeCode": "SOLAR",
+      "poolingStation": "Fatehgarh-III",
+      "totalCapacityMw": 600.0,
+      "contd4CapacityMw": 600.0,
+      "phases": [
+        {
+          "sourceType": "SOLAR",
+          "capacityAppliedMw": 280.84,
+          "ftcCompletedMw": 280.84,
+          "ftcCompletedDate": "2026-04-29",
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": null,
+          "tocIssuedMw": null,
+          "tocIssuedDate": null,
+          "capacityUnderTocMw": null,
+          "codDeclaredMw": null,
+          "codDeclaredDate": null,
+          "expectedApr26Mw": null,
           "delayRemarks": null,
           "otherRemarks": null
         }
@@ -1500,10 +1539,10 @@
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
           "tocIssuedMw": 62.4,
-          "tocIssuedDate": "2026-03-28",
+          "tocIssuedDate": null,
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 62.4,
-          "codDeclaredDate": "2026-03-28",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Full COD complete"
@@ -1525,11 +1564,11 @@
           "ftcCompletedDate": "2026-03-27",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 375.0,
-          "tocIssuedDate": "2026-03-30",
+          "tocIssuedMw": 500.0,
+          "tocIssuedDate": null,
           "capacityUnderTocMw": 125.0,
           "codDeclaredMw": 350.0,
-          "codDeclaredDate": "2026-03-30",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 150.0,
           "delayRemarks": null,
           "otherRemarks": null
@@ -1552,7 +1591,7 @@
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
           "tocIssuedMw": 150.0,
-          "tocIssuedDate": "2026-04-27",
+          "tocIssuedDate": null,
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 150.0,
           "codDeclaredDate": null,
@@ -1578,10 +1617,10 @@
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
           "tocIssuedMw": 150.0,
-          "tocIssuedDate": "2026-03-17",
+          "tocIssuedDate": null,
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 150.0,
-          "codDeclaredDate": "2026-03-20",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Full COD complete"
@@ -1607,7 +1646,7 @@
           "tocIssuedDate": "2026-03-17",
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 150.0,
-          "codDeclaredDate": "2026-03-20",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Full COD complete"
@@ -1633,7 +1672,7 @@
           "tocIssuedDate": "2026-03-17",
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 298.0,
-          "codDeclaredDate": "2026-03-20",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Hybrid connectivity 216 MW \nFull COD complete"
@@ -1660,7 +1699,7 @@
           "capacityUnderTocMw": 75.0,
           "codDeclaredMw": 400.0,
           "codDeclaredDate": null,
-          "expectedApr26Mw": 0.0,
+          "expectedApr26Mw": 75.0,
           "delayRemarks": null,
           "otherRemarks": null
         }
@@ -1707,12 +1746,12 @@
           "ftcCompletedDate": "2026-04-24",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 380.0,
-          "tocIssuedDate": "2026-04-24",
-          "capacityUnderTocMw": 95.0,
-          "codDeclaredMw": 380.0,
+          "tocIssuedMw": 460.0,
+          "tocIssuedDate": "2026-05-05",
+          "capacityUnderTocMw": 15.0,
+          "codDeclaredMw": 460.0,
           "codDeclaredDate": null,
-          "expectedApr26Mw": 60.0,
+          "expectedApr26Mw": 15.0,
           "delayRemarks": null,
           "otherRemarks": null
         }
@@ -1737,7 +1776,7 @@
           "tocIssuedDate": "2026-03-26",
           "capacityUnderTocMw": 19.8,
           "codDeclaredMw": 161.7,
-          "codDeclaredDate": "2026-03-27",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 19.8,
           "delayRemarks": null,
           "otherRemarks": null
@@ -1884,7 +1923,7 @@
       "phases": [
         {
           "sourceType": "SOLAR",
-          "capacityAppliedMw": 201.0,
+          "capacityAppliedMw": 203.7,
           "ftcCompletedMw": 174.0,
           "ftcCompletedDate": "2026-04-22",
           "proposedFtcDate": null,
@@ -1919,7 +1958,7 @@
           "tocIssuedDate": "2026-03-31",
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 129.9,
-          "codDeclaredDate": "2026-03-31",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Full COD complete"
@@ -1945,7 +1984,7 @@
           "tocIssuedDate": "2026-03-31",
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 150.0,
-          "codDeclaredDate": "2026-03-31",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Full COD complete"
@@ -1971,7 +2010,7 @@
           "tocIssuedDate": "2026-03-30",
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 1555.0,
-          "codDeclaredDate": "2026-03-30",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": null,
           "otherRemarks": "Full COD complete"
@@ -1997,10 +2036,10 @@
           "tocIssuedDate": "2026-04-24",
           "capacityUnderTocMw": 0.0,
           "codDeclaredMw": 1095.0,
-          "codDeclaredDate": "2026-04-24",
+          "codDeclaredDate": null,
           "expectedApr26Mw": 105.0,
           "delayRemarks": "CONN-TD-4 remaining for 105 MW",
-          "otherRemarks": null
+          "otherRemarks": "FTC already applied"
         }
       ]
     },
@@ -2010,11 +2049,11 @@
       "plantTypeCode": "WIND",
       "poolingStation": "Bhuj",
       "totalCapacityMw": 165.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 157.5,
       "phases": [
         {
           "sourceType": "WIND",
-          "capacityAppliedMw": 116.55,
+          "capacityAppliedMw": 132.3,
           "ftcCompletedMw": 50.4,
           "ftcCompletedDate": "2026-04-20",
           "proposedFtcDate": null,
@@ -2036,7 +2075,7 @@
       "plantTypeCode": "SOLAR",
       "poolingStation": "KPS2",
       "totalCapacityMw": 300.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2052,7 +2091,7 @@
           "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": "CAT-2  yet to be received",
-          "otherRemarks": "POWER park developer GIPCL - proposed in April"
+          "otherRemarks": "POWER park developer GIPCL - FTC already applied before receiving CON-4"
         }
       ]
     },
@@ -2062,7 +2101,7 @@
       "plantTypeCode": "SOLAR",
       "poolingStation": "KPS2",
       "totalCapacityMw": 265.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 64.76,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2088,7 +2127,7 @@
       "plantTypeCode": "SOLAR",
       "poolingStation": "KPS2",
       "totalCapacityMw": 200.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2114,7 +2153,7 @@
       "plantTypeCode": "SOLAR",
       "poolingStation": "KPS2",
       "totalCapacityMw": 300.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2130,7 +2169,7 @@
           "codDeclaredDate": null,
           "expectedApr26Mw": 300.0,
           "delayRemarks": "CAT-2  yet to be received",
-          "otherRemarks": "POWER park developer GSECL, charging proposed through interim connection from South block GSECL PSS  already commuincated through mail for submission of FTC application but it is stiil not received as on 27.03.26"
+          "otherRemarks": "POWER park developer GSECL, charging proposed through interim connection from South block GSECL PSS  FTC already applied before receiving CON-4"
         }
       ]
     },
@@ -2140,7 +2179,7 @@
       "plantTypeCode": "HYBRID_WS",
       "poolingStation": "Jam Khambhaliya",
       "totalCapacityMw": 250.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 127.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2155,7 +2194,7 @@
           "codDeclaredMw": null,
           "codDeclaredDate": null,
           "expectedApr26Mw": 128.7,
-          "delayRemarks": "CAT-2  yet to be received",
+          "delayRemarks": null,
           "otherRemarks": null
         }
       ]
@@ -2170,17 +2209,17 @@
       "phases": [
         {
           "sourceType": "WIND",
-          "capacityAppliedMw": 66.0,
-          "ftcCompletedMw": 66.0,
-          "ftcCompletedDate": "2026-03-31",
+          "capacityAppliedMw": 95.7,
+          "ftcCompletedMw": 95.7,
+          "ftcCompletedDate": "2026-04-30",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": null,
-          "tocIssuedDate": null,
-          "capacityUnderTocMw": 66.0,
-          "codDeclaredMw": null,
-          "codDeclaredDate": null,
-          "expectedApr26Mw": 66.0,
+          "tocIssuedMw": 59.4,
+          "tocIssuedDate": "2026-05-06",
+          "capacityUnderTocMw": 36.3,
+          "codDeclaredMw": 59.4,
+          "codDeclaredDate": "2026-05-06",
+          "expectedApr26Mw": 36.3,
           "delayRemarks": null,
           "otherRemarks": null
         }
@@ -2253,12 +2292,12 @@
           "ftcCompletedDate": "2026-04-28",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 160.0,
-          "tocIssuedDate": "2026-04-27",
+          "tocIssuedMw": 240.0,
+          "tocIssuedDate": "2026-05-05",
           "capacityUnderTocMw": 0.0,
-          "codDeclaredMw": 160.0,
+          "codDeclaredMw": 240.0,
           "codDeclaredDate": null,
-          "expectedApr26Mw": 80.0,
+          "expectedApr26Mw": 44.0,
           "delayRemarks": null,
           "otherRemarks": "Capacity installed is 320 MW to deliver 284 MW at POI"
         }
@@ -2300,15 +2339,15 @@
       "phases": [
         {
           "sourceType": "WIND",
-          "capacityAppliedMw": 130.0,
-          "ftcCompletedMw": 130.0,
-          "ftcCompletedDate": "2026-04-13",
+          "capacityAppliedMw": 208.0,
+          "ftcCompletedMw": 208.0,
+          "ftcCompletedDate": "2026-05-07",
           "proposedFtcDate": null,
           "capacityUnderFtcMw": 0.0,
-          "tocIssuedMw": 93.6,
+          "tocIssuedMw": 98.8,
           "tocIssuedDate": null,
           "capacityUnderTocMw": null,
-          "codDeclaredMw": 93.6,
+          "codDeclaredMw": 98.8,
           "codDeclaredDate": null,
           "expectedApr26Mw": 104.0,
           "delayRemarks": null,
@@ -2322,7 +2361,7 @@
       "plantTypeCode": "WIND",
       "poolingStation": "Jam Khambhaliya",
       "totalCapacityMw": 630.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "WIND",
@@ -2338,7 +2377,7 @@
           "codDeclaredDate": null,
           "expectedApr26Mw": 0.0,
           "delayRemarks": "CAT-2  yet to be received",
-          "otherRemarks": null
+          "otherRemarks": "FTC already applied"
         }
       ]
     },
@@ -2348,7 +2387,7 @@
       "plantTypeCode": "HYBRID_WS",
       "poolingStation": "Rajgarh",
       "totalCapacityMw": 196.8,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2426,7 +2465,7 @@
       "plantTypeCode": "SOLAR",
       "poolingStation": "Rewa",
       "totalCapacityMw": 170.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 170.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2452,7 +2491,7 @@
       "plantTypeCode": "WIND",
       "poolingStation": "Rajgarh",
       "totalCapacityMw": 198.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "WIND",
@@ -2468,7 +2507,7 @@
           "codDeclaredDate": null,
           "expectedApr26Mw": 105.0,
           "delayRemarks": "CAT-2  yet to be received",
-          "otherRemarks": null
+          "otherRemarks": "FTC already applied before receiving CON-4"
         }
       ]
     },
@@ -2478,7 +2517,7 @@
       "plantTypeCode": "SOLAR",
       "poolingStation": "KPS2",
       "totalCapacityMw": 795.0,
-      "contd4CapacityMw": null,
+      "contd4CapacityMw": 0.0,
       "phases": [
         {
           "sourceType": "SOLAR",
@@ -2494,6 +2533,32 @@
           "codDeclaredDate": null,
           "expectedApr26Mw": null,
           "delayRemarks": "CAT-2  yet to be received",
+          "otherRemarks": null
+        }
+      ]
+    },
+    {
+      "name": "APSEZ Khavda PSS4",
+      "region": "WR",
+      "plantTypeCode": "HYBRID_WS",
+      "poolingStation": "KPS1",
+      "totalCapacityMw": 377.0,
+      "contd4CapacityMw": 325.0,
+      "phases": [
+        {
+          "sourceType": "SOLAR",
+          "capacityAppliedMw": 77.0,
+          "ftcCompletedMw": 52.0,
+          "ftcCompletedDate": "2025-03-06",
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": 25.0,
+          "tocIssuedMw": 52.0,
+          "tocIssuedDate": "2025-03-28",
+          "capacityUnderTocMw": null,
+          "codDeclaredMw": 52.0,
+          "codDeclaredDate": "2025-03-29",
+          "expectedApr26Mw": null,
+          "delayRemarks": null,
           "otherRemarks": null
         }
       ]
@@ -2525,32 +2590,6 @@
       ]
     },
     {
-      "name": "Buxar Unit-2",
-      "region": "ER",
-      "plantTypeCode": "COAL",
-      "poolingStation": "-",
-      "totalCapacityMw": 1320.0,
-      "contd4CapacityMw": 1320.0,
-      "phases": [
-        {
-          "sourceType": "COAL",
-          "capacityAppliedMw": 1320.0,
-          "ftcCompletedMw": 660.0,
-          "ftcCompletedDate": null,
-          "proposedFtcDate": "2027-01-05",
-          "capacityUnderFtcMw": 660.0,
-          "tocIssuedMw": 660.0,
-          "tocIssuedDate": null,
-          "capacityUnderTocMw": null,
-          "codDeclaredMw": 660.0,
-          "codDeclaredDate": null,
-          "expectedApr26Mw": 660.0,
-          "delayRemarks": "RIO Clearance is still pending",
-          "otherRemarks": null
-        }
-      ]
-    },
-    {
       "name": "Subansiri Lower HEP",
       "region": "NER",
       "plantTypeCode": "HYDRO",
@@ -2561,17 +2600,17 @@
         {
           "sourceType": "HYDRO",
           "capacityAppliedMw": 1000.0,
-          "ftcCompletedMw": 750.0,
+          "ftcCompletedMw": 1000.0,
           "ftcCompletedDate": "2025-12-02",
-          "proposedFtcDate": "2026-04-29",
-          "capacityUnderFtcMw": 250.0,
-          "tocIssuedMw": 750.0,
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": null,
+          "tocIssuedMw": 1000.0,
           "tocIssuedDate": "2025-12-20",
           "capacityUnderTocMw": null,
-          "codDeclaredMw": 750.0,
-          "codDeclaredDate": "2025-12-23",
-          "expectedApr26Mw": 250.0,
-          "delayRemarks": "Unit-4 FTC application under process",
+          "codDeclaredMw": 1000.0,
+          "codDeclaredDate": null,
+          "expectedApr26Mw": null,
+          "delayRemarks": null,
           "otherRemarks": null
         }
       ]
@@ -2676,7 +2715,7 @@
           "codDeclaredDate": "2026-01-08",
           "expectedApr26Mw": 52.8,
           "delayRemarks": null,
-          "otherRemarks": null
+          "otherRemarks": "Declared CoD of 46.15 MW against 52.8 MW and remaining MW of 6.65 MW will be for reactive power compensation"
         }
       ]
     },
@@ -2705,6 +2744,110 @@
           "otherRemarks": null
         }
       ]
+    },
+    {
+      "name": "Serentica Renewables India 1 Private Limited",
+      "region": "SR",
+      "plantTypeCode": "HYBRID_WS",
+      "poolingStation": "Koppal",
+      "totalCapacityMw": 204.0,
+      "contd4CapacityMw": null,
+      "phases": [
+        {
+          "sourceType": "WIND",
+          "capacityAppliedMw": 195.3,
+          "ftcCompletedMw": 195.3,
+          "ftcCompletedDate": "2026-02-11",
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": null,
+          "tocIssuedMw": 195.3,
+          "tocIssuedDate": "2026-03-10",
+          "capacityUnderTocMw": null,
+          "codDeclaredMw": 195.3,
+          "codDeclaredDate": "2026-03-10",
+          "expectedApr26Mw": null,
+          "delayRemarks": null,
+          "otherRemarks": null
+        }
+      ]
+    },
+    {
+      "name": "Serentica Renewables India 3 Private Limited",
+      "region": "SR",
+      "plantTypeCode": "HYBRID_WS",
+      "poolingStation": "Gadag",
+      "totalCapacityMw": 270.0,
+      "contd4CapacityMw": null,
+      "phases": [
+        {
+          "sourceType": "WIND",
+          "capacityAppliedMw": 207.9,
+          "ftcCompletedMw": 207.9,
+          "ftcCompletedDate": "2026-02-26",
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": null,
+          "tocIssuedMw": 207.9,
+          "tocIssuedDate": "2026-04-24",
+          "capacityUnderTocMw": null,
+          "codDeclaredMw": 207.9,
+          "codDeclaredDate": null,
+          "expectedApr26Mw": null,
+          "delayRemarks": null,
+          "otherRemarks": null
+        }
+      ]
+    },
+    {
+      "name": "Greenko AP01 IREP Pvt Ltd",
+      "region": "SR",
+      "plantTypeCode": "HYBRID_SP",
+      "poolingStation": "Kurnool",
+      "totalCapacityMw": 1500.0,
+      "contd4CapacityMw": null,
+      "phases": [
+        {
+          "sourceType": "SOLAR",
+          "capacityAppliedMw": 545.6,
+          "ftcCompletedMw": 545.6,
+          "ftcCompletedDate": null,
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": null,
+          "tocIssuedMw": 249.425,
+          "tocIssuedDate": "2026-03-14",
+          "capacityUnderTocMw": null,
+          "codDeclaredMw": 249.425,
+          "codDeclaredDate": "2026-03-18",
+          "expectedApr26Mw": null,
+          "delayRemarks": null,
+          "otherRemarks": null
+        }
+      ]
+    },
+    {
+      "name": "Zenataris Renewable Energy Private Limited",
+      "region": "SR",
+      "plantTypeCode": "HYBRID_WS",
+      "poolingStation": "Hiriyur",
+      "totalCapacityMw": 165.0,
+      "contd4CapacityMw": 165.0,
+      "phases": [
+        {
+          "sourceType": "WIND",
+          "capacityAppliedMw": 132.0,
+          "ftcCompletedMw": 132.0,
+          "ftcCompletedDate": null,
+          "proposedFtcDate": null,
+          "capacityUnderFtcMw": null,
+          "tocIssuedMw": 66.0,
+          "tocIssuedDate": null,
+          "capacityUnderTocMw": 66.0,
+          "codDeclaredMw": 66.0,
+          "codDeclaredDate": null,
+          "expectedApr26Mw": 66.0,
+          "delayRemarks": null,
+          "otherRemarks": null
+        }
+      ]
     }
   ],
   "transElements": [
@@ -2718,11 +2861,11 @@
       "capacityMva": null,
       "lineLengthKm": 317.34,
       "firstEnergyDate": null,
-      "pendingFtc": true,
+      "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
-      "remarks": "Annexure-B returned 30.03.26"
+      "remarks": null
     },
     {
       "region": "NR",
@@ -2734,11 +2877,11 @@
       "capacityMva": null,
       "lineLengthKm": 317.34,
       "firstEnergyDate": null,
-      "pendingFtc": true,
+      "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
-      "remarks": "Annexure-B returned 30.03.26"
+      "remarks": null
     },
     {
       "region": "NR",
@@ -2864,7 +3007,7 @@
       "firstEnergyDate": "2026-06-03",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
       "remarks": null
     },
@@ -2880,7 +3023,7 @@
       "firstEnergyDate": "2026-03-25",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
       "remarks": null
     },
@@ -2896,7 +3039,7 @@
       "firstEnergyDate": "2026-03-25",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
       "remarks": null
     },
@@ -2912,7 +3055,7 @@
       "firstEnergyDate": "2026-03-17",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
       "remarks": null
     },
@@ -2925,12 +3068,12 @@
       "voltageRatingKv": 400,
       "capacityMva": null,
       "lineLengthKm": 79.71,
-      "firstEnergyDate": null,
-      "pendingFtc": true,
+      "firstEnergyDate": "2026-04-02",
+      "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
-      "remarks": "Annex-B under process"
+      "remarks": null
     },
     {
       "region": "NR",
@@ -2942,11 +3085,11 @@
       "capacityMva": null,
       "lineLengthKm": 241.84,
       "firstEnergyDate": null,
-      "pendingFtc": true,
+      "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
-      "remarks": "Annex-B under process"
+      "remarks": null
     },
     {
       "region": "NR",
@@ -2957,12 +3100,12 @@
       "voltageRatingKv": 765,
       "capacityMva": 1500.0,
       "lineLengthKm": null,
-      "firstEnergyDate": null,
-      "pendingFtc": true,
+      "firstEnergyDate": "2026-03-23",
+      "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
       "lineLengthApr26Km": null,
-      "remarks": "Annex=B applied on 29.03.2026"
+      "remarks": "Charged on 01.04.2026"
     },
     {
       "region": "WR",
@@ -2976,7 +3119,7 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 5.4,
       "remarks": "PTCC Approval pending, EI expired on 24-03-2026. Under review"
     },
@@ -2992,7 +3135,7 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 5.4,
       "remarks": "PTCC Approval pending, EI expired on 24-03-2026. Under review"
     },
@@ -3008,7 +3151,7 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 59.0,
       "remarks": "Application yet to be received. As informed by CSPTCL PTCC is pending"
     },
@@ -3024,7 +3167,7 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 92.3,
       "remarks": "Non submission of Board Resolution approval for interim arrangement. GETCO informed that they are planning to charge in original configuration by doing LILO of 400kV Halvad (Mansar)-Vadavi at Charal by 31-03-2026"
     },
@@ -3041,7 +3184,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": 315.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3057,7 +3200,7 @@
       "pendingFtc": true,
       "proposedFtcDate": null,
       "capacityApr26Mva": 125.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": "Protection review, EI Approval pending. Under review"
     },
     {
@@ -3072,7 +3215,7 @@
       "firstEnergyDate": "2026-03-24",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 100.0,
       "remarks": null
     },
@@ -3105,7 +3248,7 @@
       "pendingFtc": true,
       "proposedFtcDate": null,
       "capacityApr26Mva": 315.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": "EI Approval, SACADA p2p testing, Protection review,Study review pending. Under review"
     },
     {
@@ -3120,7 +3263,7 @@
       "firstEnergyDate": null,
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 19.0,
       "remarks": "Charged without 50 MVAR LR"
     },
@@ -3136,7 +3279,7 @@
       "firstEnergyDate": null,
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 21.0,
       "remarks": null
     },
@@ -3152,7 +3295,7 @@
       "firstEnergyDate": null,
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 229.0,
       "remarks": null
     },
@@ -3169,7 +3312,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": 501.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3184,8 +3327,8 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": null,
-      "lineLengthApr26Km": 500.0,
+      "capacityApr26Mva": 500.0,
+      "lineLengthApr26Km": null,
       "remarks": "EI Approval , Protection settings confirmation, loadability limit pending. Under review"
     },
     {
@@ -3233,7 +3376,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": 500.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3249,7 +3392,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": 1500.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3265,7 +3408,7 @@
       "pendingFtc": true,
       "proposedFtcDate": "2026-04-15",
       "capacityApr26Mva": 1500.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": "Application yet to be received"
     },
     {
@@ -3280,7 +3423,7 @@
       "firstEnergyDate": "2026-03-27",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 225.0,
       "remarks": null
     },
@@ -3293,10 +3436,10 @@
       "voltageRatingKv": 400,
       "capacityMva": null,
       "lineLengthKm": 260.0,
-      "firstEnergyDate": "2026-04-02",
+      "firstEnergyDate": "2026-04-03",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 260.0,
       "remarks": null
     },
@@ -3312,8 +3455,8 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
-      "lineLengthApr26Km": 0.0,
+      "capacityApr26Mva": null,
+      "lineLengthApr26Km": null,
       "remarks": "SCADA pending. Under review"
     },
     {
@@ -3376,8 +3519,8 @@
       "firstEnergyDate": null,
       "pendingFtc": true,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
-      "lineLengthApr26Km": 0.0,
+      "capacityApr26Mva": null,
+      "lineLengthApr26Km": null,
       "remarks": "4 bays cleared. 8 bays SCADA p2p testing pending. Under review"
     },
     {
@@ -3423,7 +3566,7 @@
       "lineLengthKm": 10.33,
       "firstEnergyDate": null,
       "pendingFtc": true,
-      "proposedFtcDate": "2026-04-30",
+      "proposedFtcDate": "2026-05-31",
       "capacityApr26Mva": null,
       "lineLengthApr26Km": 10.33,
       "remarks": "NERPC relay setting approval, Fresh/ Suitable Advisory of PTCC and Manually triggered DR-EL are yet to be submitted"
@@ -3439,7 +3582,7 @@
       "lineLengthKm": 17.93,
       "firstEnergyDate": null,
       "pendingFtc": true,
-      "proposedFtcDate": "2026-04-30",
+      "proposedFtcDate": "2026-05-31",
       "capacityApr26Mva": null,
       "lineLengthApr26Km": 17.93,
       "remarks": "RIO clearanc, NERPC relay setting approval and Fresh/ Suitable Advisory of PTCC are yet to be submitted"
@@ -3455,7 +3598,7 @@
       "lineLengthKm": 1.58,
       "firstEnergyDate": null,
       "pendingFtc": true,
-      "proposedFtcDate": "2026-04-30",
+      "proposedFtcDate": "2026-05-31",
       "capacityApr26Mva": null,
       "lineLengthApr26Km": 1.58,
       "remarks": "NERPC relay setting approval, Fresh/ Suitable Advisory of PTCC and Manually triggered DR-EL are yet to be submitted"
@@ -3471,26 +3614,10 @@
       "lineLengthKm": 10.6,
       "firstEnergyDate": null,
       "pendingFtc": true,
-      "proposedFtcDate": "2026-04-30",
+      "proposedFtcDate": "2026-05-31",
       "capacityApr26Mva": null,
       "lineLengthApr26Km": 10.6,
       "remarks": "Connectivity Agreement, Relay settings approval from NERPC, Fresh/ Suitable Advisory of PTCC, Compliance with RLDC observations on the OTDR report and SEM data of the meter at Manu end are yet to be submitted."
-    },
-    {
-      "region": "NER",
-      "agencyOwner": "POWERGRID",
-      "elementName": "132 kV Melriat (PG) - Zuangtui (Zemabawk) line after HTLS reconductoring with HTLS",
-      "elementType": "LINE",
-      "isRe": false,
-      "voltageRatingKv": 132,
-      "capacityMva": null,
-      "lineLengthKm": 10.19,
-      "firstEnergyDate": null,
-      "pendingFtc": true,
-      "proposedFtcDate": "2026-04-30",
-      "capacityApr26Mva": null,
-      "lineLengthApr26Km": 10.19,
-      "remarks": "RIO Clearance, NERPC relay setting approval, Fresh/ Suitable Advisory of PTCC, Relay settings file (.csv & pdf) and Manually triggered DR-EL are yet to be submitted."
     },
     {
       "region": "NER",
@@ -3503,10 +3630,26 @@
       "lineLengthKm": 46.6,
       "firstEnergyDate": null,
       "pendingFtc": true,
-      "proposedFtcDate": "2026-04-30",
+      "proposedFtcDate": "2026-05-20",
       "capacityApr26Mva": null,
       "lineLengthApr26Km": 46.6,
-      "remarks": "NERPC relay setting approval, Relay settings file (.csv & pdf) and Manually triggered DR-EL are yet to be submitted."
+      "remarks": "Manually triggered DR-EL are yet to be submitted and revised correct annexures are yet to be submitted"
+    },
+    {
+      "region": "NER",
+      "agencyOwner": "AEGCL",
+      "elementName": "220 kV Sankardevnagar - Lower Kopili HEP line-1",
+      "elementType": "LINE",
+      "isRe": false,
+      "voltageRatingKv": 220,
+      "capacityMva": null,
+      "lineLengthKm": 46.6,
+      "firstEnergyDate": null,
+      "pendingFtc": true,
+      "proposedFtcDate": "2026-05-20",
+      "capacityApr26Mva": null,
+      "lineLengthApr26Km": 46.6,
+      "remarks": "Manually triggered DR-EL are yet to be submitted and revised correct annexures are yet to be submitted"
     },
     {
       "region": "SR",
@@ -3544,7 +3687,7 @@
       "region": "SR",
       "agencyOwner": "Gadag IIA Transmission Limited",
       "elementName": "400/220kV ICT 3 at Gadag PSS",
-      "elementType": "LINE",
+      "elementType": "ICT",
       "isRe": true,
       "voltageRatingKv": 400,
       "capacityMva": 500.0,
@@ -3560,7 +3703,7 @@
       "region": "SR",
       "agencyOwner": "Gadag IIA Transmission Limited",
       "elementName": "400/220kV ICT 4 at Gadag PSS",
-      "elementType": "LINE",
+      "elementType": "ICT",
       "isRe": true,
       "voltageRatingKv": 400,
       "capacityMva": 500.0,
@@ -3576,7 +3719,7 @@
       "region": "SR",
       "agencyOwner": "Gadag IIA Transmission Limited",
       "elementName": "400/220kV ICT 5 at Gadag PSS",
-      "elementType": "LINE",
+      "elementType": "ICT",
       "isRe": true,
       "voltageRatingKv": 400,
       "capacityMva": 500.0,
@@ -3592,7 +3735,7 @@
       "region": "SR",
       "agencyOwner": "Gadag IIA Transmission Limited",
       "elementName": "400/220kV ICT 6 at Gadag PSS",
-      "elementType": "LINE",
+      "elementType": "ICT",
       "isRe": true,
       "voltageRatingKv": 400,
       "capacityMva": 500.0,
@@ -3681,7 +3824,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": 500.0,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3696,7 +3839,7 @@
       "firstEnergyDate": "2026-03-25",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 60.18,
       "remarks": "Anti Theft Charging from Maheswaram end"
     },
@@ -3712,7 +3855,7 @@
       "firstEnergyDate": "2026-03-25",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 60.18,
       "remarks": "Anti Theft Charging from Maheswaram end"
     },
@@ -3728,7 +3871,7 @@
       "firstEnergyDate": "2026-03-17",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 123.11,
       "remarks": "Anti Theft Charging from Kurnool-III end"
     },
@@ -3744,7 +3887,7 @@
       "firstEnergyDate": "2026-03-17",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 123.11,
       "remarks": "Anti Theft Charging from Kurnool-III end"
     },
@@ -3761,7 +3904,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3777,7 +3920,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3793,7 +3936,7 @@
       "pendingFtc": false,
       "proposedFtcDate": null,
       "capacityApr26Mva": null,
-      "lineLengthApr26Km": 0.0,
+      "lineLengthApr26Km": null,
       "remarks": null
     },
     {
@@ -3808,7 +3951,7 @@
       "firstEnergyDate": "2026-03-28",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 122.3,
       "remarks": "Anti Theft Charging from Maheswaram end"
     },
@@ -3824,7 +3967,7 @@
       "firstEnergyDate": "2026-03-28",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 122.3,
       "remarks": "Anti Theft Charging from Maheswaram end"
     },
@@ -3840,7 +3983,7 @@
       "firstEnergyDate": "2026-03-28",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 89.9,
       "remarks": "Anti Theft Charging from Ananthapuram end"
     },
@@ -3856,7 +3999,7 @@
       "firstEnergyDate": "2026-03-29",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 89.9,
       "remarks": "Anti Theft Charging from Ananthapuram end"
     },
@@ -3872,7 +4015,7 @@
       "firstEnergyDate": "2026-03-30",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 64.07,
       "remarks": "LILO of 220kV KudgiNTPC-Vajramatti at Savalagi"
     },
@@ -3888,7 +4031,7 @@
       "firstEnergyDate": "2026-03-30",
       "pendingFtc": false,
       "proposedFtcDate": null,
-      "capacityApr26Mva": 0.0,
+      "capacityApr26Mva": null,
       "lineLengthApr26Km": 64.07,
       "remarks": "LILO of 220kV KudgiNTPC-Vajramatti at Savalagi"
     },

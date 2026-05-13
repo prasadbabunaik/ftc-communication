@@ -1,0 +1,434 @@
+'use client';
+
+import { useEffect } from 'react';
+import { getProjectSource, REGION_ORDER as REGION_ORDER_LIB, SOURCE_ORDER as SOURCE_ORDER_LIB } from '@/lib/grid-computations';
+
+const REGION_ORDER = REGION_ORDER_LIB;
+const SOURCE_ORDER = SOURCE_ORDER_LIB;
+
+const REGION_FULL = { NR: 'Northern Region', WR: 'Western Region', SR: 'Southern Region', ER: 'Eastern Region', NER: 'North-Eastern Region' };
+
+function fmt(v) {
+  if (v == null || Number(v) === 0) return '—';
+  const n = Number(v);
+  const parts = n.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const dec = parts[1]?.replace(/0+$/, '');
+  return dec ? `${parts[0]}.${dec}` : parts[0];
+}
+
+function fmtMonth(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m)-1]}'${y.slice(2)}`;
+}
+
+function fmtDate(v) {
+  if (!v) return '—';
+  try { return new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return '—'; }
+}
+
+// ── Shared table header/footer styles (injected once) ─────────────────────────
+
+const PRINT_STYLES = `
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { size: A3 landscape; margin: 14mm 12mm 14mm 12mm; }
+  @page :first { margin-top: 10mm; }
+  body { font-family: 'Arial', sans-serif; font-size: 8pt; color: #1a1a2e; background: #fff; }
+  .page-break { break-before: page; }
+  .avoid-break { break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #cbd5e1; padding: 3px 5px; }
+  thead th { background-color: #1e3a5f !important; color: #fff !important; font-weight: 700; }
+  .subtotal-row td { background-color: #e2e8f0 !important; font-weight: 700; }
+  .total-row td { background-color: #1e3a5f !important; color: #fff !important; font-weight: 700; }
+  .section-title { background-color: #1e3a5f !important; color: #fff !important; font-weight: 700; padding: 5px 8px; font-size: 8.5pt; }
+  .no-print { display: none !important; }
+  .print-header { display: block !important; }
+`;
+
+// ── Document header ────────────────────────────────────────────────────────────
+
+function DocHeader({ dateLabel }) {
+  return (
+    <div className="print-header mb-4 border-b-2 border-[#1e3a5f] pb-3">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-[7pt] font-bold text-[#1e3a5f] uppercase tracking-widest mb-0.5">National Load Despatch Centre</div>
+          <h1 className="text-[13pt] font-black text-[#1e3a5f] leading-tight">
+            Summary of Generation Capacity
+          </h1>
+          <h2 className="text-[11pt] font-bold text-[#1e3a5f]">
+            Under FTC / TOC / COD — All India
+          </h2>
+        </div>
+        <div className="text-right">
+          <div className="inline-block border border-[#1e3a5f] px-3 py-2 rounded">
+            <div className="text-[7pt] text-slate-500 uppercase tracking-wide">As on</div>
+            <div className="text-[11pt] font-bold text-[#1e3a5f]">{dateLabel}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Section title bar ─────────────────────────────────────────────────────────
+
+function SectionTitle({ children, tableNo }) {
+  return (
+    <div className="flex items-center gap-2 mb-1">
+      {tableNo && (
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1e3a5f] text-white text-[7pt] font-black shrink-0">
+          {tableNo}
+        </span>
+      )}
+      <div className="section-title flex-1 rounded-sm text-[8pt]">{children}</div>
+    </div>
+  );
+}
+
+// ── FTC Pipeline table ────────────────────────────────────────────────────────
+
+function PipelineTable({ rows, primaryKey }) {
+  const isRegionPrimary = primaryKey === 'region';
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th style={{ width: 60, textAlign: 'left' }}>{isRegionPrimary ? 'Region' : 'Source'}</th>
+          <th style={{ width: 64, textAlign: 'left' }}>{isRegionPrimary ? 'Source' : 'Region'}</th>
+          <th style={{ width: 58 }}>Total Installed Capacity (MW)</th>
+          <th style={{ width: 60 }}>Total Capacity (MW) (CONTD-4 issued)</th>
+          <th style={{ width: 54 }}>Applied for FTC (MW)</th>
+          <th style={{ width: 52 }}>FTC Approved (MW)</th>
+          <th style={{ width: 50 }}>FTC Pending (MW)</th>
+          <th style={{ width: 52 }}>TOC Issued (MW)</th>
+          <th style={{ width: 50 }}>TOC Pending (MW)</th>
+          <th style={{ width: 52 }}>COD Completed (MW)</th>
+          <th style={{ width: 50 }}>COD Pending (MW)</th>
+          <th style={{ width: 54 }}>Expected Commissioning (MW)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => {
+          const p = isRegionPrimary ? row.region : row.source;
+          const s = isRegionPrimary ? row.source : row.region;
+          const label1 = row.isTotal ? 'Grand Total'
+            : row.isSubtotal ? `${p} — Total`
+            : row.isAllIndiaBreakdown ? 'All India'
+            : p;
+          const label2 = row.isTotal || row.isSubtotal ? '' : s;
+          const cls = row.isTotal ? 'total-row' : row.isSubtotal ? 'subtotal-row' : row.isAllIndiaBreakdown ? 'subtotal-row' : (i % 2 === 1 ? 'stripe' : '');
+          return (
+            <tr key={i} className={cls}>
+              <td style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400 }}>{label1}</td>
+              <td>{label2}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.totalCapacityMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.contd4CapacityMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.appliedMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.ftcApprovedMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.ftcPendingMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.tocIssuedMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.tocPendingMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.codCompletedMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.codPendingMw)}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.expectedMw)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ── CONTD-4 table ─────────────────────────────────────────────────────────────
+
+function Contd4Table({ contd4Study }) {
+  const { rows, allMonths } = contd4Study;
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th style={{ width: 60, textAlign: 'left' }}>Region</th>
+          <th style={{ width: 70, textAlign: 'left' }}>Source</th>
+          <th style={{ width: 70 }}>Total Capacity (MW)</th>
+          {allMonths.map(m => (
+            <th key={m} style={{ width: 62 }}>Expected by {fmtMonth(m)}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => {
+          const label1 = row.isTotal ? 'Grand Total' : row.isSubtotal ? `${row.region} — Total` : row.region;
+          const label2 = row.isTotal || row.isSubtotal ? '' : row.source;
+          const cls = row.isTotal ? 'total-row' : row.isSubtotal ? 'subtotal-row' : '';
+          return (
+            <tr key={i} className={cls}>
+              <td style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400 }}>{label1}</td>
+              <td>{label2}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(row.totalMw)}</td>
+              {allMonths.map(m => (
+                <td key={m} style={{ textAlign: 'right' }}>{fmt(row.months?.[m] ?? 0)}</td>
+              ))}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ── Transmission table ────────────────────────────────────────────────────────
+
+const CAT_LABEL = {
+  LINE_RE: 'Trans. Line (RE Pocket)',
+  LINE_NONRE: 'Trans. Line (Non-RE Pocket)',
+  ICT_RE: 'ICT / PT (RE Pocket)',
+  ICT_NONRE: 'ICT / PT (Non-RE Pocket)',
+  GT: 'Generator Transformer / Bay',
+  ST: 'Station Transformer',
+};
+
+function TransmissionTable({ transmissionRows }) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th style={{ width: 48, textAlign: 'left' }}>Region</th>
+          <th style={{ width: 150, textAlign: 'left' }}>Element Type</th>
+          <th style={{ width: 70 }}>FTC Completed (No.)</th>
+          <th style={{ width: 80 }}>FTC Completed (ckt km / MVA)</th>
+          <th style={{ width: 70 }}>FTC Pending (No.)</th>
+          <th style={{ width: 80 }}>FTC Pending (ckt km / MVA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {transmissionRows.map((row, i) => {
+          const isLine = row.category?.startsWith('LINE');
+          return (
+            <tr key={i} className={i % 2 === 1 ? 'stripe' : ''}>
+              <td>{row.region}</td>
+              <td>{CAT_LABEL[row.category] ?? row.category}</td>
+              <td style={{ textAlign: 'right' }}>{row.completedCount || '—'}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(isLine ? row.completedKm : row.completedMva)}</td>
+              <td style={{ textAlign: 'right' }}>{row.pendingCount || '—'}</td>
+              <td style={{ textAlign: 'right' }}>{fmt(isLine ? row.pendingKm : row.pendingMva)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ── Per-source project detail table ──────────────────────────────────────────
+
+function SourceProjectTable({ source, projects }) {
+  const cleared = (projects ?? []).filter(p => {
+    if (p.contd4?.status !== 'CLEARED') return false;
+    return getProjectSource(p) === source;
+  });
+  if (!cleared.length) return null;
+
+  // sort by region order
+  const sorted = [...cleared].sort((a, b) =>
+    REGION_ORDER.indexOf(a.region?.code) - REGION_ORDER.indexOf(b.region?.code)
+  );
+
+  // compute totals
+  const total = sorted.reduce((acc, p) => {
+    const ph = p.phases?.[0] ?? {};
+    acc.total    += Number(p.totalCapacityMw ?? 0);
+    acc.applied  += Number(ph.capacityAppliedMw ?? 0);
+    acc.ftcOK    += Number(ph.ftcCompletedMw ?? 0);
+    acc.ftcPend  += Number(ph.capacityUnderFtcMw ?? 0);
+    acc.tocOK    += Number(ph.tocIssuedMw ?? 0);
+    acc.tocPend  += Number(ph.capacityUnderTocMw ?? 0);
+    acc.codOK    += Number(ph.codDeclaredMw ?? 0);
+    acc.codPend  += Math.max(0, Number(ph.tocIssuedMw ?? 0) - Number(ph.codDeclaredMw ?? 0));
+    acc.exp      += Number(ph.expectedApr26Mw ?? 0);
+    return acc;
+  }, { total:0, applied:0, ftcOK:0, ftcPend:0, tocOK:0, tocPend:0, codOK:0, codPend:0, exp:0 });
+
+  return (
+    <div className="avoid-break">
+      <table>
+        <thead>
+          <tr>
+            <th style={{ width: 22, textAlign: 'center' }}>Sr.</th>
+            <th style={{ textAlign: 'left' }}>Generating Station</th>
+            <th style={{ width: 80, textAlign: 'left' }}>Pooling Station</th>
+            <th style={{ width: 30, textAlign: 'center' }}>Rgn.</th>
+            <th style={{ width: 48 }}>Total Capacity (MW)</th>
+            <th style={{ width: 44 }}>Applied (MW)</th>
+            <th style={{ width: 44 }}>FTC OK (MW)</th>
+            <th style={{ width: 44 }}>FTC Pend (MW)</th>
+            <th style={{ width: 44 }}>TOC OK (MW)</th>
+            <th style={{ width: 44 }}>TOC Pend (MW)</th>
+            <th style={{ width: 44 }}>COD OK (MW)</th>
+            <th style={{ width: 44 }}>COD Pend (MW)</th>
+            <th style={{ width: 48 }}>Expected (MW)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((p, i) => {
+            const ph = p.phases?.[0] ?? {};
+            const codPend = Math.max(0, Number(ph.tocIssuedMw ?? 0) - Number(ph.codDeclaredMw ?? 0));
+            return (
+              <tr key={p.id ?? i} className={i % 2 === 1 ? 'stripe' : ''}>
+                <td style={{ textAlign: 'center', color: '#64748b' }}>{i + 1}</td>
+                <td style={{ fontWeight: 500 }}>{p.name}</td>
+                <td style={{ color: '#475569' }}>{p.poolingStation?.name ?? '—'}</td>
+                <td style={{ textAlign: 'center', fontWeight: 700 }}>{p.region?.code}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(p.totalCapacityMw)}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.capacityAppliedMw)}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.ftcCompletedMw)}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.capacityUnderFtcMw)}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.tocIssuedMw)}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.capacityUnderTocMw)}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.codDeclaredMw)}</td>
+                <td style={{ textAlign: 'right' }}>{codPend > 0.01 ? fmt(codPend) : '—'}</td>
+                <td style={{ textAlign: 'right' }}>{fmt(ph.expectedApr26Mw)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="subtotal-row">
+            <td colSpan={4} style={{ fontWeight: 700 }}>All India {source} Total ({sorted.length} projects)</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.total)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.applied)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.ftcOK)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.ftcPend)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.tocOK)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.tocPend)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.codOK)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.codPend > 0.01 ? total.codPend : 0)}</td>
+            <td style={{ textAlign: 'right' }}>{fmt(total.exp)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+// ── Print control toolbar (screen only) ──────────────────────────────────────
+
+function PrintToolbar({ dateLabel }) {
+  return (
+    <div className="no-print fixed top-0 left-0 right-0 z-50 bg-slate-800 text-white flex items-center gap-3 px-5 py-2.5 shadow-lg">
+      <div className="flex items-center gap-2 mr-auto">
+        <svg className="size-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span className="text-sm font-semibold">Print Summary — As on {dateLabel}</span>
+        <span className="text-slate-400 text-xs">· A3 Landscape recommended</span>
+      </div>
+      <button
+        onClick={() => window.print()}
+        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm font-semibold transition-colors"
+      >
+        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+        </svg>
+        Print / Save as PDF
+      </button>
+      <button
+        onClick={() => window.close()}
+        className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 px-3 py-1.5 rounded text-sm transition-colors"
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export function PrintSummaryClient({ dateLabel, table2Rows, table5Rows, contd4Study, transmissionRows, projects }) {
+  useEffect(() => {
+    const t = setTimeout(() => window.print(), 1200);
+    return () => clearTimeout(t);
+  }, []);
+
+  const availableSources = SOURCE_ORDER.filter(src =>
+    (projects ?? []).some(p => {
+      if (p.contd4?.status !== 'CLEARED') return false;
+      return getProjectSource(p) === src;
+    })
+  );
+
+  return (
+    <>
+      <style>{PRINT_STYLES}</style>
+      <style>{`
+        body { background: #f1f5f9; }
+        .print-page { background: #fff; width: 297mm; min-height: 200mm; margin: 0 auto; padding: 0; }
+        .inner { padding: 14mm 12mm; }
+        .stripe { background-color: #f8fafc !important; }
+        @media screen { body { padding-top: 44px; } }
+        @media print { body { background: #fff !important; padding-top: 0 !important; } .print-page { width: 100%; box-shadow: none; } .inner { padding: 0; } }
+      `}</style>
+
+      <PrintToolbar dateLabel={dateLabel} />
+
+      <div className="print-page">
+        <div className="inner">
+          <DocHeader dateLabel={dateLabel} />
+
+          {/* ── Table 1: Region-wise Pipeline ── */}
+          <div className="avoid-break mb-6">
+            <SectionTitle tableNo="1">
+              Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
+            </SectionTitle>
+            <PipelineTable rows={table2Rows} primaryKey="region" />
+          </div>
+
+          {/* ── Table 2: Source-wise Pipeline ── */}
+          <div className="avoid-break mb-6 page-break">
+            <SectionTitle tableNo="2">
+              Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
+            </SectionTitle>
+            <PipelineTable rows={table5Rows} primaryKey="source" />
+          </div>
+
+          {/* ── Table 3: CONTD-4 Study ── */}
+          <div className="avoid-break mb-6">
+            <SectionTitle tableNo="3">
+              Total Capacity Under CONTD-4 Study (MW) — Region &amp; Source-wise
+            </SectionTitle>
+            <Contd4Table contd4Study={contd4Study} />
+          </div>
+
+          {/* ── Table 4: Transmission ── */}
+          <div className="avoid-break mb-6">
+            <SectionTitle tableNo="4">
+              Transmission Elements Under Process of FTC — Region-wise
+            </SectionTitle>
+            <TransmissionTable transmissionRows={transmissionRows} />
+          </div>
+
+          {/* ── Per-source project detail tables ── */}
+          {availableSources.map((src, idx) => (
+            <div key={src} className="mb-6 page-break">
+              <SectionTitle tableNo={`5.${idx + 1}`}>
+                {src} — Project-wise Generation Capacity Details Under FTC / TOC / COD
+              </SectionTitle>
+              <SourceProjectTable source={src} projects={projects} />
+            </div>
+          ))}
+
+          {/* Footer */}
+          <div className="mt-8 pt-3 border-t border-slate-200 flex justify-between text-[7pt] text-slate-400">
+            <span>FTC Communication Portal — NLDC, New Delhi</span>
+            <span>Generated: {new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' })}</span>
+            <span>As on: {dateLabel}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

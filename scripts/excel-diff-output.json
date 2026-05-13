@@ -1,0 +1,812 @@
+[
+  {
+    "from": "2026-05-11",
+    "to": "2026-05-12",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "ACME SUN POWER PRIVATE LIMITED(ASPPL)",
+    "diffs": [
+      {
+        "field": "tocMw",
+        "before": 200.003,
+        "after": 233.333
+      },
+      {
+        "field": "tocDate",
+        "before": "33.335 MW 06-03-2026        33.335 MW 12-03-2026   33.33MW-  31.03.2026    33.33MW-  01.04.2026   33.334MW-06.04.2026\r\n33.333MW (04.05..2026 )",
+        "after": "33.335 MW 06-03-2026        33.335 MW 12-03-2026   33.33MW-  31.03.2026    33.33MW-  01.04.2026   33.334MW-06.04.2026\r\n33.333MW (04.05..2026 )   33.333MW (11.05..2026 )"
+      },
+      {
+        "field": "codMw",
+        "before": 200.003,
+        "after": 233.333
+      },
+      {
+        "field": "codDate",
+        "before": "33.335  MW on 08-03-2026\r\n33.335 MW on 14-03-2026\r\n 33.333 MW on 02-04-2026\r\n 33.333 MW on 03-04-2026\r\n 33.334 MWon 08-04-2026\r\n33.333MW (06.05..2026 )",
+        "after": "33.335  MW on 08-03-2026\r\n33.335 MW on 14-03-2026\r\n 33.333 MW on 02-04-2026\r\n 33.333 MW on 03-04-2026\r\n 33.334 MWon 08-04-2026\r\n33.333MW (06.05..2026 )     33.333MW (13.05..2026 )"
+      },
+      {
+        "field": "underFtc",
+        "before": 33.33,
+        "after": 0
+      },
+      {
+        "field": "expected",
+        "before": 100,
+        "after": 66.66
+      }
+    ]
+  },
+  {
+    "from": "2026-05-11",
+    "to": "2026-05-12",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "ACME Surya POWER Private Limited (ASRPPL)",
+    "diffs": [
+      {
+        "field": "tocMw",
+        "before": 175.223,
+        "after": 210.938
+      },
+      {
+        "field": "tocDate",
+        "before": "60MW-23-03-2026 \r\n 35.71MW-24-03-2026\r\n11.429MW-29-03-2026   32.366MW -13.04.2026   35.714MW -29.04.2026",
+        "after": "60MW-23-03-2026 \r\n 35.71MW-24-03-2026\r\n11.429MW-29-03-2026   32.366MW -13.04.2026   35.714MW -29.04.2026   35.714MW -11.05.2026"
+      },
+      {
+        "field": "codMw",
+        "before": 175.223,
+        "after": 210.938
+      },
+      {
+        "field": "codDate",
+        "before": "60MW dated 23.03.26   \r\n35.714 dated 24-03-26\r\n11.429 MW on 29-03-26  32.366MW on 15-04-26    35.714MW-01-05.2026",
+        "after": "60MW dated 23.03.26   \r\n35.714 dated 24-03-26\r\n11.429 MW on 29-03-26  32.366MW on 15-04-26    35.714MW-01-05.2026     35.714MW -13.05.2026"
+      },
+      {
+        "field": "underFtc",
+        "before": 35.714,
+        "after": 0
+      },
+      {
+        "field": "expected",
+        "before": 74.777,
+        "after": 39.062
+      }
+    ]
+  },
+  {
+    "from": "2026-05-11",
+    "to": "2026-05-12",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "Renew Solar Shakti Five Private Limited",
+    "diffs": [
+      {
+        "field": "underFtc",
+        "before": 211,
+        "after": 0
+      }
+    ]
+  },
+  {
+    "from": "2026-05-11",
+    "to": "2026-05-12",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "HRP Green POWER Private Limited",
+    "diffs": [
+      {
+        "field": "underFtc",
+        "before": 51.2,
+        "after": 0
+      }
+    ]
+  },
+  {
+    "from": "2026-05-11",
+    "to": "2026-05-12",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "ARE37L BESS - AGEL Khavda PSS5",
+    "diffs": [
+      {
+        "field": "underFtc",
+        "before": 20,
+        "after": 0
+      }
+    ]
+  },
+  {
+    "from": "2026-05-11",
+    "to": "2026-05-12",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "Waree Energies Limited",
+    "diffs": [
+      {
+        "field": "contd4",
+        "before": 0,
+        "after": 170
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "IB VOGT SOLAR SEVEN PRIVATE LIMITED(IBVSSPL)",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "13.03.2026\r\n18.03.2026",
+        "after": "13.03.2026\n18.03.2026"
+      },
+      {
+        "field": "codDate",
+        "before": "150MW (30.03.2026)\r\n50MW (01.04.2026)",
+        "after": "150MW (30.03.2026)\n50MW (01.04.2026)"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "RENEW SAMIR SHAKTI THREE PRIVATE LIMITED",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "13.02.2026\r\n16.02.2026",
+        "after": "13.02.2026\n16.02.2026"
+      },
+      {
+        "field": "codDate",
+        "before": "210.31MW dated 17.03.2026\r\n64.67MW dated 26.03.2026 25.02MW-02.04.2026",
+        "after": "210.31MW dated 17.03.2026\n64.67MW dated 26.03.2026 25.02MW-02.04.2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "Khaba Renewable Energy Private Limited (KREPL)",
+    "diffs": [
+      {
+        "field": "tocDate",
+        "before": "100MW on 13-03-26\r\n50 MW on 27-03-2026",
+        "after": "100MW on 13-03-26\n50 MW on 27-03-2026"
+      },
+      {
+        "field": "codDate",
+        "before": "100MW-14 Mar 26\r\n50MW-27 Mar 26",
+        "after": "100MW-14 Mar 26\n50MW-27 Mar 26"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "Juniper Green Stellar Private Limited(JGSPL)",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "Solar:16.03.2026 (185MW) 06.04.2026 (100MW)\r\n\r\n\r\nBESS: 17.03.2026 (90MW)\r\n21.03.2026 (90 MW)",
+        "after": "Solar:16.03.2026 (185MW) 06.04.2026 (100MW)\n\n\nBESS: 17.03.2026 (90MW)\n21.03.2026 (90 MW)"
+      },
+      {
+        "field": "tocDate",
+        "before": "88MW solar-25.03.26   90MW-BESS  02-04-2026\r\n10.04.2026 (97 MW Solar)\r\n90MW BESS 22.04.2026",
+        "after": "88MW solar-25.03.26   90MW-BESS  02-04-2026\n10.04.2026 (97 MW Solar)\n90MW BESS 22.04.2026"
+      },
+      {
+        "field": "codDate",
+        "before": "27 Mar 26-88MW solar  \r\n12.04.26 97MW Solar\r\n 90MW BESS-08.04.2026\r\n90MW BESS 24.04.2026",
+        "after": "27 Mar 26-88MW solar  \n12.04.26 97MW Solar\n 90MW BESS-08.04.2026\n90MW BESS 24.04.2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "ACME SUN POWER PRIVATE LIMITED(ASPPL)",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "66.66 FTC completed on 26-02-2026.\r\n 33.33 MW-17 MAR 26             66.66MW -24-03-2026                133.33MW 27.04.2026",
+        "after": "66.66 FTC completed on 26-02-2026.\n 33.33 MW-17 MAR 26             66.66MW -24-03-2026                133.33MW 27.04.2026"
+      },
+      {
+        "field": "tocDate",
+        "before": "33.335 MW 06-03-2026        33.335 MW 12-03-2026   33.33MW-  31.03.2026    33.33MW-  01.04.2026   33.334MW-06.04.2026\r\n33.333MW (04.05..2026 )   33.333MW (11.05..2026 )",
+        "after": "33.335 MW 06-03-2026        33.335 MW 12-03-2026   33.33MW-  31.03.2026    33.33MW-  01.04.2026   33.334MW-06.04.2026\n33.333MW (04.05..2026 )   33.333MW (11.05..2026 )"
+      },
+      {
+        "field": "codDate",
+        "before": "33.335  MW on 08-03-2026\r\n33.335 MW on 14-03-2026\r\n 33.333 MW on 02-04-2026\r\n 33.333 MW on 03-04-2026\r\n 33.334 MWon 08-04-2026\r\n33.333MW (06.05..2026 )     33.333MW (13.05..2026 )",
+        "after": "33.335  MW on 08-03-2026\n33.335 MW on 14-03-2026\n 33.333 MW on 02-04-2026\n 33.333 MW on 03-04-2026\n 33.334 MWon 08-04-2026\n33.333MW (06.05..2026 )     33.333MW (13.05..2026 )"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "ACME SURYODAYA PRIVATE LIMITED(ACME_SPL)",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "76 MW FTC completed 10-02-2026.\r\n 95 MW FTC APPROVED 14 MAR 2026\r\n114 MW FTC issued on 29-03-2026",
+        "after": "76 MW FTC completed 10-02-2026.\n 95 MW FTC APPROVED 14 MAR 2026\n114 MW FTC issued on 29-03-2026"
+      },
+      {
+        "field": "tocDate",
+        "before": "19 MW 25-02-2026 \r\n 38 MW 03-03-2026 \r\n 19 MW11-03-2026  95MW-23.03.2026\r\n76MW-06.04.2026    38MW-13.04.2026",
+        "after": "19 MW 25-02-2026 \n 38 MW 03-03-2026 \n 19 MW11-03-2026  95MW-23.03.2026\n76MW-06.04.2026    38MW-13.04.2026"
+      },
+      {
+        "field": "codDate",
+        "before": "19 MW  on 27-02-2026\r\n38 MW on 05-03-2026\r\n19 MW on 13-03-2026\r\n95 MW on 25-03-2026\r\n76 MW on 08-04-2026         38MW on 15-04-2026",
+        "after": "19 MW  on 27-02-2026\n38 MW on 05-03-2026\n19 MW on 13-03-2026\n95 MW on 25-03-2026\n76 MW on 08-04-2026         38MW on 15-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "ACME Surya POWER Private Limited (ASRPPL)",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "(71.43MW)-  16-03-2026\r\n(35.71MW)- 17-03-2026 \r\n(35.71MW) -24-03-2026        35.714MW- 17.04.2026        (71.43MW)-  23-04-2026",
+        "after": "(71.43MW)-  16-03-2026\n(35.71MW)- 17-03-2026 \n(35.71MW) -24-03-2026        35.714MW- 17.04.2026        (71.43MW)-  23-04-2026"
+      },
+      {
+        "field": "tocDate",
+        "before": "60MW-23-03-2026 \r\n 35.71MW-24-03-2026\r\n11.429MW-29-03-2026   32.366MW -13.04.2026   35.714MW -29.04.2026   35.714MW -11.05.2026",
+        "after": "60MW-23-03-2026 \n 35.71MW-24-03-2026\n11.429MW-29-03-2026   32.366MW -13.04.2026   35.714MW -29.04.2026   35.714MW -11.05.2026"
+      },
+      {
+        "field": "codDate",
+        "before": "60MW dated 23.03.26   \r\n35.714 dated 24-03-26\r\n11.429 MW on 29-03-26  32.366MW on 15-04-26    35.714MW-01-05.2026     35.714MW -13.05.2026",
+        "after": "60MW dated 23.03.26   \n35.714 dated 24-03-26\n11.429 MW on 29-03-26  32.366MW on 15-04-26    35.714MW-01-05.2026     35.714MW -13.05.2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "Energizent POWER Private Limited",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "60.6 MW on 27-03-2026\r\n69 MW on 29-10-2025",
+        "after": "60.6 MW on 27-03-2026\n69 MW on 29-10-2025"
+      },
+      {
+        "field": "tocDate",
+        "before": "07-11-2025 (69MW)\r\n22-04-2026 (60MW)",
+        "after": "07-11-2025 (69MW)\n22-04-2026 (60MW)"
+      },
+      {
+        "field": "codDate",
+        "before": "09-11-2025 (69MW)\r\n22-04-2026 (60.9MW)",
+        "after": "09-11-2025 (69MW)\n22-04-2026 (60.9MW)"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "FTC",
+    "name": "Renew Solar Shakti Five Private Limited",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "200MW on 25-03-2026\r\n200MW on 28-03-2026",
+        "after": "200MW on 25-03-2026\n200MW on 28-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NR",
+    "table": "CONTD4",
+    "name": "BIKANER-III",
+    "diffs": [
+      {
+        "field": "apr26Mw",
+        "before": "Review of Study Completed,\r\n Under Finalization, compliance sheet will be shared shortly",
+        "after": "Review of Study Completed,\n Under Finalization, compliance sheet will be shared shortly"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "AGE26AL Khavda PSS6",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "50: 25-01-2026\r\n250: 15-03-2026\r\n50: 21-03-2026\r\n50: 29-03-2026\r\n50: 16-04-2026\r\n58: 30-03-2026\r\n242: 20-04-2026",
+        "after": "50: 25-01-2026\n250: 15-03-2026\n50: 21-03-2026\n50: 29-03-2026\n50: 16-04-2026\n58: 30-03-2026\n242: 20-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "ASEJ6PL Khavda PSS8",
+    "diffs": [
+      {
+        "field": "tocDate",
+        "before": "52: 17-03-2026\r\n10.4: 28-03-2026",
+        "after": "52: 17-03-2026\n10.4: 28-03-2026"
+      },
+      {
+        "field": "codDate",
+        "before": "52: 18-03-2026\r\n10.4: 28-03-2026",
+        "after": "52: 18-03-2026\n10.4: 28-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "AGE25CL Khavda PSS8",
+    "diffs": [
+      {
+        "field": "tocDate",
+        "before": "75: 01-12-2025\r\n50: 06-02-2026\r\n75: 23-02-2026\r\n50: 05-03-2026\r\n75: 23-03-2026\r\n50: 30-03-2026\r\n125: 07-05-2026",
+        "after": "75: 01-12-2025\n50: 06-02-2026\n75: 23-02-2026\n50: 05-03-2026\n75: 23-03-2026\n50: 30-03-2026\n125: 07-05-2026"
+      },
+      {
+        "field": "codDate",
+        "before": "75: 03-12-2025\r\n50: 10-02-2026\r\n75: 13-03-2026\r\n25: 24-03-2026\r\n75: 24-03-2026\r\n50: 30-03-2026",
+        "after": "75: 03-12-2025\n50: 10-02-2026\n75: 13-03-2026\n25: 24-03-2026\n75: 24-03-2026\n50: 30-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "AGE24L SRPL Khavda PSS10",
+    "diffs": [
+      {
+        "field": "tocDate",
+        "before": "50: 21-01-2026\r\n50: 25-03-2026\r\n50: 27-04-2026",
+        "after": "50: 21-01-2026\n50: 25-03-2026\n50: 27-04-2026"
+      },
+      {
+        "field": "codDate",
+        "before": "50: 21-01-2026\r\n50: 26-03-2026\r\n50: 28-04-2026",
+        "after": "50: 21-01-2026\n50: 26-03-2026\n50: 28-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "AGE24L Khavda PSS5",
+    "diffs": [
+      {
+        "field": "tocDate",
+        "before": "75: 11-02-2026\r\n75: 17-03-2026",
+        "after": "75: 11-02-2026\n75: 17-03-2026"
+      },
+      {
+        "field": "codDate",
+        "before": "75: 12-02-2026\r\n75: 18-03-2026",
+        "after": "75: 12-02-2026\n75: 18-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "AGE26BL Khavda PSS10",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "25: 29-12-2025\r\n50: 12-02-2026\r\n75: 18-03-2026",
+        "after": "25: 29-12-2025\n50: 12-02-2026\n75: 18-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "ARE43L BESS - SRPL Khavda PSS10",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "80: 11-03-2026\r\n80: 20-03-2026\r\n60: 28-03-2026\r\n120: 30-03-2026\r\n20: 31-03-2026\r\n20: 11-04-2026\r\n20: 15-04-2026",
+        "after": "80: 11-03-2026\n80: 20-03-2026\n60: 28-03-2026\n120: 30-03-2026\n20: 31-03-2026\n20: 11-04-2026\n20: 15-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "ARE37L BESS - AGEL Khavda PSS5",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "80: 31-03-2026\r\n80: 31-03-2026\r\n80: 11-04-2026\r\n60: 15-04-2026\r\n20: 17-04-2026\r\n60: 24-04-2026\r\n60: 30-04-2026\r\n20: 05-05-2026",
+        "after": "80: 31-03-2026\n80: 31-03-2026\n80: 11-04-2026\n60: 15-04-2026\n20: 17-04-2026\n60: 24-04-2026\n60: 30-04-2026\n20: 05-05-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "Renew Green MHS One Pvt Ltd - RGESPL PSS-1",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "112.2: 10-10-2025\r\n19.8 : 24-11-2025\r\n6.6: 29-01-2026\r\n16.5: 23-02-2026\r\n6.6: 27-03-2026",
+        "after": "112.2: 10-10-2025\n19.8 : 24-11-2025\n6.6: 29-01-2026\n16.5: 23-02-2026\n6.6: 27-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "Avaada GJ Sustainable Private Limited",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "108.33: 07-02-2026\r\n91.67: 11-04-2026",
+        "after": "108.33: 07-02-2026\n91.67: 11-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "Sprng Akshay Urja Pvt Ltd",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "100: 29-12-2025\r\n16.5: 31-12-2025\r\n6.6: 05-01-2026\r\n6.6: 28-01-2026\r\n13.2: 30-01-2026\r\n6.6: 04-02-2026\r\n9.9: 18-02-2026\r\n3.3: 10-04-2026",
+        "after": "100: 29-12-2025\n16.5: 31-12-2025\n6.6: 05-01-2026\n6.6: 28-01-2026\n13.2: 30-01-2026\n6.6: 04-02-2026\n9.9: 18-02-2026\n3.3: 10-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "TEQ Green Power XI Pvt Ltd",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "Wind:\r\n18.9: 30-06-2025\r\n32.4: 30-06-2025\r\n13.5: 16-08-2025\r\n13.5: 02-10-2025\r\n2.7: 07-11-2025\r\n5.4: 29-11-2025\r\n10.8: 20-12-2025\r\n16.2: 03-04-2026\r\n\r\nSolar:\r\n24.425: 16-08-2025\r\n22.4: 11-01-2026",
+        "after": "Wind:\n18.9: 30-06-2025\n32.4: 30-06-2025\n13.5: 16-08-2025\n13.5: 02-10-2025\n2.7: 07-11-2025\n5.4: 29-11-2025\n10.8: 20-12-2025\n16.2: 03-04-2026\n\nSolar:\n24.425: 16-08-2025\n22.4: 11-01-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "Ayana Power Four Private Limited at Devasar",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "Wind:\r\n52.8: 19-08-2025\r\n9.9: 22-09-2025\r\n9.9: 23-10-2025\r\n6.6: 09-12-2025\r\n13.2: 31-03-2026\r\n\r\nSolar:\r\n25: 25-09-2025\r\n12.5: 15-10-2025",
+        "after": "Wind:\n52.8: 19-08-2025\n9.9: 22-09-2025\n9.9: 23-10-2025\n6.6: 09-12-2025\n13.2: 31-03-2026\n\nSolar:\n25: 25-09-2025\n12.5: 15-10-2025"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "Ayana Power Four Private Limited at Zura",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "50: 22-08-2025\r\n25: 01-09-2025\r\n37.5: 15-01-2026\r\n37.5: 31-03-2026",
+        "after": "50: 22-08-2025\n25: 01-09-2025\n37.5: 15-01-2026\n37.5: 31-03-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "NTPC REL Khavda PSS1",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "210: 30-01-2026 \r\n165: 19-02-2026 \r\n270: 10-03-2026\r\n165: 18-03-2026\r\n105: 28-03-2026\r\n90: 30-03-2026\r\n90: 24-04-2026",
+        "after": "210: 30-01-2026 \n165: 19-02-2026 \n270: 10-03-2026\n165: 18-03-2026\n105: 28-03-2026\n90: 30-03-2026\n90: 24-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "ARE36L BESS - AGEL Khavda PSS8",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "140: 24-04-2026\r\n20: 28-04-2026\r\n80: 05-05-2026",
+        "after": "140: 24-04-2026\n20: 28-04-2026\n80: 05-05-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "FTC",
+    "name": "AGE26AL Khavda PSS14",
+    "diffs": [
+      {
+        "field": "tocDate",
+        "before": "67.6: 22-04-2026\r\n26: 29-04-2026\r\n5.2: 30-04-2026",
+        "after": "67.6: 22-04-2026\n26: 29-04-2026\n5.2: 30-04-2026"
+      },
+      {
+        "field": "codDate",
+        "before": "67.6: 22-04-2026\r\n26: 29-04-2026\r\n5.2: 30-04-2026",
+        "after": "67.6: 22-04-2026\n26: 29-04-2026\n5.2: 30-04-2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Dayapar",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "CAT-2 signed. FTC application is awaited.\r\nThe 50 MW capacity is ready. CEA inspection is expected by 30.04.2026",
+        "after": "CAT-2 signed. FTC application is awaited.\nThe 50 MW capacity is ready. CEA inspection is expected by 30.04.2026"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Agar Malwa",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "The connection agreement has been signed for 81 MW \r\nConnection agreement for 33 MW Solar capacity Under GNA 5.2 is awaited",
+        "after": "The connection agreement has been signed for 81 MW \nConnection agreement for 33 MW Solar capacity Under GNA 5.2 is awaited"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "NHPC PSS-1",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "Incomplete submission\r\n 1. Technical details of the inverter, SVG, and PPC are pending.\r\n 2. ICT overloading is observed beyond nameplate rating (up to 112%) in reactive POWER capability studies.\r\n 3. PSSE/PSCAD models can be reviewed only after receipt of pending unit-level technical details.",
+        "after": "Incomplete submission\n 1. Technical details of the inverter, SVG, and PPC are pending.\n 2. ICT overloading is observed beyond nameplate rating (up to 112%) in reactive POWER capability studies.\n 3. PSSE/PSCAD models can be reviewed only after receipt of pending unit-level technical details."
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Hajaratpur",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "The connection agreement has been signed for 165 MW \r\n 1. The reactive POWER capability study is not as per plant's operating philosophy, WTG terminal voltages are beyond the nominal rating.\r\n 2. Model improvement in PSCAD to be addressed. (Faster initialization, longer simulation run). Timeline will be included in the compliance sheet.",
+        "after": "The connection agreement has been signed for 165 MW \n 1. The reactive POWER capability study is not as per plant's operating philosophy, WTG terminal voltages are beyond the nominal rating.\n 2. Model improvement in PSCAD to be addressed. (Faster initialization, longer simulation run). Timeline will be included in the compliance sheet."
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Konhali",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "Incomplete submission:\r\n 1. PSSE and PSCAD model submission is pending",
+        "after": "Incomplete submission:\n 1. PSSE and PSCAD model submission is pending"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Badnagar",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "Pending points:\r\n 1. Reactive POWER capability study cases not submitted.\r\n 2. Revised PSCAD models are awaited from developer",
+        "after": "Pending points:\n 1. Reactive POWER capability study cases not submitted.\n 2. Revised PSCAD models are awaited from developer"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Ludbay",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "Pending points:\r\n 1. PSCAD model initialisation and slow run issues to be addressed\r\n 2. FFR response to be modeled properly \r\n 3. Difference in PSSE and PSCAD response to be resolved",
+        "after": "Pending points:\n 1. PSCAD model initialisation and slow run issues to be addressed\n 2. FFR response to be modeled properly \n 3. Difference in PSSE and PSCAD response to be resolved"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "WR",
+    "table": "CONTD4",
+    "name": "Skadar Solar Pvt. Ltd.",
+    "diffs": [
+      {
+        "field": "remarks",
+        "before": "Incomplete submission:\r\n 1. PSCAD models not submitted",
+        "after": "Incomplete submission:\n 1. PSCAD models not submitted"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "SR",
+    "table": "FTC",
+    "name": "JSW Renew Energy Limited",
+    "diffs": [
+      {
+        "field": "codDate",
+        "before": "09.05.25 (32.4MW)\r\n28.03.25 (43.2 MW)\r\n27.03.25 (27 MW)\r\n28.02.25 (59.4 MW)",
+        "after": "09.05.25 (32.4MW)\n28.03.25 (43.2 MW)\n27.03.25 (27 MW)\n28.02.25 (59.4 MW)"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "SR",
+    "table": "FTC",
+    "name": "Greenko AP01 IREP Pvt Ltd",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "264:10-01-2026\r\n281.6: 22-04-2025",
+        "after": "264:10-01-2026\n281.6: 22-04-2025"
+      }
+    ]
+  },
+  {
+    "from": "2026-05-12",
+    "to": "2026-05-13",
+    "type": "MODIFIED",
+    "sheet": "NER",
+    "table": "FTC",
+    "name": "Subansiri Lower HEP",
+    "diffs": [
+      {
+        "field": "ftcDate",
+        "before": "Unit-2: 02.12.2025\r\nUnit-3: 21.01.2026\r\nUnit-1: 31.01.2026\r\nUnit-4: 30.04.2026",
+        "after": "Unit-2: 02.12.2025\nUnit-3: 21.01.2026\nUnit-1: 31.01.2026\nUnit-4: 30.04.2026"
+      },
+      {
+        "field": "tocDate",
+        "before": "Unit-2: 20.12.2025\r\nUnit-3: 30.01.2026\r\nUnit-1: 09.03.2026\r\nUnit-4: 04.05.2026",
+        "after": "Unit-2: 20.12.2025\nUnit-3: 30.01.2026\nUnit-1: 09.03.2026\nUnit-4: 04.05.2026"
+      },
+      {
+        "field": "codDate",
+        "before": "Unit-2: 23.12.2025\r\nUnit-3: 01.02.2026\r\nUnit-1: 20.03.2026\r\nUnit-4: 08.05.2026",
+        "after": null
+      }
+    ]
+  }
+]

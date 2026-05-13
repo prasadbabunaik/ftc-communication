@@ -173,21 +173,19 @@ export function TransmissionTable({ elements, userRole, onView }) {
           <thead className="bg-muted/30 border-b">
             <tr>
               <Th label="Sr. No"                               className="w-[52px]" />
-              <SortableTh label="Agency / Owner"  field="agency"    className="min-w-[150px]" {...sp} />
-              <SortableTh label="Element Name"    field="name"      className="min-w-[200px]" {...sp} />
+              <SortableTh label="Agency / Owner"  field="agency"    className="min-w-[140px]" {...sp} />
+              <SortableTh label="Element Name"    field="name"      className="min-w-[180px]" {...sp} />
               <SortableTh label="Region"          field="region"    className="w-[70px]"      {...sp} />
               <SortableTh label="Type"            field="type"      className="w-[80px]"      {...sp} />
-              <SortableTh label="Voltage (kV)"    field="voltage"   className="w-[100px]"     {...sp} />
-              <SortableTh label="Capacity (MVA)"  field="capacity"  className="w-[110px]"     {...sp} />
-              <Th label="RE"                                     className="w-[60px]" />
-              <Th label="Pending FTC"                           className="w-[100px]" />
-              <Th label="Actions"                               className="w-[70px]" />
+              <SortableTh label="Voltage (kV)"    field="voltage"   className="w-[95px]"      {...sp} />
+              <SortableTh label="Capacity (MVA)"  field="capacity"  className="w-[105px]"     {...sp} />
+              <Th label="FTC Status"                            className="w-[130px]" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No elements found.
                 </td>
               </tr>
@@ -196,7 +194,12 @@ export function TransmissionTable({ elements, userRole, onView }) {
                 <tr key={e.id} onClick={() => onView?.(e)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                   <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{e.agencyOwner}</td>
-                  <td className="px-3 py-3 text-sm">{e.elementName}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="text-sm">{e.elementName}</div>
+                    {e.isRe && (
+                      <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-green-50 text-green-700 border-green-200">RE</span>
+                    )}
+                  </td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {e.region.code}
@@ -209,23 +212,18 @@ export function TransmissionTable({ elements, userRole, onView }) {
                   </td>
                   <td className="px-3 py-3 font-mono text-sm tabular-nums">{e.voltageRatingKv ?? '—'}</td>
                   <td className="px-3 py-3 font-mono text-sm tabular-nums">{e.capacityMva ? Number(e.capacityMva).toFixed(1) : '—'}</td>
-                  <td className="px-3 py-3 text-xs">
-                    {e.isRe
-                      ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-green-50 text-green-700 border-green-200">RE</span>
-                      : <span className="text-muted-foreground">—</span>}
-                  </td>
-                  <td className="px-3 py-3 text-xs">
-                    {e.pendingFtc
-                      ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">Pending</span>
-                      : <span className="text-muted-foreground">No</span>}
-                  </td>
                   <td className="px-3 py-3">
-                    {e.pendingFtc && (
-                      <MarkDoneButton
-                        elementId={e.id}
-                        canEdit={['ADMIN','SRLDC','NRLDC','ERLDC','WRLDC','NERLDC'].includes(userRole)}
-                      />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {e.pendingFtc
+                        ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">Pending</span>
+                        : <span className="text-xs text-muted-foreground">Done</span>}
+                      {e.pendingFtc && (
+                        <MarkDoneButton
+                          elementId={e.id}
+                          canEdit={['ADMIN','SRLDC','NRLDC','ERLDC','WRLDC','NERLDC'].includes(userRole)}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

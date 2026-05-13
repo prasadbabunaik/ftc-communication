@@ -74,6 +74,14 @@ function sortRows(rows, field, dir) {
   });
 }
 
+// COD Pending = TOC issued − COD declared − (capacity already in TOC process)
+function codPendingFromPhase(ph) {
+  const toc      = ph.tocIssuedMw         ?? 0;
+  const cod      = ph.codDeclaredMw       ?? 0;
+  const underToc = ph.capacityUnderTocMw  ?? 0;
+  return Math.max(0, toc - cod - underToc);
+}
+
 function aggregateBySource(phases) {
   const map = {};
   for (const ph of phases) {
@@ -91,7 +99,7 @@ function aggregateBySource(phases) {
     r.tocIssued   += ph.tocIssuedMw        ?? 0;
     r.tocPending  += ph.capacityUnderTocMw ?? 0;
     r.codDeclared += ph.codDeclaredMw      ?? 0;
-    r.codPending  += ph.codPendingMw       ?? 0;
+    r.codPending  += codPendingFromPhase(ph);
     r.expected    += ph.expectedApr26Mw    ?? 0;
   }
   return Object.values(map);
@@ -145,7 +153,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       _tocIssuedMw:   p.phases.reduce((s, ph) => s + (ph.tocIssuedMw        ?? 0), 0),
       _tocPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderTocMw ?? 0), 0),
       _codDeclaredMw: p.phases.reduce((s, ph) => s + (ph.codDeclaredMw      ?? 0), 0),
-      _codPendingMw:  p.phases.reduce((s, ph) => s + (ph.codPendingMw       ?? 0), 0),
+      _codPendingMw:  p.phases.reduce((s, ph) => s + codPendingFromPhase(ph), 0),
       _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
       _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
       _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
@@ -210,7 +218,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
           <thead className="bg-muted/30 border-b">
             {/* Group header row */}
             <tr className="border-b border-border/40">
-              <th colSpan={7} className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
+              <th colSpan={5} className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
                 Project
               </th>
               <th colSpan={3} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-blue-50/60 text-blue-700">
@@ -223,44 +231,42 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                 COD
               </th>
               <th className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest text-amber-700 bg-amber-50/60" />
-              <th className="w-[80px]" />
+              <th className="w-[40px]" />
             </tr>
             {/* Column labels */}
             <tr>
-              <Th label="#"               className="w-[44px]" />
-              <SortableTh label="Station" field="name"     className="min-w-[180px]" {...sp} />
-              <Th label="Pooling Stn."    className="min-w-[140px]" />
-              <Th label="Type"            className="min-w-[110px]" />
-              <SortableTh label="Region"  field="region"   className="w-[68px]"      {...sp} />
-              <SortableTh label="Total (MW)" field="totalCap" className="w-[90px]"   {...sp} />
-              <ThPink label="CONTD-4 (MW)" className="min-w-[100px] border-r border-border/40" />
-              <SortableTh label="Applied (MW)"  field="applied"    className="w-[100px] bg-blue-50/30"   {...sp} />
-              <SortableTh label="Approved (MW)" field="approved"   className="w-[100px] bg-blue-50/30"  {...sp} />
-              <SortableTh label="Pending (MW)"  field="ftcPending" className="w-[100px] bg-blue-50/30 border-r border-border/40" {...sp} />
-              <Th label="Issued (MW)"     className="w-[100px] bg-violet-50/30" />
-              <Th label="Pending (MW)"    className="w-[100px] bg-violet-50/30 border-r border-border/40" />
-              <SortableTh label="Done (MW)" field="codDeclared" className="w-[100px] bg-emerald-50/30" {...sp} />
-              <Th label="Pending (MW)"    className="w-[100px] bg-emerald-50/30 border-r border-border/40" />
-              <Th label={refMonthLabel}   className="w-[110px] bg-amber-50/30" />
-              <Th label=""                className="w-[80px]" />
+              <Th label="#"                  className="w-[44px]" />
+              <SortableTh label="Station"    field="name"      className="min-w-[180px]" {...sp} />
+              <SortableTh label="Region"     field="region"    className="w-[68px]"      {...sp} />
+              <SortableTh label="Total (MW)" field="totalCap"  className="w-[80px]"      {...sp} />
+              <ThPink label="CONTD-4 (MW)"   className="w-[80px] border-r border-border/40" />
+              <SortableTh label="Applied"    field="applied"    className="w-[75px] bg-blue-50/30"  {...sp} />
+              <SortableTh label="Approved"   field="approved"   className="w-[75px] bg-blue-50/30"  {...sp} />
+              <SortableTh label="Pending"    field="ftcPending" className="w-[75px] bg-blue-50/30 border-r border-border/40" {...sp} />
+              <Th label="Issued"             className="w-[75px] bg-violet-50/30" />
+              <Th label="Pending"            className="w-[75px] bg-violet-50/30 border-r border-border/40" />
+              <SortableTh label="Done"       field="codDeclared" className="w-[75px] bg-emerald-50/30" {...sp} />
+              <Th label="Pending"            className="w-[75px] bg-emerald-50/30 border-r border-border/40" />
+              <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30" />
+              <Th label=""                   className="w-[40px]" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={16} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={14} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No cleared projects found.
                 </td>
               </tr>
             ) : (
               paginated.flatMap((p, i) => {
-                const isHybrid    = p.plantType.isHybrid;
-                const hasPhases   = p.phases.length > 0;
-                const isExpanded  = !!expanded[p.id];
-                const subRows     = isHybrid && hasPhases ? aggregateBySource(p.phases) : [];
+                const isHybrid   = p.plantType.isHybrid;
+                const hasPhases  = p.phases.length > 0;
+                const isExpanded = !!expanded[p.id];
+                const subRows    = isHybrid && hasPhases ? aggregateBySource(p.phases) : [];
 
                 const numCell = (val, cls = '') => (
-                  <td className={`px-3 py-3 font-mono text-sm tabular-nums ${cls}`}>
+                  <td className={`px-2 py-3 font-mono text-xs tabular-nums text-right ${cls}`}>
                     {hasPhases ? (val > 0 ? mw(val) : <span className="text-muted-foreground/40">—</span>) : <span className="text-muted-foreground/40">—</span>}
                   </td>
                 );
@@ -272,65 +278,65 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                     className={`hover:bg-muted/20 transition-colors cursor-pointer ${p._isOverdue ? 'bg-red-50/30' : ''}`}
                   >
                     <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
-                    <td className="px-3 py-3 font-medium text-foreground max-w-[220px]">
-                      <span
-                        onClick={(e) => e.stopPropagation()}
-                        className="truncate block hover:text-blue-600 hover:underline"
-                        title={p.name}
-                      >
-                        {p.name}
-                      </span>
-                      {p._isOverdue && (
-                        <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-semibold text-red-600">
-                          <AlertCircle className="size-3" /> Overdue FTC
+                    <td className="px-3 py-2.5 min-w-[180px]">
+                      <div className="font-medium text-foreground truncate max-w-[240px]" title={p.name}>{p.name}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 whitespace-nowrap">
+                          {p.plantType.label}
                         </span>
-                      )}
+                        {p.poolingStation?.name && (
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[140px]" title={p.poolingStation.name}>
+                            {p.poolingStation.name}
+                          </span>
+                        )}
+                        {p._isOverdue && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600">
+                            <AlertCircle className="size-2.5" /> Overdue
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-3 py-3 text-xs text-muted-foreground max-w-[160px]">
-                      <div className="truncate" title={p.poolingStation?.name}>{p.poolingStation?.name ?? '—'}</div>
-                    </td>
-                    <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">{p.plantType.label}</td>
                     <td className="px-3 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                         {p.region.code}
                       </span>
                     </td>
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums">{mw(p.totalCapacityMw)}</td>
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums bg-pink-50/40 border-r border-border/30">{mw(p._contd4Cap)}</td>
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right">{mw(p.totalCapacityMw)}</td>
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-pink-50/40 border-r border-border/30">{mw(p._contd4Cap)}</td>
                     {/* FTC */}
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums bg-blue-50/20">
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-blue-50/20">
                       {hasPhases ? mw(p._appliedMw) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className={`px-3 py-3 font-mono text-sm tabular-nums bg-blue-50/20 ${p._approvedMw > 0 ? 'text-blue-700' : ''}`}>
+                    <td className={`px-2 py-3 font-mono text-xs tabular-nums text-right bg-blue-50/20 ${p._approvedMw > 0 ? 'text-blue-700' : ''}`}>
                       {hasPhases ? (p._approvedMw > 0 ? mw(p._approvedMw) : <span className="text-muted-foreground/40">—</span>) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums bg-blue-50/20 border-r border-border/30">
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-blue-50/20 border-r border-border/30">
                       {hasPhases && p._ftcPendingMw > 0 ? <span className="text-blue-500">{mw(p._ftcPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     {/* TOC */}
-                    {numCell(p._tocIssuedMw,  'bg-violet-50/20')}
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums bg-violet-50/20 border-r border-border/30">
+                    {numCell(p._tocIssuedMw, 'bg-violet-50/20')}
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-violet-50/20 border-r border-border/30">
                       {hasPhases && p._tocPendingMw > 0 ? <span className="text-amber-600">{mw(p._tocPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     {/* COD */}
-                    <td className={`px-3 py-3 font-mono text-sm tabular-nums bg-emerald-50/20 ${p._codDeclaredMw > 0 ? 'text-emerald-700' : ''}`}>
+                    <td className={`px-2 py-3 font-mono text-xs tabular-nums text-right bg-emerald-50/20 ${p._codDeclaredMw > 0 ? 'text-emerald-700' : ''}`}>
                       {hasPhases ? (p._codDeclaredMw > 0 ? mw(p._codDeclaredMw) : <span className="text-muted-foreground/40">—</span>) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums bg-emerald-50/20 border-r border-border/30">
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-emerald-50/20 border-r border-border/30">
                       {hasPhases && p._codPendingMw > 0 ? <span className="text-orange-600">{mw(p._codPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     {/* Expected */}
-                    <td className="px-3 py-3 font-mono text-sm tabular-nums bg-amber-50/20">
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-amber-50/20">
                       {hasPhases && p._expectedMw > 0 ? <span className="text-amber-700 font-semibold">{mw(p._expectedMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-2 py-3">
                       {isHybrid && hasPhases && (
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleExpand(p.id); }}
-                          className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          className="size-6 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           title={isExpanded ? 'Collapse sources' : 'Expand sources'}
                         >
-                          {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                          {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
                         </button>
                       )}
                     </td>
@@ -341,18 +347,19 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                   ? subRows.map((sr) => (
                       <tr key={`${p.id}-${sr.sourceType}`} className="bg-muted/10 border-l-2 border-primary/30">
                         <td />
-                        <td className="px-3 py-2 pl-8" colSpan={3}>
+                        <td className="px-3 py-2 pl-8">
                           <SourceBadge source={sr.sourceType} />
                         </td>
-                        <td /><td /><td className="bg-pink-50/20 border-r border-border/30" />
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-muted-foreground bg-blue-50/10">{mw(sr.applied)}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-blue-600 bg-blue-50/10">{mw(sr.ftcApproved)}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-blue-500 bg-blue-50/10 border-r border-border/30">{sr.ftcPending > 0 ? mw(sr.ftcPending) : '—'}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-violet-600 bg-violet-50/10">{mw(sr.tocIssued)}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-amber-600 bg-violet-50/10 border-r border-border/30">{sr.tocPending > 0 ? mw(sr.tocPending) : '—'}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-emerald-600 bg-emerald-50/10">{mw(sr.codDeclared)}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-orange-600 bg-emerald-50/10 border-r border-border/30">{sr.codPending > 0 ? mw(sr.codPending) : '—'}</td>
-                        <td className="px-3 py-2 font-mono text-xs tabular-nums text-amber-700 bg-amber-50/10">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>
+                        <td /><td />
+                        <td className="bg-pink-50/20 border-r border-border/30" />
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-muted-foreground bg-blue-50/10">{mw(sr.applied)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-blue-600 bg-blue-50/10">{mw(sr.ftcApproved)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-blue-500 bg-blue-50/10 border-r border-border/30">{sr.ftcPending > 0 ? mw(sr.ftcPending) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-violet-600 bg-violet-50/10">{mw(sr.tocIssued)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-600 bg-violet-50/10 border-r border-border/30">{sr.tocPending > 0 ? mw(sr.tocPending) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-emerald-600 bg-emerald-50/10">{mw(sr.codDeclared)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-orange-600 bg-emerald-50/10 border-r border-border/30">{sr.codPending > 0 ? mw(sr.codPending) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-700 bg-amber-50/10">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>
                         <td />
                       </tr>
                     ))

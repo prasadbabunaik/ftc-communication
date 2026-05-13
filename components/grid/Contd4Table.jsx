@@ -81,7 +81,7 @@ export function Contd4Table({ applications, userRole, onView }) {
         <table className="w-full text-sm">
           <thead className="bg-muted/30 border-b">
             <tr>
-              {['Sr. No', 'Generating Station', 'Region', 'Plant Type', 'Pooling Station', 'Capacity (MW)', 'Application Date', 'Proposed FTC', 'Capacity Apr\'26', 'Status', 'Remarks'].map((h) => (
+              {['Sr. No', 'Generating Station', 'Region', 'Capacity (MW)', 'Application Date', 'Proposed FTC', "Cap. Apr'26 (MW)", 'Status'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
                   {h}
                 </th>
@@ -91,7 +91,7 @@ export function Contd4Table({ applications, userRole, onView }) {
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No applications found.
                 </td>
               </tr>
@@ -99,24 +99,33 @@ export function Contd4Table({ applications, userRole, onView }) {
               paginated.map((a, i) => (
                 <tr key={a.id} onClick={() => onView?.(a)} className="hover:bg-muted/30 transition-colors cursor-pointer">
                   <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{(page - 1) * PER_PAGE + i + 1}</td>
-                  <td className="px-4 py-3 font-medium text-foreground">{a.project.name}</td>
+                  <td className="px-4 py-2.5 min-w-[200px]">
+                    <div className="font-medium text-foreground truncate max-w-[260px]" title={a.project.name}>{a.project.name}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 whitespace-nowrap">
+                        {a.project.plantType.label}
+                      </span>
+                      {a.project.poolingStation?.name && (
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[160px]" title={a.project.poolingStation.name}>
+                          {a.project.poolingStation.name}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {a.project.region.code}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{a.project.plantType.label}</td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{a.project.poolingStation?.name ?? '—'}</td>
                   <td className="px-4 py-3 font-mono text-sm">{Number(a.project.totalCapacityMw).toFixed(1)}</td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap">{fmt(a.applicationDate)}</td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap">{fmt(a.proposedFtcDate)}</td>
+                  <td className="px-4 py-3 text-xs whitespace-nowrap">{fmt(a.applicationDate)}</td>
+                  <td className="px-4 py-3 text-xs whitespace-nowrap">{fmt(a.proposedFtcDate)}</td>
                   <td className="px-4 py-3 font-mono text-sm">{a.capacityApr26Mw ? Number(a.capacityApr26Mw).toFixed(1) : '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${STATUS_COLORS[a.status]}`}>
                       {a.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate">{a.remarks ?? '—'}</td>
                 </tr>
               ))
             )}

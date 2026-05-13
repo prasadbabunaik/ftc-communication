@@ -293,6 +293,120 @@ function buildSourceDetailSheet(source, projects, asOf) {
   return ws;
 }
 
+// Combined Summary sheet (mirrors the Excel Summary tab exactly)
+function buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel) {
+  const data = [];
+  const merges = [];
+  let r = 0;
+
+  const H1 = `Summary of Generation Capacity Under FTC / TOC / COD (as on ${dateLabel})`;
+
+  // ── Title ─────────────────────────────────────────────────────────────────
+  data.push([H1]);
+  merges.push({ s: { r, c: 0 }, e: { r, c: 11 } });
+  r++;
+
+  data.push([]);
+  r++;
+
+  // ── Table 2: Region-wise ──────────────────────────────────────────────────
+  data.push(['Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise']);
+  merges.push({ s: { r, c: 0 }, e: { r, c: 11 } });
+  r++;
+
+  data.push([
+    'Region', 'Source (Type)',
+    'Total Installed\nCapacity (MW)',
+    'Total Capacity (MW)\n(For which CONTD4 issued)',
+    'Capacity applied\nfor FTC',
+    'FTC Approved',
+    'FTC Pending',
+    'TOC Issued',
+    'TOC Pending',
+    'COD Completed',
+    'COD Pending',
+    'Expected Capacity\n(MW) to be commissioned',
+  ]);
+  r++;
+
+  for (const row of table2Rows) {
+    const primary   = row.region;
+    const secondary = row.source;
+    const label1 = row.isTotal ? 'All India' : row.isSubtotal ? `${primary} Total` : primary;
+    const label2 = row.isTotal || row.isSubtotal ? '' : secondary;
+    data.push([
+      label1, label2,
+      fmtNum(row.totalCapacityMw), fmtNum(row.contd4CapacityMw),
+      fmtNum(row.appliedMw), fmtNum(row.ftcApprovedMw), fmtNum(row.ftcPendingMw),
+      fmtNum(row.tocIssuedMw), fmtNum(row.tocPendingMw),
+      fmtNum(row.codCompletedMw), fmtNum(row.codPendingMw), fmtNum(row.expectedMw),
+    ]);
+    r++;
+  }
+
+  data.push([]);
+  r++;
+
+  // ── Table 5: Source-wise ──────────────────────────────────────────────────
+  data.push(['Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise']);
+  merges.push({ s: { r, c: 0 }, e: { r, c: 11 } });
+  r++;
+
+  data.push([
+    'Source (Type)', 'Region',
+    'Total Installed\nCapacity (MW)',
+    'Total Capacity (MW)\n(For which CONTD4 issued)',
+    'Capacity applied\nfor FTC',
+    'FTC Approved',
+    'FTC Pending',
+    'TOC Issued',
+    'TOC Pending',
+    'COD Completed',
+    'COD Pending',
+    'Expected Capacity\n(MW) to be commissioned',
+  ]);
+  r++;
+
+  for (const row of table5Rows) {
+    const primary   = row.source;
+    const secondary = row.region;
+    const label1 = row.isTotal ? 'All India' : row.isSubtotal ? `${primary} Total` : primary;
+    const label2 = row.isTotal || row.isSubtotal ? '' : secondary;
+    data.push([
+      label1, label2,
+      fmtNum(row.totalCapacityMw), fmtNum(row.contd4CapacityMw),
+      fmtNum(row.appliedMw), fmtNum(row.ftcApprovedMw), fmtNum(row.ftcPendingMw),
+      fmtNum(row.tocIssuedMw), fmtNum(row.tocPendingMw),
+      fmtNum(row.codCompletedMw), fmtNum(row.codPendingMw), fmtNum(row.expectedMw),
+    ]);
+    r++;
+  }
+
+  data.push([]);
+  r++;
+
+  // ── Table 1: CONTD-4 Study ────────────────────────────────────────────────
+  const { rows: c4Rows, allMonths } = contd4Study;
+  data.push(['Total Capacity Under CONTD-4 Study (MW)']);
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 + allMonths.length } });
+  r++;
+
+  data.push(['Region', 'Source (Type)', 'Total Capacity (MW)', ...allMonths.map(fmtMonth)]);
+  r++;
+
+  for (const row of c4Rows) {
+    const label1 = row.isTotal ? 'All India' : row.isSubtotal ? `${row.region} Total` : row.region;
+    const label2 = row.isTotal || row.isSubtotal ? '' : row.source;
+    data.push([label1, label2, fmtNum(row.totalMw), ...allMonths.map(m => fmtNum(row.months?.[m] ?? 0))]);
+    r++;
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!merges'] = merges;
+  setCols(ws, [18, 14, 18, 26, 20, 13, 13, 13, 13, 14, 13, 28]);
+  return ws;
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request) {
@@ -337,6 +451,13 @@ export async function GET(request) {
 
   // Build workbook
   const wb = XLSX.utils.book_new();
+
+  // Summary sheet (combined, mirrors Excel Summary tab)
+  XLSX.utils.book_append_sheet(
+    wb,
+    buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel),
+    'Summary',
+  );
 
   XLSX.utils.book_append_sheet(
     wb,
