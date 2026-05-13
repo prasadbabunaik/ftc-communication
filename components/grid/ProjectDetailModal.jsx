@@ -191,6 +191,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
                     phases={project.phases}
                     projectId={project.id}
                     canEdit={canEdit}
+                    onEditSuccess={handleClose}
                   />
                 )}
               </div>

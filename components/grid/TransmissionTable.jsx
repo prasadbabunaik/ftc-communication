@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
-import { Search, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Eye, CheckCircle2 } from 'lucide-react';
+import { Search, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -71,11 +71,14 @@ function MarkDoneButton({ elementId, canEdit }) {
     <button
       title="Mark FTC Done"
       disabled={isPending}
-      onClick={() => startTransition(async () => {
-        const res = await markTransmissionFtcDone(elementId);
-        if (res?.error) toast.error(res.error);
-        else toast.success('Marked as FTC done.');
-      })}
+      onClick={(e) => {
+        e.stopPropagation();
+        startTransition(async () => {
+          const res = await markTransmissionFtcDone(elementId);
+          if (res?.error) toast.error(res.error);
+          else toast.success('Marked as FTC done.');
+        });
+      }}
       className="size-7 rounded-md border border-emerald-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-40"
     >
       <CheckCircle2 className="size-3.5" />
@@ -190,7 +193,7 @@ export function TransmissionTable({ elements, userRole, onView }) {
               </tr>
             ) : (
               paginated.map((e, i) => (
-                <tr key={e.id} className="hover:bg-muted/20 transition-colors">
+                <tr key={e.id} onClick={() => onView?.(e)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                   <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{e.agencyOwner}</td>
                   <td className="px-3 py-3 text-sm">{e.elementName}</td>
@@ -217,21 +220,12 @@ export function TransmissionTable({ elements, userRole, onView }) {
                       : <span className="text-muted-foreground">No</span>}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center gap-1">
-                      {e.pendingFtc && (
-                        <MarkDoneButton
-                          elementId={e.id}
-                          canEdit={['ADMIN','SRLDC','NRLDC','ERLDC','WRLDC','NERLDC'].includes(userRole)}
-                        />
-                      )}
-                      <button
-                        onClick={() => onView?.(e)}
-                        className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title="View details"
-                      >
-                        <Eye className="size-3.5" />
-                      </button>
-                    </div>
+                    {e.pendingFtc && (
+                      <MarkDoneButton
+                        elementId={e.id}
+                        canEdit={['ADMIN','SRLDC','NRLDC','ERLDC','WRLDC','NERLDC'].includes(userRole)}
+                      />
+                    )}
                   </td>
                 </tr>
               ))

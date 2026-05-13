@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Search, ChevronsUpDown, ChevronUp, ChevronDown,
-  ChevronLeft, ChevronRight, Eye, AlertCircle,
+  ChevronLeft, ChevronRight, AlertCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -266,12 +266,20 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                 );
 
                 const mainRow = (
-                  <tr key={p.id} className={`hover:bg-muted/20 transition-colors ${p._isOverdue ? 'bg-red-50/30' : ''}`}>
+                  <tr
+                    key={p.id}
+                    onClick={() => onView?.(p)}
+                    className={`hover:bg-muted/20 transition-colors cursor-pointer ${p._isOverdue ? 'bg-red-50/30' : ''}`}
+                  >
                     <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                     <td className="px-3 py-3 font-medium text-foreground max-w-[220px]">
-                      <Link href={`/generation/${p.id}`} className="hover:text-blue-600 hover:underline truncate block" title={p.name}>
+                      <span
+                        onClick={(e) => e.stopPropagation()}
+                        className="truncate block hover:text-blue-600 hover:underline"
+                        title={p.name}
+                      >
                         {p.name}
-                      </Link>
+                      </span>
                       {p._isOverdue && (
                         <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-semibold text-red-600">
                           <AlertCircle className="size-3" /> Overdue FTC
@@ -316,24 +324,15 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                       {hasPhases && p._expectedMw > 0 ? <span className="text-amber-700 font-semibold">{mw(p._expectedMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-1">
-                        {isHybrid && hasPhases && (
-                          <button
-                            onClick={() => toggleExpand(p.id)}
-                            className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                            title={isExpanded ? 'Collapse sources' : 'Expand sources'}
-                          >
-                            {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                          </button>
-                        )}
+                      {isHybrid && hasPhases && (
                         <button
-                          onClick={() => onView?.(p)}
+                          onClick={(e) => { e.stopPropagation(); toggleExpand(p.id); }}
                           className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                          title="View details"
+                          title={isExpanded ? 'Collapse sources' : 'Expand sources'}
                         >
-                          <Eye className="size-3.5" />
+                          {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
                         </button>
-                      </div>
+                      )}
                     </td>
                   </tr>
                 );

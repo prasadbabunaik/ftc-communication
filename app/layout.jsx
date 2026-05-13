@@ -1,5 +1,6 @@
 import { Inter } from 'next/font/google';
 import '@/css/styles.css';
+import { Toaster } from 'sonner';
 import { SettingsProvider } from '@/providers/settings-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
             {children}
           </AuthProvider>
         </SettingsProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

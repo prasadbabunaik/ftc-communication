@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Eye, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { deleteGenerationProject } from '@/app/actions/grid';
@@ -200,7 +200,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView }) {
               </tr>
             ) : (
               paginated.map((p, i) => (
-                <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                <tr key={p.id} onClick={() => onView?.(p)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                   <td className="px-3 py-3 text-sm font-medium text-foreground">{p.developerName ?? '—'}</td>
                   <td className="px-3 py-3 text-sm text-foreground">{p.name}</td>
@@ -226,25 +226,18 @@ export function Contd4ApplicationTable({ projects, userRole, onView }) {
                     )}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => onView?.(p)}
-                        title="View details"
-                        className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                      >
-                        <Eye className="size-3.5" />
-                      </button>
-                      {canEdit && (
+                    {canEdit && (
+                      <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => setDeleteTarget(p)}
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
                           disabled={isPending}
                           title="Delete"
                           className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                         >
                           <Trash2 className="size-3.5" />
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))

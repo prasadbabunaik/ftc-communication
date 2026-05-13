@@ -135,7 +135,7 @@ function DateInput({ value, onChange }) {
   );
 }
 
-function PhaseEditModal({ phase, open, onOpenChange, index }) {
+function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
   const [isPending, startTransition] = useTransition();
 
   const [ftcMw,       setFtcMw]       = useState(phase.ftcCompletedMw     != null ? String(Number(phase.ftcCompletedMw))     : '');
@@ -154,6 +154,32 @@ function PhaseEditModal({ phase, open, onOpenChange, index }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+
+    // Pipeline validation
+    const applied     = Number(phase.capacityAppliedMw) || 0;
+    const ftcMwNum    = ftcMw     ? Number(ftcMw)     : 0;
+    const underFtcNum = underFtcMw ? Number(underFtcMw) : 0;
+    const tocMwNum    = tocMw     ? Number(tocMw)     : 0;
+    const underTocNum = underTocMw ? Number(underTocMw) : 0;
+    const codMwNum    = codMw     ? Number(codMw)     : 0;
+
+    const errs = [];
+    if (ftcMwNum > applied + 0.01)
+      errs.push(`FTC Approved (${ftcMwNum.toFixed(1)} MW) cannot exceed Applied capacity (${applied.toFixed(1)} MW)`);
+    if (underFtcNum + ftcMwNum > applied + 0.01)
+      errs.push(`FTC Approved + Under FTC (${(ftcMwNum + underFtcNum).toFixed(1)} MW) exceeds Applied (${applied.toFixed(1)} MW)`);
+    if (tocMwNum > ftcMwNum + 0.01)
+      errs.push(`TOC Issued (${tocMwNum.toFixed(1)} MW) cannot exceed FTC Approved (${ftcMwNum.toFixed(1)} MW) — FTC ≥ TOC`);
+    if (underTocNum + tocMwNum > ftcMwNum + 0.01)
+      errs.push(`TOC Issued + Under TOC (${(tocMwNum + underTocNum).toFixed(1)} MW) exceeds FTC Approved (${ftcMwNum.toFixed(1)} MW)`);
+    if (codMwNum > tocMwNum + 0.01)
+      errs.push(`COD Declared (${codMwNum.toFixed(1)} MW) cannot exceed TOC Issued (${tocMwNum.toFixed(1)} MW) — TOC ≥ COD`);
+
+    if (errs.length > 0) {
+      errs.forEach((msg) => toast.error(msg, { duration: 6000 }));
+      return;
+    }
+
     startTransition(async () => {
       const result = await updateCommissioningPhase(phase.id, {
         ftcCompletedMw:     ftcMw,
@@ -175,6 +201,7 @@ function PhaseEditModal({ phase, open, onOpenChange, index }) {
       } else {
         toast.success('Phase updated successfully.');
         onOpenChange(false);
+        onEditSuccess?.();
       }
     });
   }
@@ -338,7 +365,7 @@ function PipelineBar({ phase }) {
   );
 }
 
-function PhaseRow({ phase, projectId, canEdit, index }) {
+function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
   const [expanded, setExpanded]       = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [editOpen, setEditOpen]       = useState(false);
@@ -433,6 +460,7 @@ function PhaseRow({ phase, projectId, canEdit, index }) {
         open={editOpen}
         onOpenChange={setEditOpen}
         index={index}
+        onEditSuccess={onEditSuccess}
       />
 
       {/* Delete confirm modal */}
@@ -542,7 +570,7 @@ function PhaseRow({ phase, projectId, canEdit, index }) {
   );
 }
 
-export function ProjectPhaseTimeline({ phases, projectId, canEdit }) {
+export function ProjectPhaseTimeline({ phases, projectId, canEdit, onEditSuccess }) {
   if (!phases?.length) {
     return (
       <div className="rounded-xl border border-dashed bg-muted/20 p-8 text-center">
@@ -554,7 +582,7 @@ export function ProjectPhaseTimeline({ phases, projectId, canEdit }) {
   return (
     <div className="space-y-2">
       {phases.map((phase, i) => (
-        <PhaseRow key={phase.id} phase={phase} projectId={projectId} canEdit={canEdit} index={i} />
+        <PhaseRow key={phase.id} phase={phase} projectId={projectId} canEdit={canEdit} index={i} onEditSuccess={onEditSuccess} />
       ))}
     </div>
   );
