@@ -154,6 +154,7 @@ model CommissioningPhase {
 
   codDeclaredMw   Decimal?  @db.Decimal(10, 2)
   codDeclaredDate DateTime?
+  capacityPendingCodMw Decimal? @db.Decimal(10, 2)
   expectedApr26Mw Decimal?  @db.Decimal(10, 2)
 
   delayCategory String?
