@@ -33,8 +33,8 @@ export async function GET(request) {
         where: { project: regionScope },
       }),
       prisma.commissioningPhase.aggregate({
-        where: { projectId: { in: projectIds }, ftcCompletedDate: null },
-        _sum: { capacityAppliedMw: true },
+        where: { projectId: { in: projectIds } },
+        _sum: { capacityUnderFtcMw: true },
       }),
       prisma.commissioningPhase.aggregate({
         where: {
@@ -67,7 +67,7 @@ export async function GET(request) {
         generation: {
           totalProjectsMw: totalCapacityMw,
           commissionedMw: totalCodMw,
-          pendingFtcMw: Number(ftcPendingAgg._sum.capacityAppliedMw ?? 0),
+          pendingFtcMw: Number(ftcPendingAgg._sum.capacityUnderFtcMw ?? 0),
           codThisMonthMw: Number(codThisMonthAgg._sum.codDeclaredMw ?? 0),
         },
         transmission: { pending: txPendingCount, total: txTotalCount },

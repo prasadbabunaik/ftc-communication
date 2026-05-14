@@ -33,6 +33,22 @@ const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('en-IN', { day: '2-di
 const fmtMw   = (v) => (v != null && v !== '' ? `${Number(v).toFixed(2)} MW` : '—');
 const fmtStr  = (v) => (v != null && v !== '' ? String(v) : '—');
 
+// Revalidate every page whose data could be affected by a generation-project mutation.
+// Dashboard, FTC tracker, hybrid view, CONTD-4 list, generation list — they all read project data.
+function revalidateGridPages(projectId = null) {
+  revalidatePath('/dashboard');
+  revalidatePath('/ftc');
+  revalidatePath('/hybrid-ftc');
+  revalidatePath('/contd4');
+  revalidatePath('/generation');
+  if (projectId) revalidatePath(`/generation/${projectId}`);
+}
+
+function revalidateTransmissionPages() {
+  revalidatePath('/dashboard');
+  revalidatePath('/transmission');
+}
+
 function diffFields(tracked, projectId, userId, phaseId = null) {
   return tracked
     .filter((t) => t.old !== t.new)
@@ -148,8 +164,7 @@ export async function createGenerationProject(formData) {
     return { error: 'Failed to save project. Please check your inputs and try again.' };
   }
 
-  revalidatePath('/generation');
-  revalidatePath('/contd4');
+  revalidateGridPages(project.id);
   return { success: true, id: project.id };
 }
 
@@ -187,8 +202,7 @@ export async function updateGenerationProject(projectId, formData) {
   ], projectId, user.id);
   if (logs.length) await prisma.projectNote.createMany({ data: logs });
 
-  revalidatePath('/generation');
-  revalidatePath(`/generation/${projectId}`);
+  revalidateGridPages(projectId);
   return { success: true };
 }
 
@@ -204,9 +218,7 @@ export async function deleteGenerationProject(projectId) {
   }
 
   await prisma.generationProject.delete({ where: { id: projectId } });
-  revalidatePath('/contd4');
-  revalidatePath('/ftc');
-  revalidatePath('/hybrid-ftc');
+  revalidateGridPages();
   return { success: true };
 }
 
@@ -291,8 +303,7 @@ export async function upsertContd4(projectId, formData) {
     await prisma.projectNote.createMany({ data: changeLogs });
   }
 
-  revalidatePath('/contd4');
-  revalidatePath(`/generation/${projectId}`);
+  revalidateGridPages(projectId);
   return { success: true };
 }
 
@@ -358,8 +369,7 @@ export async function clearContd4(projectId, clearanceRemarks) {
     return { error: 'Failed to clear CONTD-4. Please try again.' };
   }
 
-  revalidatePath('/contd4');
-  revalidatePath(`/generation/${projectId}`);
+  revalidateGridPages(projectId);
   return { success: true };
 }
 
@@ -434,8 +444,7 @@ export async function addCommissioningPhases(projectId, formData) {
     })),
   });
 
-  revalidatePath(`/generation/${projectId}`);
-  revalidatePath('/generation');
+  revalidateGridPages(projectId);
   return { success: true };
 }
 
@@ -488,9 +497,7 @@ export async function updateCommissioningPhase(phaseId, formData) {
   ], phase.projectId, user.id, phaseId);
   if (logs.length) await prisma.projectNote.createMany({ data: logs });
 
-  revalidatePath(`/generation/${phase.projectId}`);
-  revalidatePath('/ftc');
-  revalidatePath('/dashboard');
+  revalidateGridPages(phase.projectId);
   return { success: true };
 }
 
@@ -524,7 +531,7 @@ export async function deleteCommissioningPhase(phaseId) {
   });
 
   await prisma.commissioningPhase.delete({ where: { id: phaseId } });
-  revalidatePath(`/generation/${projectId}`);
+  revalidateGridPages(projectId);
   return { success: true };
 }
 
@@ -574,7 +581,7 @@ export async function createTransmissionElement(formData) {
     },
   });
 
-  revalidatePath('/transmission');
+  revalidateTransmissionPages();
   return { success: true };
 }
 
@@ -643,7 +650,7 @@ export async function updateTransmissionElement(elementId, formData) {
     data: txLogs.map((l) => ({ ...l, elementName: element.elementName })),
   });
 
-  revalidatePath('/transmission');
+  revalidateTransmissionPages();
   return { success: true };
 }
 
@@ -670,7 +677,7 @@ export async function deleteTransmissionElement(elementId) {
   });
 
   await prisma.transmissionElement.delete({ where: { id: elementId } });
-  revalidatePath('/transmission');
+  revalidateTransmissionPages();
   return { success: true };
 }
 
@@ -773,9 +780,8 @@ export async function bulkImportRows(type, rows) {
     }
   }
 
-  revalidatePath('/generation');
-  revalidatePath('/transmission');
-  revalidatePath('/contd4');
+  revalidateGridPages();
+  revalidateTransmissionPages();
 
   return { success: true, created, failed, errors };
 }
@@ -800,7 +806,7 @@ export async function addProjectNote(projectId, text) {
     data: { projectId, userId: user.id, text: trimmed },
   });
 
-  revalidatePath('/generation');
+  revalidatePath(`/generation/${projectId}`);
   return { success: true };
 }
 
@@ -831,7 +837,6 @@ export async function markTransmissionFtcDone(elementId) {
     },
   });
 
-  revalidatePath('/transmission');
-  revalidatePath('/dashboard');
+  revalidateTransmissionPages();
   return { success: true };
 }

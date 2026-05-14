@@ -247,6 +247,21 @@ model TransmissionElement {
   @@map("transmission_elements")
 }
 
+// ─── GRID TRACKER: SNAPSHOTS ──────────────────────────────────────────────────
+
+model GridSnapshot {
+  id           String   @id @default(cuid())
+  snapshotDate DateTime @db.Date
+  label        String?
+  t1Json       Json
+  t2Json       Json
+  t3Json       Json
+  createdAt    DateTime @default(now())
+
+  @@unique([snapshotDate])
+  @@map("grid_snapshots")
+}
+
 // ─── GRID TRACKER: ENUMS ──────────────────────────────────────────────────────
 
 enum GenerationCategory {

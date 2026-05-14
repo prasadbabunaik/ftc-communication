@@ -9,30 +9,31 @@ const fs = require('fs');
 const path = require('path');
 
 const prisma = new PrismaClient();
-const ADMIN_ID = 'cmoco2ex90000yee3g184srfl';
+const ADMIN_ID = 'cmp45icgu0000fnulalj6uymo';
 
 // ── Seeded lookup IDs ──────────────────────────────────────────────────────────
 const REGION = {
-  NR:  'cmogzdsem0008yeu5lypatweo',
-  WR:  'cmogzdseo0009yeu5zmheo8dy',
-  ER:  'cmogzdseq000ayeu576449e4l',
-  NER: 'cmogzdses000byeu5pbv3ypdj',
-  SR:  'cmogzdsei0007yeu5un5mm5p0',
+  NR:  'cmp45idho0008fnulx05edi99',
+  WR:  'cmp45idhp0009fnulee9whg95',
+  ER:  'cmp45idhp000afnulxrkrc91x',
+  NER: 'cmp45idhq000bfnul6oe8alk7',
+  SR:  'cmp45idhm0007fnulmgnnkgox',
 };
 
 const PT = {
-  SOLAR:      'cmogzdseu000cyeu513dj90t4',
-  WIND:       'cmogzdsf4000dyeu5x8vah7md',
-  HYBRID_WS:  'cmogzdsf7000eyeu55txggf6a',
-  HYBRID_WSB: 'cmogzdsf9000fyeu5gwxo72yc',
-  COAL:       'cmogzdsfa000gyeu55lusaouo',
-  HYDRO:      'cmogzdsfc000hyeu50tjn0cz9',
-  PSP:        'cmogzdsfh000iyeu5i5600y1p',
-  BESS:       'cmogzdsfj000jyeu55ri1unt2',
-  HYBRID_SB:  'cmol5vts70000yelpx1nddf81',
-  HYBRID_WB:  'cmol5vtse0001yelpv0b3q43i',
-  HYBRID_WP:  'cmolbmqty0000yepivwg1x62b',
-  HYBRID_HP:  'cmolbmqui0001yepicyxh0g2r',
+  SOLAR:      'cmp45idhr000cfnulzn36mrr9',
+  WIND:       'cmp45idhs000dfnul2lguyuz0',
+  HYBRID_WS:  'cmp45idht000efnuloscph0ne',
+  HYBRID_WSB: 'cmp45idht000ffnul86qx8jvu',
+  COAL:       'cmp45idhu000gfnultfo0rklv',
+  HYDRO:      'cmp45idhu000hfnuldour0kz8',
+  PSP:        'cmp45idhv000ifnuljibxm4bp',
+  BESS:       'cmp45idhv000jfnulbhhqlmrz',
+  HYBRID_SB:  'cmp45idhw000kfnula4u8g5ai',
+  HYBRID_WB:  'cmp45idhw000lfnulsj2kkmiw',
+  HYBRID_WP:  'cmp45idhx000mfnulea9sqbxs',
+  HYBRID_HP:  'cmp45idhx000nfnulsyrbkosn',
+  HYBRID_SP:  'cmp47avoy0000fnfxgphqpj6y',
 };
 
 // ── helpers ────────────────────────────────────────────────────────────────────
