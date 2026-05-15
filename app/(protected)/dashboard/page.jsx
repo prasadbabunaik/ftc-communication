@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, activePeriodFilter } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { SummaryPageClient } from '@/components/grid/SummaryPageClient';
 import {
@@ -23,14 +23,17 @@ export default async function DashboardPage({ searchParams }) {
   const asOf      = asOfStr ? new Date(asOfStr) : null;
 
   const scope = await buildRegionScope(user.role);
+  // Restrict to projects/elements that were "live" on the requested date.
+  // With no asOf, this becomes `activeUntil IS NULL` — i.e. currently-active.
+  const activeFilter = activePeriodFilter(asOf);
 
   const [projects, txElements] = await Promise.all([
     prisma.generationProject.findMany({
-      where: scope,
-      include: { region: true, plantType: true, contd4: true, phases: true, poolingStation: true },
+      where: { ...scope, ...activeFilter },
+      include: { region: true, plantType: true, contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } }, phases: true, poolingStation: true },
     }),
     prisma.transmissionElement.findMany({
-      where: scope,
+      where: { ...scope, ...activeFilter },
       include: { region: true },
     }),
   ]);
@@ -79,6 +82,7 @@ export default async function DashboardPage({ searchParams }) {
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
       monthlyCod={JSON.parse(JSON.stringify(monthlyCod))}
       projects={JSON.parse(JSON.stringify(projects))}
+      txElements={JSON.parse(JSON.stringify(txElements))}
     />
   );
 }

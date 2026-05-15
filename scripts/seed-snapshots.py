@@ -398,7 +398,15 @@ def main():
             t1 = compute_t1(contd4)
             t2 = compute_t2(ftc)
             t3 = compute_t3(tx)
-            results.append({'date': date_str, 'label': date_str, 't1': t1, 't2': t2, 't3': t3})
+            results.append({
+                'date': date_str, 'label': date_str,
+                't1': t1, 't2': t2, 't3': t3,
+                'details': {
+                    'projects': ftc,   # per-project FTC pipeline rows
+                    'contd4':   contd4, # per-project CONTD-4 rows
+                    'tx':       tx,     # per-element transmission rows
+                },
+            })
             print(f"  ✓ {date_str}: {len(contd4)} CONTD-4, {len(ftc)} FTC, {len(tx)} TX extracted")
         except Exception as e:
             print(f"  ✗ {date_str}: error — {e}")

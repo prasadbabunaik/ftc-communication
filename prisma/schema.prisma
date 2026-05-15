@@ -103,6 +103,12 @@ model GenerationProject {
   solarCapacityMw Decimal? @db.Decimal(10, 2)
   bessCapacityMw  Decimal? @db.Decimal(10, 2)
 
+  // Active period — a project is "live" on date D when:
+  //     activeFrom <= D AND (activeUntil IS NULL OR activeUntil > D)
+  // Soft-delete sets activeUntil = NOW(); reactivation sets it back to NULL.
+  activeFrom   DateTime  @default(now())
+  activeUntil  DateTime?
+
   createdById String
   createdBy   User   @relation("ProjectCreator", fields: [createdById], references: [id])
 
@@ -114,6 +120,7 @@ model GenerationProject {
   updatedAt DateTime @updatedAt
 
   @@index([regionId])
+  @@index([activeFrom, activeUntil])
   @@map("generation_projects")
 }
 
@@ -124,15 +131,46 @@ model Contd4Application {
 
   applicationDate DateTime
   proposedFtcDate DateTime?
+  // Legacy: kept as a cached sum / "latest declaration" mirror so existing
+  // dashboards and exports keep working unchanged. Source of truth is now the
+  // Contd4Phase records below — see lib/grid-computations.js > computeContd4Study.
   capacityApr26Mw Decimal?     @db.Decimal(10, 2)
   capacityMonth   String?
   status          Contd4Status @default(PENDING)
   remarks         String?
+  // When the `remarks` field was last edited (not the row as a whole).
+  // Updating this only on remarks change lets the UI date each remark
+  // accurately — the generic `updatedAt` gets bumped by other writes
+  // too (phase add → refreshContd4Cache).
+  remarksUpdatedAt DateTime?
+
+  // Per-date capacity declarations. Each phase records: how much capacity was
+  // declared on a specific date and which target month it counts toward.
+  phases          Contd4Phase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("contd4_applications")
+}
+
+// Append-only history of capacity declarations against a CONTD-4 application.
+// The total declared capacity = SUM(capacityMw) across phases.
+model Contd4Phase {
+  id              String   @id @default(cuid())
+  contd4Id        String
+  contd4          Contd4Application @relation(fields: [contd4Id], references: [id], onDelete: Cascade)
+
+  declaredDate    DateTime
+  capacityMw      Decimal  @db.Decimal(10, 2)
+  capacityMonth   String?   // YYYY-MM — month this capacity is expected to commission
+  remarks         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contd4Id])
+  @@map("contd4_phases")
 }
 
 model CommissioningPhase {
@@ -143,6 +181,10 @@ model CommissioningPhase {
   sourceType        SourceType
   capacityAppliedMw Decimal    @db.Decimal(10, 2)
 
+  // Legacy cached totals — kept in sync with FtcEvent / TocEvent / CodEvent
+  // rows by refreshCommissioningCache(phaseId). Source of truth is now the
+  // per-date event tables below. Existing readers (FtcTable, summary
+  // aggregations, exports) keep reading these without change.
   ftcCompletedMw     Decimal?  @db.Decimal(10, 2)
   ftcCompletedDate   DateTime?
   proposedFtcDate    DateTime?
@@ -164,10 +206,65 @@ model CommissioningPhase {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  notes ProjectNote[]
+  notes      ProjectNote[]
+  ftcEvents  FtcEvent[]
+  tocEvents  TocEvent[]
+  codEvents  CodEvent[]
 
   @@index([projectId])
   @@map("commissioning_phases")
+}
+
+// Append-only per-date increment tables. The Excel files record commissioning
+// step-by-step (e.g. "66.66 MW on 26-02-2026, 33.33 MW on 17-03-2026, ..."),
+// and these tables capture that granularity. Total MW for each milestone =
+// SUM(capacityMw) across rows; latest date = MAX(eventDate). The cached
+// summary fields on CommissioningPhase are refreshed after every add/delete.
+//
+// Invariants enforced in server actions, not the DB:
+//   SUM(TocEvent.capacityMw) <= SUM(FtcEvent.capacityMw) for a given phase
+//   SUM(CodEvent.capacityMw) <= SUM(TocEvent.capacityMw) for a given phase
+
+model FtcEvent {
+  id         String   @id @default(cuid())
+  phaseId    String
+  phase      CommissioningPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  eventDate  DateTime
+  capacityMw Decimal  @db.Decimal(10, 2)
+  remarks    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([phaseId, eventDate])
+  @@map("ftc_events")
+}
+
+model TocEvent {
+  id         String   @id @default(cuid())
+  phaseId    String
+  phase      CommissioningPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  eventDate  DateTime
+  capacityMw Decimal  @db.Decimal(10, 2)
+  remarks    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([phaseId, eventDate])
+  @@map("toc_events")
+}
+
+model CodEvent {
+  id         String   @id @default(cuid())
+  phaseId    String
+  phase      CommissioningPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  eventDate  DateTime
+  capacityMw Decimal  @db.Decimal(10, 2)
+  remarks    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([phaseId, eventDate])
+  @@map("cod_events")
 }
 
 // ─── GRID TRACKER: AUDIT FEED ─────────────────────────────────────────────────
@@ -238,12 +335,17 @@ model TransmissionElement {
 
   remarks String?
 
+  // Same soft-delete model as GenerationProject — see notes there.
+  activeFrom   DateTime  @default(now())
+  activeUntil  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   auditLogs TransmissionAuditLog[]
 
   @@index([regionId])
+  @@index([activeFrom, activeUntil])
   @@map("transmission_elements")
 }
 
@@ -256,6 +358,9 @@ model GridSnapshot {
   t1Json       Json
   t2Json       Json
   t3Json       Json
+  // Per-project & per-element data (for individual project history view).
+  // Shape: { projects: [...], contd4: [...], tx: [...] }
+  detailsJson  Json?
   createdAt    DateTime @default(now())
 
   @@unique([snapshotDate])

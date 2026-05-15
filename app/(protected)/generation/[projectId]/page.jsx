@@ -35,7 +35,7 @@ export default async function ProjectDetailPage({ params }) {
       region:        true,
       plantType:     true,
       poolingStation: true,
-      contd4:        true,
+      contd4:        { include: { phases: { orderBy: { declaredDate: 'asc' } } } },
       phases:        {
         orderBy: { createdAt: 'asc' },
         include: {
@@ -43,6 +43,9 @@ export default async function ProjectDetailPage({ params }) {
             include: { user: { select: { name: true } } },
             orderBy: { createdAt: 'asc' },
           },
+          ftcEvents: { orderBy: { eventDate: 'asc' } },
+          tocEvents: { orderBy: { eventDate: 'asc' } },
+          codEvents: { orderBy: { eventDate: 'asc' } },
         },
       },
       notes:         {

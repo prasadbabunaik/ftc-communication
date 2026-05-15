@@ -23,7 +23,7 @@ export default async function PrintSummaryPage({ searchParams }) {
   const [projects, txElements] = await Promise.all([
     prisma.generationProject.findMany({
       where: scope,
-      include: { region: true, plantType: true, contd4: true, phases: true, poolingStation: true },
+      include: { region: true, plantType: true, contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } }, phases: true, poolingStation: true },
     }),
     prisma.transmissionElement.findMany({
       where: scope,

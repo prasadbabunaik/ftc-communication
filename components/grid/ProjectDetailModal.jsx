@@ -8,6 +8,7 @@ import { Contd4Card } from '@/components/grid/Contd4Card';
 import { ProjectPhaseTimeline } from '@/components/grid/ProjectPhaseTimeline';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
 import { AuditFeed } from '@/components/grid/AuditFeed';
+import { ProjectHistory } from '@/components/grid/ProjectHistory';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 const STATUS_COLORS = {
@@ -195,6 +196,9 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
                   />
                 )}
               </div>
+
+              {/* Day-wise History */}
+              <ProjectHistory name={project.name} region={project.region.code} kind="ftc" />
 
               {/* Engineering Audit Feed */}
               <div className="rounded-xl border bg-card p-4">

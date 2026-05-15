@@ -1,0 +1,2882 @@
+{
+  "source_file": "CONTD and FTC details 120526.xlsx",
+  "rows": [
+    {
+      "region": "NR",
+      "row": 23,
+      "name": "IB VOGT SOLAR SEVEN PRIVATE LIMITED(IBVSSPL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 300.0,
+      "toc_total": 200.0,
+      "cod_total": 200.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 150.0,
+          "date": "2026-03-30",
+          "fragment": "150MW (30.03.2026)"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-04-01",
+          "fragment": "50MW (01.04.2026)"
+        }
+      ],
+      "ftc_skipped": [
+        "13.03.2026",
+        "18.03.2026"
+      ],
+      "toc_skipped": [
+        "27.03.2026"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "13.03.2026\n18.03.2026",
+      "toc_raw": "27.03.2026",
+      "cod_raw": "150MW (30.03.2026)\n50MW (01.04.2026)"
+    },
+    {
+      "region": "NR",
+      "row": 24,
+      "name": "RENEW SAMIR SHAKTI THREE PRIVATE LIMITED",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 300.0,
+      "toc_total": 300.0,
+      "cod_total": 300.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 64.67,
+          "date": "2026-03-24",
+          "fragment": "dated17.03.2026 64.67MW dated 24.03.2026"
+        },
+        {
+          "mw": 25.02,
+          "date": "2026-03-31",
+          "fragment": "25.02 MW 31.03.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 210.31,
+          "date": "2026-03-17",
+          "fragment": "210.31MW dated 17.03.2026"
+        },
+        {
+          "mw": 64.67,
+          "date": "2026-03-26",
+          "fragment": "64.67MW dated 26.03.2026 25.02MW-02.04.2026"
+        }
+      ],
+      "ftc_skipped": [
+        "13.02.2026",
+        "16.02.2026"
+      ],
+      "toc_skipped": [
+        "210.31MW"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "13.02.2026\n16.02.2026",
+      "toc_raw": "210.31MW  dated17.03.2026 64.67MW dated 24.03.2026   25.02 MW 31.03.2026",
+      "cod_raw": "210.31MW dated 17.03.2026\n64.67MW dated 26.03.2026 25.02MW-02.04.2026"
+    },
+    {
+      "region": "NR",
+      "row": 25,
+      "name": "RENEW SOLAR SHAKTI THREE PRIVATE LIMITED(RSS3PL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 300.0,
+      "toc_total": 300.0,
+      "cod_total": 300.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-11-02 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-11-03 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-03-13 00:00:00"
+      ],
+      "ftc_raw": "2026-11-02 00:00:00",
+      "toc_raw": "2026-11-03 00:00:00",
+      "cod_raw": "2026-03-13 00:00:00"
+    },
+    {
+      "region": "NR",
+      "row": 26,
+      "name": "ADANI SOLAR ENERGY BARMER ONE LIMITED(ASEB1L))",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 251.0,
+      "toc_total": 251.0,
+      "cod_total": 251.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 23.0,
+          "date": "2026-03-23",
+          "fragment": "23-03-2026"
+        }
+      ],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-03-15 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [
+        "25.03.2025"
+      ],
+      "ftc_raw": "2026-03-15 00:00:00",
+      "toc_raw": "23-03-2026",
+      "cod_raw": "25.03.2025"
+    },
+    {
+      "region": "NR",
+      "row": 27,
+      "name": "Khaba Renewable Energy Private Limited (KREPL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 221.0,
+      "toc_total": 150.0,
+      "cod_total": 150.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 100.0,
+          "date": "2026-03-13",
+          "fragment": "100MW on 13-03-26"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-27",
+          "fragment": "50 MW on 27-03-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 100.0,
+          "date": "2026-03-14",
+          "fragment": "100MW-14 Mar 26"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-27",
+          "fragment": "50MW-27 Mar 26"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-02-03 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-02-03 00:00:00",
+      "toc_raw": "100MW on 13-03-26\n50 MW on 27-03-2026",
+      "cod_raw": "100MW-14 Mar 26\n50MW-27 Mar 26"
+    },
+    {
+      "region": "NR",
+      "row": 28,
+      "name": "Juniper Green Stellar Private Limited(JGSPL)",
+      "plant_type": "Hybrid_(285MW Solar, 250MW Wind, 180MW BESS)",
+      "source_types": "SOLAR+BESS",
+      "ftc_total": 365.0,
+      "toc_total": 365.0,
+      "cod_total": 365.0,
+      "ftc_events": [
+        {
+          "mw": 185.0,
+          "date": "2026-03-16",
+          "fragment": "Solar:16.03.2026 (185MW) 06.04.2026 (100MW)"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-03-17",
+          "fragment": "BESS: 17.03.2026 (90MW)"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-03-21",
+          "fragment": "21.03.2026 (90 MW)"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 88.0,
+          "date": "2026-03-25",
+          "fragment": "88MW solar-25.03.26"
+        },
+        {
+          "mw": 2.0,
+          "date": "2026-04-02",
+          "fragment": "02-04-2026"
+        },
+        {
+          "mw": 97.0,
+          "date": "2026-04-10",
+          "fragment": "10.04.2026 (97 MW Solar)"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-04-22",
+          "fragment": "90MW BESS 22.04.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 88.0,
+          "date": "2026-03-27",
+          "fragment": "27 Mar 26-88MW solar"
+        },
+        {
+          "mw": 97.0,
+          "date": "2026-04-12",
+          "fragment": "12.04.26 97MW Solar"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-04-08",
+          "fragment": "90MW BESS-08.04.2026"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-04-24",
+          "fragment": "90MW BESS 24.04.2026"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "90MW-BESS"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "Solar:16.03.2026 (185MW) 06.04.2026 (100MW)\n\n\nBESS: 17.03.2026 (90MW)\n21.03.2026 (90 MW)",
+      "toc_raw": "88MW solar-25.03.26   90MW-BESS  02-04-2026\n10.04.2026 (97 MW Solar)\n90MW BESS 22.04.2026",
+      "cod_raw": "27 Mar 26-88MW solar  \n12.04.26 97MW Solar\n 90MW BESS-08.04.2026\n90MW BESS 24.04.2026"
+    },
+    {
+      "region": "NR",
+      "row": 29,
+      "name": "PROJECT ELEVEN RENEWABLE POWER PRIVATE LIMITED(P11RPPL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 100.0,
+      "toc_total": 87.5,
+      "cod_total": 87.5,
+      "ftc_events": [
+        {
+          "mw": 25.0,
+          "date": "2026-03-25",
+          "fragment": "25-03-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "17.04.2025"
+      ],
+      "cod_skipped": [
+        "19.04.2026"
+      ],
+      "ftc_raw": "25-03-2026",
+      "toc_raw": "17.04.2025",
+      "cod_raw": "19.04.2026"
+    },
+    {
+      "region": "NR",
+      "row": 30,
+      "name": "PROJECT 16 RENEWABLE POWER PRIVATE LIMITED(P16RPPL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 200.0,
+      "toc_total": 150.0,
+      "cod_total": 150.0,
+      "ftc_events": [
+        {
+          "mw": 25.0,
+          "date": "2026-03-25",
+          "fragment": "25-03-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "16.04.2026"
+      ],
+      "cod_skipped": [
+        "18.04.2026"
+      ],
+      "ftc_raw": "25-03-2026",
+      "toc_raw": "16.04.2026",
+      "cod_raw": "18.04.2026"
+    },
+    {
+      "region": "NR",
+      "row": 31,
+      "name": "ACME SUN POWER PRIVATE LIMITED(ASPPL)",
+      "plant_type": "BESS",
+      "source_types": "BESS",
+      "ftc_total": 300.0,
+      "toc_total": 233.333,
+      "cod_total": 233.333,
+      "ftc_events": [
+        {
+          "mw": 66.66,
+          "date": "2026-02-26",
+          "fragment": "66.66 FTC completed on 26-02-2026."
+        },
+        {
+          "mw": 33.33,
+          "date": "2026-03-17",
+          "fragment": "33.33 MW-17 MAR 26"
+        },
+        {
+          "mw": 66.66,
+          "date": "2026-03-24",
+          "fragment": "66.66MW -24-03-2026"
+        },
+        {
+          "mw": 133.33,
+          "date": "2026-04-27",
+          "fragment": "133.33MW 27.04.2026"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 33.335,
+          "date": "2026-03-06",
+          "fragment": "33.335 MW 06-03-2026"
+        },
+        {
+          "mw": 33.335,
+          "date": "2026-03-12",
+          "fragment": "33.335 MW 12-03-2026"
+        },
+        {
+          "mw": 33.334,
+          "date": "2026-04-06",
+          "fragment": "33.334MW-06.04.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 33.335,
+          "date": "2026-03-08",
+          "fragment": "33.335  MW on 08-03-2026"
+        },
+        {
+          "mw": 33.335,
+          "date": "2026-03-14",
+          "fragment": "33.335 MW on 14-03-2026"
+        },
+        {
+          "mw": 33.333,
+          "date": "2026-04-02",
+          "fragment": "33.333 MW on 02-04-2026"
+        },
+        {
+          "mw": 33.333,
+          "date": "2026-04-03",
+          "fragment": "33.333 MW on 03-04-2026"
+        },
+        {
+          "mw": 33.334,
+          "date": "2026-04-08",
+          "fragment": "33.334 MWon 08-04-2026"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "33.33MW-",
+        "31.03.2026",
+        "33.33MW-",
+        "01.04.2026",
+        "33.333MW (04.05..2026 )   33.333MW (11.05..2026 )"
+      ],
+      "cod_skipped": [
+        "33.333MW (06.05..2026 )     33.333MW (13.05..2026 )"
+      ],
+      "ftc_raw": "66.66 FTC completed on 26-02-2026.\n 33.33 MW-17 MAR 26             66.66MW -24-03-2026                133.33MW 27.04.2026",
+      "toc_raw": "33.335 MW 06-03-2026        33.335 MW 12-03-2026   33.33MW-  31.03.2026    33.33MW-  01.04.2026   33.334MW-06.04.2026\n33.333MW (04.05..2026 )   33.333MW (11.05..2026 )   ",
+      "cod_raw": "33.335  MW on 08-03-2026\n33.335 MW on 14-03-2026\n 33.333 MW on 02-04-2026\n 33.333 MW on 03-04-2026\n 33.334 MWon 08-04-2026\n33.333MW (06.05..2026 )     33.333MW (13.05..2026 )   "
+    },
+    {
+      "region": "NR",
+      "row": 32,
+      "name": "ACME SURYODAYA PRIVATE LIMITED(ACME_SPL)",
+      "plant_type": "BESS",
+      "source_types": "BESS",
+      "ftc_total": 285.0,
+      "toc_total": 285.0,
+      "cod_total": 285.0,
+      "ftc_events": [
+        {
+          "mw": 76.0,
+          "date": "2026-02-10",
+          "fragment": "76 MW FTC completed 10-02-2026."
+        },
+        {
+          "mw": 95.0,
+          "date": "2026-03-14",
+          "fragment": "95 MW FTC APPROVED 14 MAR 2026"
+        },
+        {
+          "mw": 114.0,
+          "date": "2026-03-29",
+          "fragment": "114 MW FTC issued on 29-03-2026"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 19.0,
+          "date": "2026-02-25",
+          "fragment": "19 MW 25-02-2026"
+        },
+        {
+          "mw": 38.0,
+          "date": "2026-03-03",
+          "fragment": "38 MW 03-03-2026"
+        },
+        {
+          "mw": 19.0,
+          "date": "2026-03-23",
+          "fragment": "19 MW11-03-2026  95MW-23.03.2026"
+        },
+        {
+          "mw": 76.0,
+          "date": "2026-04-06",
+          "fragment": "76MW-06.04.2026"
+        },
+        {
+          "mw": 38.0,
+          "date": "2026-04-13",
+          "fragment": "38MW-13.04.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 19.0,
+          "date": "2026-02-27",
+          "fragment": "19 MW  on 27-02-2026"
+        },
+        {
+          "mw": 38.0,
+          "date": "2026-03-05",
+          "fragment": "38 MW on 05-03-2026"
+        },
+        {
+          "mw": 19.0,
+          "date": "2026-03-13",
+          "fragment": "19 MW on 13-03-2026"
+        },
+        {
+          "mw": 95.0,
+          "date": "2026-03-25",
+          "fragment": "95 MW on 25-03-2026"
+        },
+        {
+          "mw": 76.0,
+          "date": "2026-04-08",
+          "fragment": "76 MW on 08-04-2026"
+        },
+        {
+          "mw": 38.0,
+          "date": "2026-04-15",
+          "fragment": "38MW on 15-04-2026"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "76 MW FTC completed 10-02-2026.\n 95 MW FTC APPROVED 14 MAR 2026\n114 MW FTC issued on 29-03-2026",
+      "toc_raw": "19 MW 25-02-2026 \n 38 MW 03-03-2026 \n 19 MW11-03-2026  95MW-23.03.2026\n76MW-06.04.2026    38MW-13.04.2026",
+      "cod_raw": "19 MW  on 27-02-2026\n38 MW on 05-03-2026\n19 MW on 13-03-2026\n95 MW on 25-03-2026\n76 MW on 08-04-2026         38MW on 15-04-2026"
+    },
+    {
+      "region": "NR",
+      "row": 33,
+      "name": "ACME Surya POWER Private Limited (ASRPPL)",
+      "plant_type": "BESS",
+      "source_types": "BESS",
+      "ftc_total": 250.0,
+      "toc_total": 210.938,
+      "cod_total": 210.938,
+      "ftc_events": [
+        {
+          "mw": 71.43,
+          "date": "2026-03-16",
+          "fragment": "(71.43MW)-  16-03-2026"
+        },
+        {
+          "mw": 35.71,
+          "date": "2026-03-17",
+          "fragment": "(35.71MW)- 17-03-2026"
+        },
+        {
+          "mw": 35.71,
+          "date": "2026-03-24",
+          "fragment": "(35.71MW) -24-03-2026"
+        },
+        {
+          "mw": 35.714,
+          "date": "2026-04-17",
+          "fragment": "35.714MW- 17.04.2026"
+        },
+        {
+          "mw": 23.0,
+          "date": "2026-04-23",
+          "fragment": "23-04-2026"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 60.0,
+          "date": "2026-03-23",
+          "fragment": "60MW-23-03-2026"
+        },
+        {
+          "mw": 35.71,
+          "date": "2026-03-24",
+          "fragment": "35.71MW-24-03-2026"
+        },
+        {
+          "mw": 11.429,
+          "date": "2026-03-29",
+          "fragment": "11.429MW-29-03-2026"
+        },
+        {
+          "mw": 32.366,
+          "date": "2026-04-13",
+          "fragment": "32.366MW -13.04.2026"
+        },
+        {
+          "mw": 35.714,
+          "date": "2026-04-29",
+          "fragment": "35.714MW -29.04.2026"
+        },
+        {
+          "mw": 35.714,
+          "date": "2026-05-11",
+          "fragment": "35.714MW -11.05.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 60.0,
+          "date": "2026-03-23",
+          "fragment": "60MW dated 23.03.26"
+        },
+        {
+          "mw": 11.429,
+          "date": "2026-03-29",
+          "fragment": "11.429 MW on 29-03-26"
+        },
+        {
+          "mw": 32.366,
+          "date": "2026-04-15",
+          "fragment": "32.366MW on 15-04-26"
+        },
+        {
+          "mw": 35.714,
+          "date": "2026-05-01",
+          "fragment": "35.714MW-01-05.2026"
+        },
+        {
+          "mw": 35.714,
+          "date": "2026-05-13",
+          "fragment": "35.714MW -13.05.2026"
+        }
+      ],
+      "ftc_skipped": [
+        "(71.43MW)-"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [
+        "35.714 dated 24-03-26"
+      ],
+      "ftc_raw": " (71.43MW)-  16-03-2026\n(35.71MW)- 17-03-2026 \n(35.71MW) -24-03-2026        35.714MW- 17.04.2026        (71.43MW)-  23-04-2026  ",
+      "toc_raw": "60MW-23-03-2026 \n 35.71MW-24-03-2026\n11.429MW-29-03-2026   32.366MW -13.04.2026   35.714MW -29.04.2026   35.714MW -11.05.2026   ",
+      "cod_raw": "60MW dated 23.03.26   \n35.714 dated 24-03-26\n11.429 MW on 29-03-26  32.366MW on 15-04-26    35.714MW-01-05.2026     35.714MW -13.05.2026   "
+    },
+    {
+      "region": "NR",
+      "row": 34,
+      "name": "Clean Max Celestial Private Limited(CMCPL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 234.57,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "NA"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "NA",
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "NR",
+      "row": 35,
+      "name": "Clean Max Enviro Energy Solutions Limited(CMEESL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 93.75,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "NA"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "NA",
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "NR",
+      "row": 36,
+      "name": "Energizent POWER Private Limited",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 129.6,
+      "toc_total": 129.0,
+      "cod_total": 129.0,
+      "ftc_events": [
+        {
+          "mw": 60.6,
+          "date": "2026-03-27",
+          "fragment": "60.6 MW on 27-03-2026"
+        },
+        {
+          "mw": 69.0,
+          "date": "2025-10-29",
+          "fragment": "69 MW on 29-10-2025"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 69.0,
+          "date": "2025-11-07",
+          "fragment": "07-11-2025 (69MW)"
+        },
+        {
+          "mw": 60.0,
+          "date": "2026-04-22",
+          "fragment": "22-04-2026 (60MW)"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 69.0,
+          "date": "2025-11-09",
+          "fragment": "09-11-2025 (69MW)"
+        },
+        {
+          "mw": 60.9,
+          "date": "2026-04-22",
+          "fragment": "22-04-2026 (60.9MW)"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "60.6 MW on 27-03-2026\n69 MW on 29-10-2025",
+      "toc_raw": "07-11-2025 (69MW)\n22-04-2026 (60MW)",
+      "cod_raw": "09-11-2025 (69MW)\n22-04-2026 (60.9MW)"
+    },
+    {
+      "region": "NR",
+      "row": 37,
+      "name": "BBMB Panipat",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 8.8,
+      "toc_total": 8.8,
+      "cod_total": 8.8,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-02-03 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-11-03 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-11-03 00:00:00"
+      ],
+      "ftc_raw": "2026-02-03 00:00:00",
+      "toc_raw": "2026-11-03 00:00:00",
+      "cod_raw": "2026-11-03 00:00:00"
+    },
+    {
+      "region": "NR",
+      "row": 38,
+      "name": "Tehri",
+      "plant_type": "Pump Storage",
+      "source_types": "PSP HYDRO",
+      "ftc_total": 1000.0,
+      "toc_total": 1000.0,
+      "cod_total": 1000.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 250.0,
+          "date": "2026-04-10",
+          "fragment": "250 MW U#4 on 10.04.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 250.0,
+          "date": "2026-04-12",
+          "fragment": "12.04.2026(250MW)"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-06-03 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-06-03 00:00:00",
+      "toc_raw": "250 MW U#4 on 10.04.2026",
+      "cod_raw": "12.04.2026(250MW)"
+    },
+    {
+      "region": "NR",
+      "row": 39,
+      "name": "Adani Green Energy Twenty Five B Limited (AGE25BL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 137.5,
+      "toc_total": 137.5,
+      "cod_total": 137.5,
+      "ftc_events": [
+        {
+          "mw": 23.0,
+          "date": "2026-03-23",
+          "fragment": "23-03-2026"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 28.0,
+          "date": "2026-03-28",
+          "fragment": "28-03-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 30.0,
+          "date": "2026-03-30",
+          "fragment": "30-03-2026"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "23-03-2026",
+      "toc_raw": "28-03-2026",
+      "cod_raw": "30-03-2026"
+    },
+    {
+      "region": "NR",
+      "row": 40,
+      "name": "Teq Green POWER XVIII Private Limited",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 0.0,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "NR",
+      "row": 41,
+      "name": "Renew Solar Shakti Five Private Limited",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 400.0,
+      "toc_total": 211.0,
+      "cod_total": 211.0,
+      "ftc_events": [
+        {
+          "mw": 200.0,
+          "date": "2026-03-25",
+          "fragment": "200MW on 25-03-2026"
+        },
+        {
+          "mw": 200.0,
+          "date": "2026-03-28",
+          "fragment": "200MW on 28-03-2026"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 211.0,
+          "date": "2026-05-06",
+          "fragment": "211MW-06.05.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 211.0,
+          "date": "2026-05-09",
+          "fragment": "211MW- 09.05.2026"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "200MW on 25-03-2026\n200MW on 28-03-2026\n",
+      "toc_raw": "211MW-06.05.2026",
+      "cod_raw": "211MW- 09.05.2026"
+    },
+    {
+      "region": "NR",
+      "row": 42,
+      "name": "AMPIN ENERGY GREEN TEN PRIVATE LIMITED(AEG10PL)",
+      "plant_type": "HYBRID 120 (114.4 MW Solar + 40.95 MW Wind)",
+      "source_types": "solar+Wind",
+      "ftc_total": 155.0,
+      "toc_total": 155.0,
+      "cod_total": 155.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 114.4,
+          "date": "2026-04-04",
+          "fragment": "114.4MW--04.04.2026"
+        },
+        {
+          "mw": 40.4,
+          "date": "2026-04-04",
+          "fragment": "40.4MW- 04.04.2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-12-02 00:00:00"
+      ],
+      "toc_skipped": [
+        "27.03.2026"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-12-02 00:00:00",
+      "toc_raw": "27.03.2026",
+      "cod_raw": "114.4MW--04.04.2026   40.4MW- 04.04.2026"
+    },
+    {
+      "region": "NR",
+      "row": 43,
+      "name": "HRP Green POWER Private Limited",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 296.0,
+      "toc_total": null,
+      "cod_total": 296.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 96.2,
+          "date": "2026-04-16",
+          "fragment": "96.2MW-16.04.2026"
+        },
+        {
+          "mw": 51.2,
+          "date": "2026-05-06",
+          "fragment": "51.2MW-06.05.2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 96.2,
+          "date": "2026-04-18",
+          "fragment": "96.2MW-18.04.2026"
+        },
+        {
+          "mw": 51.2,
+          "date": "2026-05-08",
+          "fragment": "51.2MW-08.05.2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-01-04 00:00:00"
+      ],
+      "toc_skipped": [
+        "148MW",
+        "13.04.2026"
+      ],
+      "cod_skipped": [
+        "148MW",
+        "15.04.2026"
+      ],
+      "ftc_raw": "2026-01-04 00:00:00",
+      "toc_raw": "148MW  13.04.2026        96.2MW-16.04.2026   51.2MW-06.05.2026",
+      "cod_raw": "148MW  15.04.2026        96.2MW-18.04.2026   51.2MW-08.05.2026"
+    },
+    {
+      "region": "NR",
+      "row": 44,
+      "name": "Aditya Birla Renewables subsdiary Ltd",
+      "plant_type": "Hybrid_(292MVA Solar, 287MVA Wind)",
+      "source_types": "Solar+Wind",
+      "ftc_total": 0.0,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "NR",
+      "row": 45,
+      "name": "Ghatampur TPS",
+      "plant_type": "Thermal",
+      "source_types": "Thermal",
+      "ftc_total": 660.0,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [
+        {
+          "mw": 30.0,
+          "date": "2026-03-30",
+          "fragment": "30-03-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "30-03-2026",
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "NR",
+      "row": 46,
+      "name": "Serentica Renewables India 9 Private Limited (SRI9PL)",
+      "plant_type": "Solar",
+      "source_types": "SOLAR",
+      "ftc_total": 280.84,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [
+        {
+          "mw": 29.0,
+          "date": "2026-04-29",
+          "fragment": "29-04-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "29-04-2026",
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 43,
+      "name": "AGE26AL Khavda PSS6",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 750.0,
+      "toc_total": 750.0,
+      "cod_total": 750.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 50.0,
+          "date": "2026-01-25",
+          "fragment": "50: 25-01-2026"
+        },
+        {
+          "mw": 250.0,
+          "date": "2026-03-15",
+          "fragment": "250: 15-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-21",
+          "fragment": "50: 21-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-29",
+          "fragment": "50: 29-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-04-16",
+          "fragment": "50: 16-04-2026"
+        },
+        {
+          "mw": 58.0,
+          "date": "2026-03-30",
+          "fragment": "58: 30-03-2026"
+        },
+        {
+          "mw": 242.0,
+          "date": "2026-04-20",
+          "fragment": "242: 20-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-14 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-04-20 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-14 00:00:00",
+      "toc_raw": "2026-04-20 00:00:00",
+      "cod_raw": "50: 25-01-2026\n250: 15-03-2026\n50: 21-03-2026\n50: 29-03-2026\n50: 16-04-2026\n58: 30-03-2026\n242: 20-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 44,
+      "name": "ASEJ6PL Khavda PSS8",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 62.4,
+      "toc_total": 62.4,
+      "cod_total": 62.4,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 52.0,
+          "date": "2026-03-17",
+          "fragment": "52: 17-03-2026"
+        },
+        {
+          "mw": 10.4,
+          "date": "2026-03-28",
+          "fragment": "10.4: 28-03-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 52.0,
+          "date": "2026-03-18",
+          "fragment": "52: 18-03-2026"
+        },
+        {
+          "mw": 10.4,
+          "date": "2026-03-28",
+          "fragment": "10.4: 28-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-06 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-03-06 00:00:00",
+      "toc_raw": "52: 17-03-2026\n10.4: 28-03-2026",
+      "cod_raw": "52: 18-03-2026\n10.4: 28-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 45,
+      "name": "AGE25CL Khavda PSS8",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 500.0,
+      "toc_total": 500.0,
+      "cod_total": 350.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 75.0,
+          "date": "2025-12-01",
+          "fragment": "75: 01-12-2025"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-02-06",
+          "fragment": "50: 06-02-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-02-23",
+          "fragment": "75: 23-02-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-05",
+          "fragment": "50: 05-03-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-03-23",
+          "fragment": "75: 23-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-30",
+          "fragment": "50: 30-03-2026"
+        },
+        {
+          "mw": 125.0,
+          "date": "2026-05-07",
+          "fragment": "125: 07-05-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 75.0,
+          "date": "2025-12-03",
+          "fragment": "75: 03-12-2025"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-02-10",
+          "fragment": "50: 10-02-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-03-13",
+          "fragment": "75: 13-03-2026"
+        },
+        {
+          "mw": 25.0,
+          "date": "2026-03-24",
+          "fragment": "25: 24-03-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-03-24",
+          "fragment": "75: 24-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-30",
+          "fragment": "50: 30-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-27 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-03-27 00:00:00",
+      "toc_raw": "75: 01-12-2025\n50: 06-02-2026\n75: 23-02-2026\n50: 05-03-2026\n75: 23-03-2026\n50: 30-03-2026\n125: 07-05-2026",
+      "cod_raw": "75: 03-12-2025\n50: 10-02-2026\n75: 13-03-2026\n25: 24-03-2026\n75: 24-03-2026\n50: 30-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 46,
+      "name": "AGE24L SRPL Khavda PSS10",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 150.0,
+      "toc_total": 150.0,
+      "cod_total": 150.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 50.0,
+          "date": "2026-01-21",
+          "fragment": "50: 21-01-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-25",
+          "fragment": "50: 25-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-04-27",
+          "fragment": "50: 27-04-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 50.0,
+          "date": "2026-01-21",
+          "fragment": "50: 21-01-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-03-26",
+          "fragment": "50: 26-03-2026"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-04-28",
+          "fragment": "50: 28-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-13 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-03-13 00:00:00",
+      "toc_raw": "50: 21-01-2026\n50: 25-03-2026\n50: 27-04-2026",
+      "cod_raw": "50: 21-01-2026\n50: 26-03-2026\n50: 28-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 47,
+      "name": "AGE24L Khavda PSS5",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 150.0,
+      "toc_total": 150.0,
+      "cod_total": 150.0,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 75.0,
+          "date": "2026-02-11",
+          "fragment": "75: 11-02-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-03-17",
+          "fragment": "75: 17-03-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 75.0,
+          "date": "2026-02-12",
+          "fragment": "75: 12-02-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-03-18",
+          "fragment": "75: 18-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-02-16 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-02-16 00:00:00",
+      "toc_raw": "75: 11-02-2026\n75: 17-03-2026",
+      "cod_raw": "75: 12-02-2026\n75: 18-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 48,
+      "name": "AGE26BL Khavda PSS10",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 150.0,
+      "toc_total": 150.0,
+      "cod_total": 150.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 25.0,
+          "date": "2025-12-29",
+          "fragment": "25: 29-12-2025"
+        },
+        {
+          "mw": 50.0,
+          "date": "2026-02-12",
+          "fragment": "50: 12-02-2026"
+        },
+        {
+          "mw": 75.0,
+          "date": "2026-03-18",
+          "fragment": "75: 18-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-02-16 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-17 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-02-16 00:00:00",
+      "toc_raw": "2026-03-17 00:00:00",
+      "cod_raw": "25: 29-12-2025\n50: 12-02-2026\n75: 18-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 49,
+      "name": "AGE26BL Khavda PSS10",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": 298.0,
+      "toc_total": 298.0,
+      "cod_total": 298.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 50.0,
+          "date": "2025-09-16",
+          "fragment": "50: 16-09-2025"
+        },
+        {
+          "mw": 50.0,
+          "date": "2025-11-27",
+          "fragment": "50: 27-11-2025"
+        },
+        {
+          "mw": 25.0,
+          "date": "2025-12-29",
+          "fragment": "25: 29-12-2025"
+        },
+        {
+          "mw": 17.0,
+          "date": "2026-03-18",
+          "fragment": "17: 18-03-2026"
+        },
+        {
+          "mw": 52.0,
+          "date": "2025-06-17",
+          "fragment": "52: 17-06-2025"
+        },
+        {
+          "mw": 67.6,
+          "date": "2025-06-30",
+          "fragment": "67.6: 30-06-2025"
+        },
+        {
+          "mw": 26.0,
+          "date": "2025-08-01",
+          "fragment": "26: 01-08-2025"
+        },
+        {
+          "mw": 10.4,
+          "date": "2026-03-18",
+          "fragment": "10.4: 18-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-09 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-17 00:00:00"
+      ],
+      "cod_skipped": [
+        "Solar",
+        "Wind"
+      ],
+      "ftc_raw": "2026-03-09 00:00:00",
+      "toc_raw": "2026-03-17 00:00:00",
+      "cod_raw": "Solar\n50: 16-09-2025\n50: 27-11-2025\n25: 29-12-2025\n17: 18-03-2026\nWind\n52: 17-06-2025\n67.6: 30-06-2025\n26: 01-08-2025\n10.4: 18-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 50,
+      "name": "ARE43L BESS - SRPL Khavda PSS10",
+      "plant_type": "BESS",
+      "source_types": "BESS",
+      "ftc_total": 480.0,
+      "toc_total": 400.0,
+      "cod_total": 400.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 80.0,
+          "date": "2026-03-11",
+          "fragment": "80: 11-03-2026"
+        },
+        {
+          "mw": 80.0,
+          "date": "2026-03-20",
+          "fragment": "80: 20-03-2026"
+        },
+        {
+          "mw": 60.0,
+          "date": "2026-03-28",
+          "fragment": "60: 28-03-2026"
+        },
+        {
+          "mw": 120.0,
+          "date": "2026-03-30",
+          "fragment": "120: 30-03-2026"
+        },
+        {
+          "mw": 20.0,
+          "date": "2026-03-31",
+          "fragment": "20: 31-03-2026"
+        },
+        {
+          "mw": 20.0,
+          "date": "2026-04-11",
+          "fragment": "20: 11-04-2026"
+        },
+        {
+          "mw": 20.0,
+          "date": "2026-04-15",
+          "fragment": "20: 15-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-24 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-04-15 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-24 00:00:00",
+      "toc_raw": "2026-04-15 00:00:00",
+      "cod_raw": "80: 11-03-2026\n80: 20-03-2026\n60: 28-03-2026\n120: 30-03-2026\n20: 31-03-2026\n20: 11-04-2026\n20: 15-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 51,
+      "name": "AGE26AL - SRPL Khavda PSS12",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 140.4,
+      "toc_total": 140.4,
+      "cod_total": 137.5,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-03-12 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-20 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-03-22 00:00:00"
+      ],
+      "ftc_raw": "2026-03-12 00:00:00",
+      "toc_raw": "2026-03-20 00:00:00",
+      "cod_raw": "2026-03-22 00:00:00"
+    },
+    {
+      "region": "WR",
+      "row": 52,
+      "name": "ARE37L BESS - AGEL Khavda PSS5",
+      "plant_type": "BESS",
+      "source_types": "BESS",
+      "ftc_total": 480.0,
+      "toc_total": 460.0,
+      "cod_total": 460.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 80.0,
+          "date": "2026-03-31",
+          "fragment": "80: 31-03-2026"
+        },
+        {
+          "mw": 80.0,
+          "date": "2026-03-31",
+          "fragment": "80: 31-03-2026"
+        },
+        {
+          "mw": 80.0,
+          "date": "2026-04-11",
+          "fragment": "80: 11-04-2026"
+        },
+        {
+          "mw": 60.0,
+          "date": "2026-04-15",
+          "fragment": "60: 15-04-2026"
+        },
+        {
+          "mw": 20.0,
+          "date": "2026-04-17",
+          "fragment": "20: 17-04-2026"
+        },
+        {
+          "mw": 60.0,
+          "date": "2026-04-24",
+          "fragment": "60: 24-04-2026"
+        },
+        {
+          "mw": 60.0,
+          "date": "2026-04-30",
+          "fragment": "60: 30-04-2026"
+        },
+        {
+          "mw": 20.0,
+          "date": "2026-05-05",
+          "fragment": "20: 05-05-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-24 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-05-05 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-24 00:00:00",
+      "toc_raw": "2026-05-05 00:00:00",
+      "cod_raw": "80: 31-03-2026\n80: 31-03-2026\n80: 11-04-2026\n60: 15-04-2026\n20: 17-04-2026\n60: 24-04-2026\n60: 30-04-2026\n20: 05-05-2026"
+    },
+    {
+      "region": "WR",
+      "row": 53,
+      "name": "Renew Green MHS One Pvt Ltd - RGESPL PSS-1",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 181.5,
+      "toc_total": 161.7,
+      "cod_total": 161.7,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 112.2,
+          "date": "2025-10-10",
+          "fragment": "112.2: 10-10-2025"
+        },
+        {
+          "mw": 19.8,
+          "date": "2025-11-24",
+          "fragment": "19.8 : 24-11-2025"
+        },
+        {
+          "mw": 6.6,
+          "date": "2026-01-29",
+          "fragment": "6.6: 29-01-2026"
+        },
+        {
+          "mw": 16.5,
+          "date": "2026-02-23",
+          "fragment": "16.5: 23-02-2026"
+        },
+        {
+          "mw": 6.6,
+          "date": "2026-03-27",
+          "fragment": "6.6: 27-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-27 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-26 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-27 00:00:00",
+      "toc_raw": "2026-03-26 00:00:00",
+      "cod_raw": "112.2: 10-10-2025\n19.8 : 24-11-2025\n6.6: 29-01-2026\n16.5: 23-02-2026\n6.6: 27-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 54,
+      "name": "Avaada GJ Sustainable Private Limited",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 200.0,
+      "toc_total": 200.0,
+      "cod_total": 200.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 108.33,
+          "date": "2026-02-07",
+          "fragment": "108.33: 07-02-2026"
+        },
+        {
+          "mw": 91.67,
+          "date": "2026-04-11",
+          "fragment": "91.67: 11-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-24 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-04-07 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-03-24 00:00:00",
+      "toc_raw": "2026-04-07 00:00:00",
+      "cod_raw": "108.33: 07-02-2026\n91.67: 11-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 55,
+      "name": "Veh Saurya Urja Pvt Ltd",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 81.9,
+      "toc_total": 69.3,
+      "cod_total": 69.3,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-02-23 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-25 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-03-26 00:00:00"
+      ],
+      "ftc_raw": "2026-02-23 00:00:00",
+      "toc_raw": "2026-03-25 00:00:00",
+      "cod_raw": "2026-03-26 00:00:00"
+    },
+    {
+      "region": "WR",
+      "row": 56,
+      "name": "Oyster Green Hybrid One Pvt Ltd",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Solar",
+      "ftc_total": 52.8,
+      "toc_total": 52.8,
+      "cod_total": 52.8,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-02-25 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-25 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-03-26 00:00:00"
+      ],
+      "ftc_raw": "2026-02-25 00:00:00",
+      "toc_raw": "2026-03-25 00:00:00",
+      "cod_raw": "2026-03-26 00:00:00"
+    },
+    {
+      "region": "WR",
+      "row": 57,
+      "name": "Juniper Green Energy Limited",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 0.0,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 58,
+      "name": "Sprng Akshay Urja Pvt Ltd",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 165.0,
+      "toc_total": 165.0,
+      "cod_total": 162.7,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 100.0,
+          "date": "2025-12-29",
+          "fragment": "100: 29-12-2025"
+        },
+        {
+          "mw": 16.5,
+          "date": "2025-12-31",
+          "fragment": "16.5: 31-12-2025"
+        },
+        {
+          "mw": 6.6,
+          "date": "2026-01-05",
+          "fragment": "6.6: 05-01-2026"
+        },
+        {
+          "mw": 6.6,
+          "date": "2026-01-28",
+          "fragment": "6.6: 28-01-2026"
+        },
+        {
+          "mw": 13.2,
+          "date": "2026-01-30",
+          "fragment": "13.2: 30-01-2026"
+        },
+        {
+          "mw": 6.6,
+          "date": "2026-02-04",
+          "fragment": "6.6: 04-02-2026"
+        },
+        {
+          "mw": 9.9,
+          "date": "2026-02-18",
+          "fragment": "9.9: 18-02-2026"
+        },
+        {
+          "mw": 3.3,
+          "date": "2026-04-10",
+          "fragment": "3.3: 10-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-01-13 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-04-08 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-01-13 00:00:00",
+      "toc_raw": "2026-04-08 00:00:00",
+      "cod_raw": "100: 29-12-2025\n16.5: 31-12-2025\n6.6: 05-01-2026\n6.6: 28-01-2026\n13.2: 30-01-2026\n6.6: 04-02-2026\n9.9: 18-02-2026\n3.3: 10-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 59,
+      "name": "TEQ Green Power XI Pvt Ltd",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": 174.0,
+      "toc_total": 160.225,
+      "cod_total": 160.225,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 18.9,
+          "date": "2025-06-30",
+          "fragment": "18.9: 30-06-2025"
+        },
+        {
+          "mw": 32.4,
+          "date": "2025-06-30",
+          "fragment": "32.4: 30-06-2025"
+        },
+        {
+          "mw": 13.5,
+          "date": "2025-08-16",
+          "fragment": "13.5: 16-08-2025"
+        },
+        {
+          "mw": 13.5,
+          "date": "2025-10-02",
+          "fragment": "13.5: 02-10-2025"
+        },
+        {
+          "mw": 2.7,
+          "date": "2025-11-07",
+          "fragment": "2.7: 07-11-2025"
+        },
+        {
+          "mw": 5.4,
+          "date": "2025-11-29",
+          "fragment": "5.4: 29-11-2025"
+        },
+        {
+          "mw": 10.8,
+          "date": "2025-12-20",
+          "fragment": "10.8: 20-12-2025"
+        },
+        {
+          "mw": 16.2,
+          "date": "2026-04-03",
+          "fragment": "16.2: 03-04-2026"
+        },
+        {
+          "mw": 24.425,
+          "date": "2025-08-16",
+          "fragment": "24.425: 16-08-2025"
+        },
+        {
+          "mw": 22.4,
+          "date": "2026-01-11",
+          "fragment": "22.4: 11-01-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-22 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-04-01 00:00:00"
+      ],
+      "cod_skipped": [
+        "Wind:",
+        "Solar:"
+      ],
+      "ftc_raw": "2026-04-22 00:00:00",
+      "toc_raw": "2026-04-01 00:00:00",
+      "cod_raw": "Wind:\n18.9: 30-06-2025\n32.4: 30-06-2025\n13.5: 16-08-2025\n13.5: 02-10-2025\n2.7: 07-11-2025\n5.4: 29-11-2025\n10.8: 20-12-2025\n16.2: 03-04-2026\n\nSolar:\n24.425: 16-08-2025\n22.4: 11-01-2026"
+    },
+    {
+      "region": "WR",
+      "row": 60,
+      "name": "Ayana Power Four Private Limited at Devasar",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": 129.9,
+      "toc_total": 129.9,
+      "cod_total": 129.9,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 52.8,
+          "date": "2025-08-19",
+          "fragment": "52.8: 19-08-2025"
+        },
+        {
+          "mw": 9.9,
+          "date": "2025-09-22",
+          "fragment": "9.9: 22-09-2025"
+        },
+        {
+          "mw": 9.9,
+          "date": "2025-10-23",
+          "fragment": "9.9: 23-10-2025"
+        },
+        {
+          "mw": 6.6,
+          "date": "2025-12-09",
+          "fragment": "6.6: 09-12-2025"
+        },
+        {
+          "mw": 13.2,
+          "date": "2026-03-31",
+          "fragment": "13.2: 31-03-2026"
+        },
+        {
+          "mw": 25.0,
+          "date": "2025-09-25",
+          "fragment": "25: 25-09-2025"
+        },
+        {
+          "mw": 12.5,
+          "date": "2025-10-15",
+          "fragment": "12.5: 15-10-2025"
+        }
+      ],
+      "ftc_skipped": [
+        "2025-07-10 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-31 00:00:00"
+      ],
+      "cod_skipped": [
+        "Wind:",
+        "Solar:"
+      ],
+      "ftc_raw": "2025-07-10 00:00:00",
+      "toc_raw": "2026-03-31 00:00:00",
+      "cod_raw": "Wind:\n52.8: 19-08-2025\n9.9: 22-09-2025\n9.9: 23-10-2025\n6.6: 09-12-2025\n13.2: 31-03-2026\n\nSolar:\n25: 25-09-2025\n12.5: 15-10-2025"
+    },
+    {
+      "region": "WR",
+      "row": 61,
+      "name": "Ayana Power Four Private Limited at Zura",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 150.0,
+      "toc_total": 150.0,
+      "cod_total": 150.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 50.0,
+          "date": "2025-08-22",
+          "fragment": "50: 22-08-2025"
+        },
+        {
+          "mw": 25.0,
+          "date": "2025-09-01",
+          "fragment": "25: 01-09-2025"
+        },
+        {
+          "mw": 37.5,
+          "date": "2026-01-15",
+          "fragment": "37.5: 15-01-2026"
+        },
+        {
+          "mw": 37.5,
+          "date": "2026-03-31",
+          "fragment": "37.5: 31-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-17 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-31 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-03-17 00:00:00",
+      "toc_raw": "2026-03-31 00:00:00",
+      "cod_raw": "50: 22-08-2025\n25: 01-09-2025\n37.5: 15-01-2026\n37.5: 31-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 62,
+      "name": "NTPC REL Khavda PSS2",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 1555.0,
+      "toc_total": 1555.0,
+      "cod_total": 1555.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 110.25,
+          "date": "2025-06-05",
+          "fragment": "110.25: 05-06-2025"
+        },
+        {
+          "mw": 288.9,
+          "date": "2025-06-27",
+          "fragment": "288.9: 27-06-2025"
+        },
+        {
+          "mw": 97.5,
+          "date": "2025-06-30",
+          "fragment": "97.5: 30-06-2025"
+        },
+        {
+          "mw": 261.625,
+          "date": "2025-08-19",
+          "fragment": "261.625: 19-08-2025"
+        },
+        {
+          "mw": 95.75,
+          "date": "2025-10-17",
+          "fragment": "95.75: 17-10-2025"
+        },
+        {
+          "mw": 37.95,
+          "date": "2025-10-18",
+          "fragment": "37.95: 18-10-2025"
+        },
+        {
+          "mw": 75.5,
+          "date": "2025-11-18",
+          "fragment": "75.5: 18-11-2025"
+        },
+        {
+          "mw": 243.66,
+          "date": "2025-12-16",
+          "fragment": "243.66: 16-12-2025"
+        },
+        {
+          "mw": 37.925,
+          "date": "2025-12-17",
+          "fragment": "37.925: 17-12-2025"
+        },
+        {
+          "mw": 69.04,
+          "date": "2025-12-24",
+          "fragment": "69.04: 24-12-2025"
+        },
+        {
+          "mw": 13.98,
+          "date": "2025-12-29",
+          "fragment": "13.98: 29-12-2025"
+        },
+        {
+          "mw": 130.47,
+          "date": "2026-01-28",
+          "fragment": "130.47: 28-01-2026"
+        },
+        {
+          "mw": 14.43,
+          "date": "2026-02-09",
+          "fragment": "14.43: 09-02-2026"
+        },
+        {
+          "mw": 78.02,
+          "date": "2026-03-30",
+          "fragment": "78.02: 30-03-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-03-23 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-30 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-03-23 00:00:00",
+      "toc_raw": "2026-03-30 00:00:00",
+      "cod_raw": "110.25: 05-06-2025\n288.9: 27-06-2025\n97.5: 30-06-2025\n261.625: 19-08-2025\n95.75: 17-10-2025\n37.95: 18-10-2025\n75.5: 18-11-2025\n243.66: 16-12-2025\n37.925: 17-12-2025\n69.04: 24-12-2025\n13.98: 29-12-2025\n130.47: 28-01-2026\n14.43: 09-02-2026\n78.02: 30-03-2026"
+    },
+    {
+      "region": "WR",
+      "row": 63,
+      "name": "NTPC REL Khavda PSS1",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 1095.0,
+      "toc_total": 1095.0,
+      "cod_total": 1095.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 210.0,
+          "date": "2026-01-30",
+          "fragment": "210: 30-01-2026"
+        },
+        {
+          "mw": 165.0,
+          "date": "2026-02-19",
+          "fragment": "165: 19-02-2026"
+        },
+        {
+          "mw": 270.0,
+          "date": "2026-03-10",
+          "fragment": "270: 10-03-2026"
+        },
+        {
+          "mw": 165.0,
+          "date": "2026-03-18",
+          "fragment": "165: 18-03-2026"
+        },
+        {
+          "mw": 105.0,
+          "date": "2026-03-28",
+          "fragment": "105: 28-03-2026"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-03-30",
+          "fragment": "90: 30-03-2026"
+        },
+        {
+          "mw": 90.0,
+          "date": "2026-04-24",
+          "fragment": "90: 24-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-11 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-04-24 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-11 00:00:00",
+      "toc_raw": "2026-04-24 00:00:00",
+      "cod_raw": "210: 30-01-2026 \n165: 19-02-2026 \n270: 10-03-2026\n165: 18-03-2026\n105: 28-03-2026\n90: 30-03-2026\n90: 24-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 64,
+      "name": "NTPC REL Vanki",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 50.4,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-04-20 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-20 00:00:00",
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 65,
+      "name": "Coal India Limited at GIPCL",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 0.0,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 66,
+      "name": "NTPC REL at GSECL",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 64.76,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-04-21 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-21 00:00:00",
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 67,
+      "name": "Engie Energy India Pvt Ltd at GSECL",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 68,
+      "name": "JSW Renew Energy Ten Ltd at GSECL",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 69,
+      "name": "Mounting Renewable Power Ltd",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 70,
+      "name": "Serentica Renewables India4 Pvt Ltd",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 95.7,
+      "toc_total": 59.4,
+      "cod_total": 59.4,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-04-30 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-05-06 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-05-06 00:00:00"
+      ],
+      "ftc_raw": "2026-04-30 00:00:00",
+      "toc_raw": "2026-05-06 00:00:00",
+      "cod_raw": "2026-05-06 00:00:00"
+    },
+    {
+      "region": "WR",
+      "row": 71,
+      "name": "Airpower Windfarms Pvt Ltd",
+      "plant_type": "Hybrid (Solar + Wind+BESS)",
+      "source_types": "Hybrid",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 72,
+      "name": "Oyster Green Hybrid One Pvt Ltd at Dayapar",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 73,
+      "name": "ARE36L BESS - AGEL Khavda PSS8",
+      "plant_type": "BESS",
+      "source_types": "BESS",
+      "ftc_total": 320.0,
+      "toc_total": 240.0,
+      "cod_total": 240.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 140.0,
+          "date": "2026-04-24",
+          "fragment": "140: 24-04-2026"
+        },
+        {
+          "mw": 20.0,
+          "date": "2026-04-28",
+          "fragment": "20: 28-04-2026"
+        },
+        {
+          "mw": 80.0,
+          "date": "2026-05-05",
+          "fragment": "80: 05-05-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-04-28 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-05-05 00:00:00"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "2026-04-28 00:00:00",
+      "toc_raw": "2026-05-05 00:00:00",
+      "cod_raw": "140: 24-04-2026\n20: 28-04-2026\n80: 05-05-2026"
+    },
+    {
+      "region": "WR",
+      "row": 74,
+      "name": "AGE25CL Khavda PSS14",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 67.6,
+      "toc_total": 67.6,
+      "cod_total": 65.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2026-03-25 00:00:00"
+      ],
+      "toc_skipped": [
+        "2026-03-28 00:00:00"
+      ],
+      "cod_skipped": [
+        "2026-03-28 00:00:00"
+      ],
+      "ftc_raw": "2026-03-25 00:00:00",
+      "toc_raw": "2026-03-28 00:00:00",
+      "cod_raw": "2026-03-28 00:00:00"
+    },
+    {
+      "region": "WR",
+      "row": 75,
+      "name": "AGE26AL Khavda PSS14",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 208.0,
+      "toc_total": 98.8,
+      "cod_total": 98.8,
+      "ftc_events": [],
+      "toc_events": [
+        {
+          "mw": 67.6,
+          "date": "2026-04-22",
+          "fragment": "67.6: 22-04-2026"
+        },
+        {
+          "mw": 26.0,
+          "date": "2026-04-29",
+          "fragment": "26: 29-04-2026"
+        },
+        {
+          "mw": 5.2,
+          "date": "2026-04-30",
+          "fragment": "5.2: 30-04-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 67.6,
+          "date": "2026-04-22",
+          "fragment": "67.6: 22-04-2026"
+        },
+        {
+          "mw": 26.0,
+          "date": "2026-04-29",
+          "fragment": "26: 29-04-2026"
+        },
+        {
+          "mw": 5.2,
+          "date": "2026-04-30",
+          "fragment": "5.2: 30-04-2026"
+        }
+      ],
+      "ftc_skipped": [
+        "2026-05-07 00:00:00"
+      ],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "2026-05-07 00:00:00",
+      "toc_raw": "67.6: 22-04-2026\n26: 29-04-2026\n5.2: 30-04-2026",
+      "cod_raw": "67.6: 22-04-2026\n26: 29-04-2026\n5.2: 30-04-2026"
+    },
+    {
+      "region": "WR",
+      "row": 76,
+      "name": "NTPC REL at Jamjodhpur",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 77,
+      "name": "Veh Jayin Renewables Private Limited",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 78,
+      "name": "Continuum Power Trading (TN) Private Limited",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 79,
+      "name": "Aditya Birla Renewable Energy Limited (ABREL) Valsara",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 80,
+      "name": "Waree Energies Limited",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 81,
+      "name": "Sprng Vayu Vidyut Pvt Ltd",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 82,
+      "name": "NTPC REL Khavda PSS4",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": null,
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 83,
+      "name": "APSEZ Khavda PSS4",
+      "plant_type": "Hybrid (Solar + Wind)",
+      "source_types": "Hybrid",
+      "ftc_total": 52.0,
+      "toc_total": 52.0,
+      "cod_total": 52.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "2025-03-06 00:00:00"
+      ],
+      "toc_skipped": [
+        "2025-03-28 00:00:00"
+      ],
+      "cod_skipped": [
+        "2025-03-29 00:00:00"
+      ],
+      "ftc_raw": "2025-03-06 00:00:00",
+      "toc_raw": "2025-03-28 00:00:00",
+      "cod_raw": "2025-03-29 00:00:00"
+    },
+    {
+      "region": "WR",
+      "row": 98,
+      "name": "Agency/Owner",
+      "plant_type": "Type\n(Line/ICT /GT/ST)",
+      "source_types": "Date of First Time Energization & Integration",
+      "ftc_total": null,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "Proposed FTC date if Pending"
+      ],
+      "toc_skipped": [
+        "Line Length (ckt km) to be commissioned in Apr'26"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": "Proposed FTC date if Pending",
+      "toc_raw": "Line Length (ckt km) to be commissioned in Apr'26",
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 99,
+      "name": "CSPTCL",
+      "plant_type": "Line",
+      "source_types": null,
+      "ftc_total": null,
+      "toc_total": 0.0,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "5.4"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": "5.4",
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 100,
+      "name": "CSPTCL",
+      "plant_type": "Line",
+      "source_types": null,
+      "ftc_total": null,
+      "toc_total": 0.0,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "5.4"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": "5.4",
+      "cod_raw": null
+    },
+    {
+      "region": "WR",
+      "row": 101,
+      "name": "CSPTCL",
+      "plant_type": "Line",
+      "source_types": null,
+      "ftc_total": null,
+      "toc_total": 0.0,
+      "cod_total": null,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [
+        "59"
+      ],
+      "cod_skipped": [],
+      "ftc_raw": null,
+      "toc_raw": "59",
+      "cod_raw": null
+    },
+    {
+      "region": "SR",
+      "row": 36,
+      "name": "SAEL Solar MHP2 Pvt Ltd",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 359.7,
+      "toc_total": 359.7,
+      "cod_total": null,
+      "ftc_events": [
+        {
+          "mw": 26.0,
+          "date": "2026-02-26",
+          "fragment": "26-02-2026"
+        }
+      ],
+      "toc_events": [
+        {
+          "mw": 13.0,
+          "date": "2026-03-13",
+          "fragment": "13-03-2026"
+        }
+      ],
+      "cod_events": [
+        {
+          "mw": 156.88,
+          "date": "2026-01-09",
+          "fragment": "09-01-2026 (156.88 MW) , 23-02-2026 ( 66.06 MW) ,"
+        },
+        {
+          "mw": 13.0,
+          "date": "2026-03-13",
+          "fragment": "13-03-2026"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [
+        "(77.06 MW)"
+      ],
+      "ftc_raw": "26-02-2026",
+      "toc_raw": "13-03-2026",
+      "cod_raw": "09-01-2026 (156.88 MW) , 23-02-2026 ( 66.06 MW) ,  13-03-2026  (77.06 MW)"
+    },
+    {
+      "region": "SR",
+      "row": 37,
+      "name": "Sembcorp Green Infra Pvt. Ltd.",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 109.2,
+      "toc_total": 69.3,
+      "cod_total": 69.3,
+      "ftc_events": [
+        {
+          "mw": 1.0,
+          "date": "2025-09-01",
+          "fragment": "01-09-2025 , 13-02-2026 , 11-02-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 17.0,
+          "date": "2025-01-17",
+          "fragment": "17-01-2025"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "01-09-2025 , 13-02-2026 , 11-02-2026",
+      "toc_raw": null,
+      "cod_raw": "17-01-2025"
+    },
+    {
+      "region": "SR",
+      "row": 38,
+      "name": "JSW Renew Energy Limited",
+      "plant_type": "Wind",
+      "source_types": "Wind",
+      "ftc_total": 189.0,
+      "toc_total": 162.0,
+      "cod_total": 162.0,
+      "ftc_events": [
+        {
+          "mw": 17.0,
+          "date": "2025-09-17",
+          "fragment": "17-09-2025"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 32.4,
+          "date": "2025-05-09",
+          "fragment": "09.05.25 (32.4MW)"
+        },
+        {
+          "mw": 43.2,
+          "date": "2025-03-28",
+          "fragment": "28.03.25 (43.2 MW)"
+        },
+        {
+          "mw": 27.0,
+          "date": "2025-03-27",
+          "fragment": "27.03.25 (27 MW)"
+        },
+        {
+          "mw": 59.4,
+          "date": "2025-02-28",
+          "fragment": "28.02.25 (59.4 MW)"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "17-09-2025",
+      "toc_raw": null,
+      "cod_raw": "09.05.25 (32.4MW)\n28.03.25 (43.2 MW)\n27.03.25 (27 MW)\n28.02.25 (59.4 MW)"
+    },
+    {
+      "region": "SR",
+      "row": 39,
+      "name": "TP Saurya Limited",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 281.6,
+      "toc_total": 281.6,
+      "cod_total": null,
+      "ftc_events": [
+        {
+          "mw": 23.0,
+          "date": "2026-03-23",
+          "fragment": "23-03-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [
+        {
+          "mw": 130.77,
+          "date": "2026-01-08",
+          "fragment": "08-01-2026 ( 130.77 MW), 03-02-2026 (61.54 MW), 18-04-2026 (46.15MW)"
+        }
+      ],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [],
+      "ftc_raw": "23-03-2026",
+      "toc_raw": null,
+      "cod_raw": "08-01-2026 ( 130.77 MW), 03-02-2026 (61.54 MW), 18-04-2026 (46.15MW)"
+    },
+    {
+      "region": "SR",
+      "row": 40,
+      "name": "NTPC Ramagundam (176MW)",
+      "plant_type": "Solar",
+      "source_types": "Solar",
+      "ftc_total": 154.8,
+      "toc_total": null,
+      "cod_total": null,
+      "ftc_events": [
+        {
+          "mw": 27.0,
+          "date": "2026-03-27",
+          "fragment": "27-03-2026"
+        }
+      ],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [],
+      "toc_skipped": [],
+      "cod_skipped": [
+        "Trial run on 20.04.26"
+      ],
+      "ftc_raw": "27-03-2026",
+      "toc_raw": null,
+      "cod_raw": "Trial run on 20.04.26"
+    },
+    {
+      "region": "ER",
+      "row": 11,
+      "name": "PVUNL Unit-2",
+      "plant_type": "Coal",
+      "source_types": "Coal",
+      "ftc_total": 1600.0,
+      "toc_total": 800.0,
+      "cod_total": 800.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "-"
+      ],
+      "toc_skipped": [
+        "-"
+      ],
+      "cod_skipped": [
+        "-"
+      ],
+      "ftc_raw": "-",
+      "toc_raw": "-",
+      "cod_raw": "-"
+    },
+    {
+      "region": "NER",
+      "row": 11,
+      "name": "Subansiri Lower HEP",
+      "plant_type": "Hydro",
+      "source_types": "Hydro",
+      "ftc_total": 1000.0,
+      "toc_total": 1000.0,
+      "cod_total": 1000.0,
+      "ftc_events": [],
+      "toc_events": [],
+      "cod_events": [],
+      "ftc_skipped": [
+        "Unit-2: 02.12.2025",
+        "Unit-3: 21.01.2026",
+        "Unit-1: 31.01.2026",
+        "Unit-4: 30.04.2026"
+      ],
+      "toc_skipped": [
+        "Unit-2: 20.12.2025",
+        "Unit-3: 30.01.2026",
+        "Unit-1: 09.03.2026",
+        "Unit-4: 04.05.2026"
+      ],
+      "cod_skipped": [
+        "Unit-2: 23.12.2025",
+        "Unit-3: 01.02.2026",
+        "Unit-1: 20.03.2026",
+        "Unit-4: 08.05.2026"
+      ],
+      "ftc_raw": "Unit-2: 02.12.2025\nUnit-3: 21.01.2026\nUnit-1: 31.01.2026\nUnit-4: 30.04.2026",
+      "toc_raw": "Unit-2: 20.12.2025\nUnit-3: 30.01.2026\nUnit-1: 09.03.2026\nUnit-4: 04.05.2026",
+      "cod_raw": "Unit-2: 23.12.2025\nUnit-3: 01.02.2026\nUnit-1: 20.03.2026\nUnit-4: 08.05.2026"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Cable, X, Pencil, History, Clock, ArrowRight } from 'lucide-react';
 import { AddTransmissionForm } from '@/components/grid/AddTransmissionForm';
+import { ProjectHistory } from '@/components/grid/ProjectHistory';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -241,6 +242,9 @@ export function TransmissionDetailModal({ element, open, onOpenChange, canEdit, 
                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{element.remarks}</p>
                 </div>
               )}
+
+              {/* Day-wise history */}
+              <ProjectHistory name={element.elementName} region={element.region.code} kind="tx" />
             </div>
           )}
         </div>

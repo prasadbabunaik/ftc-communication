@@ -48,7 +48,7 @@ function ProjectTable({ projects, source }) {
     <div className="overflow-x-auto rounded border border-border">
       <table className="w-full text-xs min-w-[900px]">
         <thead>
-          <tr className="bg-slate-700 text-white text-[10px]">
+          <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
             <th className="px-2 py-2 text-left font-bold whitespace-nowrap w-6">#</th>
             <th className="px-3 py-2 text-left font-bold whitespace-nowrap">Project</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">Region</th>

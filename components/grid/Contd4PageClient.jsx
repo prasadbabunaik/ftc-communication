@@ -19,6 +19,7 @@ export function Contd4PageClient({
   lockedRegionId,
   userRole,
   regionLabel,
+  asOf,            // "YYYY-MM-DD" — if present, view is a past-date snapshot
 }) {
   const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -55,6 +56,7 @@ export function Contd4PageClient({
         projects={projects}
         userRole={userRole}
         onView={setSelected}
+        asOf={asOf}
       />
 
       {/* Add Project modal */}
@@ -80,9 +82,15 @@ export function Contd4PageClient({
         </DialogContent>
       </Dialog>
 
-      {/* CONTD-4 detail modal — no phases, pre-construction only */}
+      {/* CONTD-4 detail modal.
+          The modal's open state is keyed off the selected row's id, but the
+          actual data displayed is re-resolved from the latest `projects`
+          prop on every render. This means a router.refresh() inside the
+          modal (e.g. after deleting a phase) flows the fresh data back
+          into the open dialog without remount, so capacities / phases
+          update instantly. */}
       <Contd4DetailModal
-        project={selected}
+        project={selected ? (projects.find((p) => p.id === selected.id) ?? selected) : null}
         open={!!selected}
         onOpenChange={(o) => { if (!o) setSelected(null); }}
         canEdit={canEdit}

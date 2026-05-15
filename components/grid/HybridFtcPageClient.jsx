@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import { HybridFtcTable } from '@/components/grid/HybridFtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
@@ -73,18 +74,17 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
               <label className="block text-sm font-medium text-foreground mb-1.5">
                 Hybrid Generating Station
               </label>
-              <select
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              <Combobox
                 value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-              >
-                <option value="">— Select a project —</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.region.code}) — {p.totalCapacityMw.toFixed(1)} MW · {p.plantType.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedProjectId}
+                placeholder="— Select a project —"
+                searchPlaceholder="Search by name, region, or hybrid type…"
+                emptyText="No matching projects."
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: `${p.name} (${p.region.code}) — ${p.totalCapacityMw.toFixed(1)} MW · ${p.plantType.label}`,
+                }))}
+              />
             </div>
 
             {selectedProject && (
@@ -108,9 +108,10 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
         </DialogContent>
       </Dialog>
 
-      {/* Project Detail modal */}
+      {/* Project Detail modal — re-resolve from latest props so an in-modal
+          router.refresh() updates the displayed data without remount. */}
       <ProjectDetailModal
-        project={detailProject}
+        project={detailProject ? (projects.find((p) => p.id === detailProject.id) ?? detailProject) : null}
         open={!!detailProject}
         onOpenChange={(o) => { if (!o) setDetailProject(null); }}
         canEdit={canEdit}

@@ -230,7 +230,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
               <th colSpan={2} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-emerald-50/60 text-emerald-700">
                 COD
               </th>
-              <th className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest text-amber-700 bg-amber-50/60" />
+              <th className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest text-amber-700 bg-amber-50/60 border-r border-border/40" />
+              {/* Remarks group */}
+              <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
+                Remarks
+              </th>
               <th className="w-[40px]" />
             </tr>
             {/* Column labels */}
@@ -247,14 +251,15 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
               <Th label="Pending"            className="w-[75px] bg-violet-50/30 border-r border-border/40" />
               <SortableTh label="Done"       field="codDeclared" className="w-[75px] bg-emerald-50/30" {...sp} />
               <Th label="Pending"            className="w-[75px] bg-emerald-50/30 border-r border-border/40" />
-              <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30" />
+              <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30 border-r border-border/40" />
+              <Th label="History"            className="min-w-[260px]" />
               <Th label=""                   className="w-[40px]" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={15} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No cleared projects found.
                 </td>
               </tr>
@@ -326,8 +331,65 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                       {hasPhases && p._codPendingMw > 0 ? <span className="text-orange-600">{mw(p._codPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     {/* Expected */}
-                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-amber-50/20">
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-amber-50/20 border-r border-border/30">
                       {hasPhases && p._expectedMw > 0 ? <span className="text-amber-700 font-semibold">{mw(p._expectedMw)}</span> : <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                    {/* Remarks — per-phase dated history, same pattern as the CONTD-4 list */}
+                    <td
+                      className="px-3 py-2 text-xs text-muted-foreground align-top border-r border-border/30"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {(() => {
+                        const entries = (p.phases ?? []).flatMap((ph) => {
+                          const items = [];
+                          if (ph.delayRemarks?.trim()) {
+                            items.push({
+                              date: ph.updatedAt ? new Date(ph.updatedAt) : null,
+                              text: ph.delayRemarks,
+                              source: ph.sourceType,
+                              kind: 'Delay',
+                            });
+                          }
+                          if (ph.otherRemarks?.trim()) {
+                            items.push({
+                              date: ph.updatedAt ? new Date(ph.updatedAt) : null,
+                              text: ph.otherRemarks,
+                              source: ph.sourceType,
+                              kind: 'Note',
+                            });
+                          }
+                          return items;
+                        });
+                        entries.sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0));
+                        if (entries.length === 0) return <span className="text-muted-foreground/60">—</span>;
+                        return (
+                          <div
+                            className="space-y-1 max-w-[300px]"
+                            title={entries
+                              .map((r) => `${r.date ? r.date.toISOString().slice(0,10) : ''} [${r.source} · ${r.kind}]: ${r.text}`)
+                              .join('\n')}
+                          >
+                            {entries.slice(0, 3).map((r, idx) => (
+                              <div key={idx} className="leading-snug">
+                                {r.date && (
+                                  <span className="inline-block mr-1.5 text-[9px] font-mono font-semibold text-slate-500 tabular-nums">
+                                    {r.date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                  </span>
+                                )}
+                                <span className="inline-block mr-1 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                                  {r.source}
+                                </span>
+                                <span className={`line-clamp-2 ${r.kind === 'Delay' ? 'text-rose-700' : 'text-slate-700'}`}>
+                                  {r.text}
+                                </span>
+                              </div>
+                            ))}
+                            {entries.length > 3 && (
+                              <p className="text-[10px] text-slate-400 italic">+ {entries.length - 3} more — open project for full history</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-2 py-3">
                       {isHybrid && hasPhases && (
@@ -359,7 +421,8 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-600 bg-violet-50/10 border-r border-border/30">{sr.tocPending > 0 ? mw(sr.tocPending) : '—'}</td>
                         <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-emerald-600 bg-emerald-50/10">{mw(sr.codDeclared)}</td>
                         <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-orange-600 bg-emerald-50/10 border-r border-border/30">{sr.codPending > 0 ? mw(sr.codPending) : '—'}</td>
-                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-700 bg-amber-50/10">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-700 bg-amber-50/10 border-r border-border/30">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>
+                        <td />  {/* Remarks column placeholder for expanded sub-row */}
                         <td />
                       </tr>
                     ))

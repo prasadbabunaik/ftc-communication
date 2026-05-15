@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope, getUserRegion } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, getUserRegion, activePeriodFilter } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { serialize } from '@/lib/serialize';
 import { TransmissionPageClient } from '@/components/grid/TransmissionPageClient';
@@ -19,7 +19,7 @@ export default async function TransmissionPage() {
 
   const [elements, regions] = await Promise.all([
     prisma.transmissionElement.findMany({
-      where: scope,
+      where: { ...scope, ...activePeriodFilter() },
       include: {
         region: true,
         auditLogs: {

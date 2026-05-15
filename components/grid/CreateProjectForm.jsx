@@ -49,6 +49,10 @@ const SOURCE_OPTIONS = [
   { key: 'PSP',   label: 'PSP'   },
 ];
 
+// Keys are alphabetically-sorted, comma-joined source-type sets. Must cover
+// every hybrid plant_type code present in the DB so the UI doesn't show
+// "Unknown source combination" for valid picks (e.g. Solar + PSP for hybrids
+// like Greenko AP01 IREP at Kurnool, which is HYBRID_SP in DB).
 const SOURCE_TO_CODE = {
   'BESS':             'BESS',
   'COAL':             'COAL',
@@ -60,6 +64,7 @@ const SOURCE_TO_CODE = {
   'BESS,WIND':        'HYBRID_WB',
   'SOLAR,WIND':       'HYBRID_WS',
   'BESS,SOLAR,WIND':  'HYBRID_WSB',
+  'PSP,SOLAR':        'HYBRID_SP',
   'PSP,WIND':         'HYBRID_WP',
   'HYDRO,PSP':        'HYBRID_HP',
 };
@@ -400,17 +405,21 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                 </FormItem>
               )} />
 
+              {/* Status is always PENDING for newly-created CONTD-4 applications.
+                  It can be transitioned later (Edit → Status, or via the
+                  "Mark as Cleared" action on the detail page). */}
               <FormField control={form.control} name="contd4.status" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel className="text-muted-foreground">Status</FormLabel>
                   <FormControl>
-                    <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                      <option value="PENDING">Pending</option>
-                      <option value="RECEIVED">Received</option>
-                      <option value="CLEARED">Cleared</option>
-                      <option value="REJECTED">Rejected</option>
-                    </select>
+                    <input type="hidden" {...field} value="PENDING" />
                   </FormControl>
+                  <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm text-foreground">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
+                      Pending
+                    </span>
+                    <span className="text-[10px] text-muted-foreground ml-2">— starts as Pending; update later from the project page</span>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )} />

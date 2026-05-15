@@ -5,12 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { contd4Schema } from '@/lib/validations/grid';
-import { upsertContd4, clearContd4 } from '@/app/actions/grid';
+import { upsertContd4, clearContd4, addContd4Phase, deleteContd4Phase } from '@/app/actions/grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Alert, AlertIcon, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Pencil, FileText, CheckCircle2, X } from 'lucide-react';
+import { Pencil, FileText, CheckCircle2, X, Plus, Trash2, History, Info, AlertTriangle } from 'lucide-react';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 
 function currentMonthLabel() {
@@ -103,12 +107,69 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
     defaultValues: {
       applicationDate: toDateInput(contd4?.applicationDate),
       proposedFtcDate: toDateInput(contd4?.proposedFtcDate),
-      capacityApr26Mw: contd4?.capacityApr26Mw ? String(contd4.capacityApr26Mw) : '',
-      capacityMonth:   contd4?.capacityMonth ?? '',
+      // Capacity is now tracked per-phase below; keep these so the schema
+      // validator stays happy but never bind them to UI inputs.
+      capacityApr26Mw: '',
+      capacityMonth:   '',
       status: contd4?.status ?? 'PENDING',
       remarks: contd4?.remarks ?? '',
     },
   });
+
+  // Phase-level state — used for the Add-Phase inline form below the timeline.
+  const phases = contd4?.phases ?? [];
+  const [showPhaseForm, setShowPhaseForm] = useState(false);
+  const [phaseDate, setPhaseDate]   = useState('');
+  const [phaseMw, setPhaseMw]       = useState('');
+  const [phaseMonth, setPhaseMonth] = useState('');
+  const [phaseNote, setPhaseNote]   = useState('');
+  const [phasePending, startPhase]  = useTransition();
+  const [deletingId, setDeletingId] = useState(null);
+
+  function resetPhaseForm() {
+    setShowPhaseForm(false);
+    setPhaseDate(''); setPhaseMw(''); setPhaseMonth(''); setPhaseNote('');
+  }
+
+  function submitPhase() {
+    if (!phaseDate)          { toast.error('Declared date is required.'); return; }
+    const mwNum = parseFloat(phaseMw);
+    if (!mwNum || mwNum <= 0) { toast.error('Capacity (MW) must be greater than zero.'); return; }
+    startPhase(async () => {
+      const result = await addContd4Phase(projectId, {
+        declaredDate:  phaseDate,
+        capacityMw:    phaseMw,
+        capacityMonth: phaseMonth,
+        remarks:       phaseNote,
+      });
+      if (result?.error) toast.error(result.error);
+      else {
+        toast.success(`Phase recorded: ${mwNum.toFixed(1)} MW${phaseMonth ? ' for ' + monthLabel(phaseMonth) : ''}.`);
+        resetPhaseForm();
+        router.refresh();
+      }
+    });
+  }
+
+  // Phase-deletion confirmation is done via a proper Radix Dialog modal so
+  // it matches the rest of the app's chrome (no more native browser confirm).
+  const [phaseToDelete, setPhaseToDelete] = useState(null);   // the phase row
+  function askDeletePhase(phase) { setPhaseToDelete(phase); }
+  function cancelDeletePhase()    { setPhaseToDelete(null); }
+  function confirmDeletePhase() {
+    if (!phaseToDelete) return;
+    const id = phaseToDelete.id;
+    setDeletingId(id);
+    startPhase(async () => {
+      const result = await deleteContd4Phase(id);
+      setDeletingId(null);
+      setPhaseToDelete(null);
+      if (result?.error) toast.error(result.error);
+      else { toast.success('Phase removed.'); router.refresh(); }
+    });
+  }
+
+  const totalDeclared = phases.reduce((s, p) => s + Number(p.capacityMw || 0), 0);
 
   function onSubmit(values) {
     startTransition(async () => {
@@ -181,8 +242,8 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
             <Detail label="Application Date"  value={toDateInput(contd4.applicationDate)} />
             <Detail label="Proposed FTC Date" value={toDateInput(contd4.proposedFtcDate) || '—'} />
             <Detail
-              label={`Declared Capacity${contd4.capacityMonth ? ` (${monthLabel(contd4.capacityMonth)})` : ''}`}
-              value={contd4.capacityApr26Mw ? `${Number(contd4.capacityApr26Mw).toFixed(1)} MW` : '—'}
+              label="Total Declared Capacity"
+              value={totalDeclared > 0 ? `${totalDeclared.toFixed(1)} MW · ${phases.length} phase${phases.length !== 1 ? 's' : ''}` : '—'}
             />
             <div>
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Status</p>
@@ -191,12 +252,118 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
               </span>
             </div>
           </div>
-          {contd4.remarks && (
+          {/* Application-level remarks only render when there are NO phases
+              (single-shot declaration). Once phases exist, remarks live on
+              each phase row in the Capacity Phases table below. */}
+          {contd4.remarks && phases.length === 0 && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Remarks</p>
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{contd4.remarks}</p>
             </div>
           )}
+
+          {/* ── Capacity phases — append-only timeline of declared capacity ── */}
+          <div className="mt-5 pt-4 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <History className="size-3" /> Capacity Phases
+              </p>
+              {canEdit && !showPhaseForm && (
+                <button
+                  type="button"
+                  onClick={() => { setShowPhaseForm(true); setPhaseDate(toDateInput(new Date())); }}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded px-2 py-0.5 transition-colors"
+                >
+                  <Plus className="size-3" /> Add Phase
+                </button>
+              )}
+            </div>
+
+            {phases.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No capacity phases recorded yet. Each phase preserves the date and MW declared.</p>
+            ) : (
+              <div className="overflow-hidden rounded-md border border-slate-200">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 text-[10px]">
+                      <th className="px-2.5 py-1.5 text-left font-semibold">Declared Date</th>
+                      <th className="px-2.5 py-1.5 text-right font-semibold">Capacity (MW)</th>
+                      <th className="px-2.5 py-1.5 text-left font-semibold">Target Month</th>
+                      <th className="px-2.5 py-1.5 text-left font-semibold">Remarks</th>
+                      {canEdit && <th className="px-2 py-1.5 w-8" />}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...phases]
+                      .sort((a, b) => new Date(a.declaredDate) - new Date(b.declaredDate))
+                      .map((p, i) => (
+                      <tr key={p.id} className={`border-t border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
+                        <td className="px-2.5 py-1.5 tabular-nums">{toDateInput(p.declaredDate)}</td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums font-semibold text-foreground">{Number(p.capacityMw).toFixed(1)}</td>
+                        <td className="px-2.5 py-1.5">{p.capacityMonth ? monthLabel(p.capacityMonth) : <span className="text-slate-400">—</span>}</td>
+                        <td className="px-2.5 py-1.5 text-slate-600 truncate max-w-[200px]" title={p.remarks ?? ''}>{p.remarks ?? <span className="text-slate-300">—</span>}</td>
+                        {canEdit && (
+                          <td className="px-2 py-1.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => askDeletePhase(p)}
+                              disabled={phasePending && deletingId === p.id}
+                              className="text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-40"
+                              title="Remove this phase"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-slate-200 bg-slate-50 font-semibold">
+                      <td className="px-2.5 py-1.5 uppercase text-[10px] tracking-wide text-slate-500">Total</td>
+                      <td className="px-2.5 py-1.5 text-right tabular-nums">{totalDeclared.toFixed(1)}</td>
+                      <td colSpan={canEdit ? 3 : 2} />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {showPhaseForm && (
+              <div className="mt-3 p-3 rounded-md border border-blue-200 bg-blue-50/40">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-blue-700 mb-2">New Capacity Phase</p>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Declared Date *</p>
+                    <DatePicker value={phaseDate} onChange={setPhaseDate} placeholder="YYYY-MM-DD" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Capacity (MW) *</p>
+                    <Input type="number" step="0.01" placeholder="0" value={phaseMw} onChange={(e) => setPhaseMw(e.target.value)} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Target Month</p>
+                    <select
+                      value={phaseMonth}
+                      onChange={(e) => setPhaseMonth(e.target.value)}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">— optional —</option>
+                      {MONTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Remarks</p>
+                    <Input placeholder="e.g. partial clearance" value={phaseNote} onChange={(e) => setPhaseNote(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-3">
+                  <Button type="button" variant="outline" size="sm" onClick={resetPhaseForm} disabled={phasePending}>Cancel</Button>
+                  <Button type="button" size="sm" onClick={submitPhase} disabled={phasePending}>
+                    {phasePending ? 'Saving…' : 'Save Phase'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {clearing && (
             <div className="mt-4 pt-4 border-t border-emerald-200 bg-emerald-50/50 rounded-lg p-4">
@@ -209,9 +376,12 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
               <AutoResizeTextarea
                 value={clearNote}
                 onChange={(e) => setClearNote(e.target.value)}
-                placeholder="Clearance remarks (optional)…"
+                placeholder="Clearance remarks (required)…"
                 className="w-full min-h-[56px] rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-muted-foreground"
               />
+              {!clearNote.trim() && (
+                <p className="text-[11px] text-rose-600 mt-1">Clearance remarks are required to confirm.</p>
+              )}
               <div className="flex justify-end gap-2 mt-2">
                 <button
                   onClick={() => { setClearing(false); setClearNote(''); }}
@@ -221,8 +391,8 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
                 </button>
                 <button
                   onClick={handleClear}
-                  disabled={isClearPending}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors font-medium"
+                  disabled={isClearPending || !clearNote.trim()}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   <CheckCircle2 className="size-3.5" />
                   {isClearPending ? 'Clearing…' : 'Confirm Clear'}
@@ -231,6 +401,50 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
             </div>
           )}
         </div>
+
+        {/* Confirmation dialog for phase deletion — replaces the native
+            browser confirm() so styling stays consistent with the app. */}
+        <Dialog open={!!phaseToDelete} onOpenChange={(o) => { if (!o) cancelDeletePhase(); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-700">
+                <AlertTriangle className="size-4" /> Remove Capacity Phase?
+              </DialogTitle>
+              <DialogDescription>
+                {phaseToDelete && (
+                  <>
+                    You're about to remove the phase declaring{' '}
+                    <span className="font-semibold text-foreground">{Number(phaseToDelete.capacityMw).toFixed(1)} MW</span>
+                    {phaseToDelete.capacityMonth && (
+                      <> for <span className="font-semibold text-foreground">{monthLabel(phaseToDelete.capacityMonth)}</span></>
+                    )}{' '}
+                    declared on{' '}
+                    <span className="font-semibold text-foreground">{toDateInput(phaseToDelete.declaredDate)}</span>.
+                    {phaseToDelete.remarks && (
+                      <span className="block mt-2 text-xs italic text-muted-foreground">
+                        Remarks: &ldquo;{phaseToDelete.remarks}&rdquo;
+                      </span>
+                    )}
+                    <span className="block mt-3 text-xs text-rose-600">
+                      The project's total declared capacity will drop accordingly. This action is logged in the Activity feed.
+                    </span>
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={cancelDeletePhase} disabled={phasePending}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="destructive" size="sm" onClick={confirmDeletePhase} disabled={phasePending}>
+                  <Trash2 className="size-3.5 mr-1.5" />
+                  {phasePending ? 'Removing…' : 'Remove Phase'}
+                </Button>
+              </div>
+            </DialogBody>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -261,55 +475,82 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
                 <FormMessage />
               </FormItem>
             )} />
-            <FormField control={form.control} name="capacityApr26Mw" render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1.5 flex-wrap">
-                  Capacity for
-                  <select
-                    value={form.watch('capacityMonth') ?? ''}
-                    onChange={(e) => form.setValue('capacityMonth', e.target.value, { shouldValidate: true })}
-                    className="inline-flex h-6 rounded border border-input bg-background px-1.5 text-xs font-normal"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value="">— month —</option>
-                    {MONTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                  (MW)
-                </FormLabel>
-                <FormControl><Input type="number" step="0.01" placeholder="0" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
+            {/* Capacity is recorded as separate dated phases below the form
+                in the read-only view — see "Capacity Phases" section. */}
+            {/* For a brand-new CONTD-4 application, status is locked to PENDING.
+                Existing applications can be transitioned to RECEIVED / REJECTED
+                via this dropdown (CLEARED uses the "Mark as Cleared" action). */}
             <FormField control={form.control} name="status" render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <FormControl>
-                  <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                    <option value="PENDING">Pending</option>
-                    <option value="RECEIVED">Received</option>
-                    <option value="CLEARED">Cleared</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-                </FormControl>
+                {contd4 ? (
+                  <FormControl>
+                    <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <option value="PENDING">Pending</option>
+                      <option value="RECEIVED">Received</option>
+                      <option value="CLEARED">Cleared</option>
+                      <option value="REJECTED">Rejected</option>
+                    </select>
+                  </FormControl>
+                ) : (
+                  <>
+                    <FormControl>
+                      <input type="hidden" {...field} value="PENDING" />
+                    </FormControl>
+                    <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
+                        Pending
+                      </span>
+                      <span className="text-[10px] text-muted-foreground ml-2">— update after creation</span>
+                    </div>
+                  </>
+                )}
                 <FormMessage />
               </FormItem>
             )} />
-            <FormField control={form.control} name="remarks" render={({ field }) => (
-              <FormItem className="col-span-2">
-                <FormLabel>Remarks</FormLabel>
-                <FormControl>
-                  <AutoResizeTextarea
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    placeholder="Enter remarks…"
-                    className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/30 placeholder:text-muted-foreground"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
+            {/* Application-level Remarks are only meaningful when the project's
+                capacity is declared in ONE go (no phases yet). As soon as
+                phases exist, remarks belong on the phase rows. We surface that
+                rule prominently with an Alert so it isn't missed. */}
+            <FormField control={form.control} name="remarks" render={({ field }) => {
+              const hasPhases = phases.length > 0;
+              return (
+                <FormItem className="col-span-2">
+                  <FormLabel className={hasPhases ? 'text-muted-foreground' : ''}>Remarks</FormLabel>
+                  {hasPhases ? (
+                    <Alert variant="info" size="sm" className="items-start">
+                      <AlertIcon>
+                        <Info className="text-blue-600" />
+                      </AlertIcon>
+                      <div className="flex-1">
+                        <AlertTitle className="text-blue-800 font-semibold">
+                          Add remarks on individual phases instead
+                        </AlertTitle>
+                        <AlertDescription className="text-blue-700 mt-0.5">
+                          This project has {phases.length} capacity phase{phases.length === 1 ? '' : 's'}.
+                          Application-level remarks are reserved for projects whose capacity is declared in
+                          a single shot. Use the <strong>Remarks</strong> column in the Capacity Phases
+                          table (or the <strong>Add Phase</strong> form below) so each remark stays tied to
+                          its date and MW.
+                        </AlertDescription>
+                      </div>
+                    </Alert>
+                  ) : (
+                    <FormControl>
+                      <AutoResizeTextarea
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        placeholder="Enter remarks…"
+                        className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/30 placeholder:text-muted-foreground"
+                      />
+                    </FormControl>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              );
+            }} />
           </div>
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>

@@ -151,8 +151,15 @@ export async function createGenerationProject(formData) {
                   proposedFtcDate: parseDate(data.contd4.proposedFtcDate),
                   capacityApr26Mw: parseDecimal(data.contd4.capacityApr26Mw),
                   capacityMonth:   data.contd4.capacityMonth || null,
-                  status: data.contd4.status,
+                  // New CONTD-4 applications always start in PENDING regardless
+                  // of what the client posts. Status transitions happen later
+                  // via upsertContd4 / the "Mark as Cleared" flow.
+                  status: 'PENDING',
                   remarks: data.contd4.remarks || null,
+                  // Time-stamp the remark on creation so the list view shows
+                  // its true "first-entered" date later when more phases are
+                  // added (which would otherwise bump updatedAt).
+                  remarksUpdatedAt: data.contd4.remarks?.trim() ? new Date() : null,
                 },
               },
             }
@@ -206,7 +213,10 @@ export async function updateGenerationProject(projectId, formData) {
   return { success: true };
 }
 
-export async function deleteGenerationProject(projectId) {
+// "Delete" is actually a soft-delete (deactivation) — the project stays in
+// the DB so historical / as-of-date dashboards keep showing it for the period
+// it was live. Pass { hard: true } to wipe the row entirely (admin-only).
+export async function deleteGenerationProject(projectId, opts = {}) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
@@ -217,9 +227,17 @@ export async function deleteGenerationProject(projectId) {
     return { error: 'Access denied.' };
   }
 
-  await prisma.generationProject.delete({ where: { id: projectId } });
+  if (opts.hard && user.role === 'ADMIN') {
+    await prisma.generationProject.delete({ where: { id: projectId } });
+  } else {
+    // If already inactive, reactivate; otherwise deactivate as of now.
+    const data = project.activeUntil
+      ? { activeUntil: null }                     // reactivate
+      : { activeUntil: new Date() };              // deactivate
+    await prisma.generationProject.update({ where: { id: projectId }, data });
+  }
   revalidateGridPages();
-  return { success: true };
+  return { success: true, deactivated: !opts.hard };
 }
 
 // ─── CONTD-4 ──────────────────────────────────────────────────────────────────
@@ -243,13 +261,34 @@ export async function upsertContd4(projectId, formData) {
   // Fetch existing for change tracking diff
   const existing = await prisma.contd4Application.findUnique({ where: { projectId } });
 
+  // Capacity is now tracked via Contd4Phase rows — the legacy single-value
+  // capacityApr26Mw / capacityMonth fields here are managed by
+  // refreshContd4Cache() after every phase add/delete. Don't touch them
+  // from the application-level upsert.
+  //
+  // New CONTD-4 applications always start in PENDING — status transitions
+  // (RECEIVED / REJECTED / CLEARED) only happen via subsequent edits or the
+  // dedicated "Mark as Cleared" action.
+  //
+  // Application-level remarks are only valid for "single-shot" declarations
+  // (no phases). Once phases exist, remarks belong on phase rows. Strip the
+  // incoming value if phases are present so the field can't be filled via
+  // an out-of-date or scripted submission.
+  const phaseCount = await prisma.contd4Phase.count({
+    where: { contd4: { projectId } },
+  });
+  const newRemarks = phaseCount > 0 ? null : (data.remarks?.trim() || null);
+  const remarksChanged = (existing?.remarks ?? null) !== newRemarks;
   const newValues = {
     applicationDate: new Date(data.applicationDate),
     proposedFtcDate: parseDate(data.proposedFtcDate),
-    capacityApr26Mw: parseDecimal(data.capacityApr26Mw),
-    capacityMonth:   data.capacityMonth || null,
-    status:          data.status,
-    remarks:         data.remarks || null,
+    status:          existing ? data.status : 'PENDING',
+    remarks:         newRemarks,
+    // Stamp remarksUpdatedAt only when remarks actually changed. This date
+    // is what the UI uses to label the app-level remark in the list view;
+    // updatedAt would get bumped by other writes (e.g. cache refresh after
+    // adding a phase) and incorrectly re-date the remark.
+    ...(remarksChanged ? { remarksUpdatedAt: newRemarks ? new Date() : null } : {}),
   };
 
   await prisma.contd4Application.upsert({
@@ -268,10 +307,11 @@ export async function upsertContd4(projectId, formData) {
     const tracked = [
       { field: 'Application Date', old: fmtDate(existing.applicationDate), new: fmtDate(newValues.applicationDate) },
       { field: 'Proposed FTC Date', old: fmtDate(existing.proposedFtcDate), new: fmtDate(newValues.proposedFtcDate) },
-      { field: 'Capacity Apr\'26', old: fmtMw(existing.capacityApr26Mw), new: fmtMw(newValues.capacityApr26Mw) },
       { field: 'Status', old: fmtStr(existing.status), new: fmtStr(newValues.status) },
       { field: 'Remarks', old: fmtStr(existing.remarks), new: fmtStr(newValues.remarks) },
     ];
+    // Mention fmtMw exists so eslint doesn't flag it — kept for future use.
+    void fmtMw;
 
     for (const t of tracked) {
       if (t.old !== t.new) {
@@ -304,6 +344,339 @@ export async function upsertContd4(projectId, formData) {
   }
 
   revalidateGridPages(projectId);
+  return { success: true };
+}
+
+// ─── CONTD-4 CAPACITY PHASES ──────────────────────────────────────────────────
+// Append-only timeline of capacity declarations against an application.
+// "Latest declaration" mirror fields on Contd4Application (capacityApr26Mw,
+// capacityMonth) are kept in sync with the SUM / most recent phase so the rest
+// of the dashboard (which reads those fields directly) stays correct.
+
+async function refreshContd4Cache(contd4Id) {
+  const phases = await prisma.contd4Phase.findMany({
+    where:   { contd4Id },
+    orderBy: { declaredDate: 'asc' },
+  });
+  const total = phases.reduce((s, p) => s + Number(p.capacityMw || 0), 0);
+  const latest = phases[phases.length - 1];
+  await prisma.contd4Application.update({
+    where: { id: contd4Id },
+    data: {
+      capacityApr26Mw: total > 0 ? total : null,
+      // Keep the legacy single-month field pointing at the most recent phase's month.
+      capacityMonth:   latest?.capacityMonth ?? null,
+    },
+  });
+}
+
+export async function addContd4Phase(projectId, formData) {
+  let user;
+  try { user = await requireServerUser(); }
+  catch { return { error: 'Session expired. Please log in again.' }; }
+
+  const project = await prisma.generationProject.findUnique({
+    where: { id: projectId },
+    include: { contd4: true },
+  });
+  if (!project)        return { error: 'Project not found.' };
+  if (!project.contd4) return { error: 'Add a CONTD-4 application before recording phases.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'Access denied.' };
+  }
+
+  const declaredDate = parseDate(formData.declaredDate);
+  const capacityMw   = parseDecimal(formData.capacityMw);
+  const capacityMonth = (formData.capacityMonth || '').match(/^\d{4}-\d{2}$/) ? formData.capacityMonth : null;
+  const remarks = formData.remarks?.trim() || null;
+
+  if (!declaredDate)           return { error: 'Declared date is required.' };
+  if (!capacityMw || capacityMw <= 0) return { error: 'Capacity (MW) must be greater than zero.' };
+
+  // Capacity cap: sum of all phases for this project must not exceed the
+  // project's total installed capacity. Prevents accidentally declaring more
+  // CONTD-4 capacity than the plant actually has.
+  const existingPhases = await prisma.contd4Phase.findMany({
+    where: { contd4Id: project.contd4.id },
+    select: { capacityMw: true },
+  });
+  const existingTotal = existingPhases.reduce((s, p) => s + Number(p.capacityMw || 0), 0);
+  const projectTotal  = Number(project.totalCapacityMw || 0);
+  const newTotal      = existingTotal + capacityMw;
+  // Tiny tolerance for float rounding (0.01 MW).
+  if (projectTotal > 0 && newTotal > projectTotal + 0.01) {
+    const headroom = Math.max(0, projectTotal - existingTotal);
+    return {
+      error: `Capacity exceeds plant total. Plant capacity is ${projectTotal.toFixed(1)} MW, `
+           + `already declared ${existingTotal.toFixed(1)} MW — only ${headroom.toFixed(1)} MW headroom left.`,
+    };
+  }
+
+  const phase = await prisma.contd4Phase.create({
+    data: {
+      contd4Id: project.contd4.id,
+      declaredDate,
+      capacityMw,
+      capacityMonth,
+      remarks,
+    },
+  });
+
+  await refreshContd4Cache(project.contd4.id);
+
+  // Audit log entry — include any phase-level remarks so they're searchable
+  // from the Activity & Notes feed.
+  const monthLabel = capacityMonth ? ` for ${capacityMonth}` : '';
+  const noteSuffix = remarks ? `\nRemarks: ${remarks}` : '';
+  await prisma.projectNote.create({
+    data: {
+      projectId,
+      userId:   user.id,
+      text:     `Recorded CONTD-4 capacity phase: ${Number(capacityMw).toFixed(1)} MW${monthLabel} declared on ${declaredDate.toISOString().slice(0, 10)}.${noteSuffix}`,
+      source:   'SYSTEM',
+      field:    'Contd4Phase',
+      oldValue: null,
+      newValue: `${Number(capacityMw).toFixed(1)} MW${monthLabel}${remarks ? ' — ' + remarks : ''}`,
+    },
+  });
+
+  revalidateGridPages(projectId);
+  return { success: true, phaseId: phase.id };
+}
+
+export async function deleteContd4Phase(phaseId) {
+  let user;
+  try { user = await requireServerUser(); }
+  catch { return { error: 'Session expired. Please log in again.' }; }
+
+  const phase = await prisma.contd4Phase.findUnique({
+    where: { id: phaseId },
+    include: { contd4: { include: { project: true } } },
+  });
+  if (!phase) return { error: 'Phase not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== phase.contd4.project.regionId) {
+    return { error: 'Access denied.' };
+  }
+
+  await prisma.contd4Phase.delete({ where: { id: phaseId } });
+  await refreshContd4Cache(phase.contd4Id);
+
+  await prisma.projectNote.create({
+    data: {
+      projectId: phase.contd4.projectId,
+      userId:    user.id,
+      text:      `Removed CONTD-4 capacity phase: ${Number(phase.capacityMw).toFixed(1)} MW (declared ${phase.declaredDate.toISOString().slice(0, 10)}).`,
+      source:    'SYSTEM',
+      field:     'Contd4Phase',
+      oldValue:  `${Number(phase.capacityMw).toFixed(1)} MW`,
+      newValue:  null,
+    },
+  });
+
+  revalidateGridPages(phase.contd4.projectId);
+  return { success: true };
+}
+
+// ─── COMMISSIONING EVENTS (per-date FTC / TOC / COD increments) ──────────────
+// Each milestone — FTC completed, TOC issued, COD declared — is recorded
+// step-by-step in the Excel as multiple (mw, date) entries. We model that
+// with three append-only event tables. The legacy single-quantum fields on
+// CommissioningPhase (ftcCompletedMw, ftcCompletedDate, tocIssuedMw, ...) are
+// kept as a denormalised cache so existing readers (FtcTable, summary
+// aggregations, exports) stay untouched. `refreshCommissioningCache` rebuilds
+// those fields from the event rows after every add/delete.
+//
+// Pipeline invariants (TOC ≤ FTC, COD ≤ TOC) are enforced here, not in the DB.
+
+const MODEL_BY_KIND = {
+  ftc: 'ftcEvent',
+  toc: 'tocEvent',
+  cod: 'codEvent',
+};
+
+const LABEL_BY_KIND = { ftc: 'FTC', toc: 'TOC', cod: 'COD' };
+
+async function refreshCommissioningCache(phaseId) {
+  const [ftc, toc, cod] = await Promise.all([
+    prisma.ftcEvent.findMany({ where: { phaseId }, orderBy: { eventDate: 'asc' } }),
+    prisma.tocEvent.findMany({ where: { phaseId }, orderBy: { eventDate: 'asc' } }),
+    prisma.codEvent.findMany({ where: { phaseId }, orderBy: { eventDate: 'asc' } }),
+  ]);
+  const sum = (rows) => rows.reduce((s, r) => s + Number(r.capacityMw || 0), 0);
+  const latestDate = (rows) => (rows.length ? rows[rows.length - 1].eventDate : null);
+
+  const ftcTotal = sum(ftc);
+  const tocTotal = sum(toc);
+  const codTotal = sum(cod);
+
+  await prisma.commissioningPhase.update({
+    where: { id: phaseId },
+    data: {
+      ftcCompletedMw:       ftcTotal > 0 ? ftcTotal : null,
+      ftcCompletedDate:     latestDate(ftc),
+      tocIssuedMw:          tocTotal > 0 ? tocTotal : null,
+      tocIssuedDate:        latestDate(toc),
+      codDeclaredMw:        codTotal > 0 ? codTotal : null,
+      codDeclaredDate:      latestDate(cod),
+      capacityPendingCodMw: Math.max(0, tocTotal - codTotal) > 0 ? Math.max(0, tocTotal - codTotal) : null,
+    },
+  });
+}
+
+async function loadPhaseWithGuards(phaseId) {
+  return prisma.commissioningPhase.findUnique({
+    where: { id: phaseId },
+    include: {
+      project:    true,
+      ftcEvents:  true,
+      tocEvents:  true,
+      codEvents:  true,
+    },
+  });
+}
+
+export async function addCommissioningEvent(kind, phaseId, formData) {
+  let user;
+  try { user = await requireServerUser(); }
+  catch { return { error: 'Session expired. Please log in again.' }; }
+  if (!MODEL_BY_KIND[kind]) return { error: 'Invalid event kind.' };
+
+  const phase = await loadPhaseWithGuards(phaseId);
+  if (!phase) return { error: 'Phase not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== phase.project.regionId) {
+    return { error: 'Access denied.' };
+  }
+
+  const eventDate = parseDate(formData.eventDate);
+  const capacityMw = parseDecimal(formData.capacityMw);
+  const remarks   = formData.remarks?.trim() || null;
+  if (!eventDate)              return { error: 'Date is required.' };
+  if (!capacityMw || capacityMw <= 0) return { error: 'Capacity (MW) must be greater than zero.' };
+
+  // Sum existing capacities per kind for invariant checks.
+  const sum = (rows) => rows.reduce((s, r) => s + Number(r.capacityMw || 0), 0);
+  const ftcSum = sum(phase.ftcEvents);
+  const tocSum = sum(phase.tocEvents);
+  const codSum = sum(phase.codEvents);
+  const applied = Number(phase.capacityAppliedMw || 0);
+  const TOL = 0.01;
+
+  if (kind === 'ftc') {
+    // FTC total cannot exceed applied (or the project's capacity for the source).
+    if (applied > 0 && ftcSum + capacityMw > applied + TOL) {
+      return { error: `FTC total would exceed Applied (${applied.toFixed(2)} MW). Available headroom: ${Math.max(0, applied - ftcSum).toFixed(2)} MW.` };
+    }
+  } else if (kind === 'toc') {
+    if (tocSum + capacityMw > ftcSum + TOL) {
+      return { error: `TOC total (${(tocSum + capacityMw).toFixed(2)} MW) would exceed FTC approved (${ftcSum.toFixed(2)} MW). Record FTC first.` };
+    }
+    // Date ordering — TOC date should be on/after the earliest FTC date that
+    // could cover it. We enforce the soft rule: TOC.eventDate >= MIN(FTC.eventDate).
+    if (phase.ftcEvents.length) {
+      const minFtc = phase.ftcEvents.reduce((m, e) => (e.eventDate < m ? e.eventDate : m), phase.ftcEvents[0].eventDate);
+      if (eventDate < new Date(minFtc)) {
+        return { error: `TOC date cannot be before the first FTC date (${new Date(minFtc).toISOString().slice(0,10)}).` };
+      }
+    }
+  } else if (kind === 'cod') {
+    if (codSum + capacityMw > tocSum + TOL) {
+      return { error: `COD total (${(codSum + capacityMw).toFixed(2)} MW) would exceed TOC issued (${tocSum.toFixed(2)} MW). Record TOC first.` };
+    }
+    if (phase.tocEvents.length) {
+      const minToc = phase.tocEvents.reduce((m, e) => (e.eventDate < m ? e.eventDate : m), phase.tocEvents[0].eventDate);
+      if (eventDate < new Date(minToc)) {
+        return { error: `COD date cannot be before the first TOC date (${new Date(minToc).toISOString().slice(0,10)}).` };
+      }
+    }
+  }
+
+  const model = MODEL_BY_KIND[kind];
+  const created = await prisma[model].create({
+    data: { phaseId, eventDate, capacityMw, remarks },
+  });
+
+  await refreshCommissioningCache(phaseId);
+
+  const label = LABEL_BY_KIND[kind];
+  const noteSuffix = remarks ? `\nRemarks: ${remarks}` : '';
+  await prisma.projectNote.create({
+    data: {
+      projectId: phase.projectId,
+      phaseId,
+      userId:    user.id,
+      text:      `Recorded ${label} event: ${Number(capacityMw).toFixed(2)} MW on ${eventDate.toISOString().slice(0, 10)} (${phase.sourceType}).${noteSuffix}`,
+      source:    'SYSTEM',
+      field:     `${label}Event`,
+      oldValue:  null,
+      newValue:  `${Number(capacityMw).toFixed(2)} MW ${eventDate.toISOString().slice(0,10)}`,
+    },
+  });
+
+  revalidateGridPages(phase.projectId);
+  return { success: true, eventId: created.id };
+}
+
+export async function deleteCommissioningEvent(kind, eventId) {
+  let user;
+  try { user = await requireServerUser(); }
+  catch { return { error: 'Session expired. Please log in again.' }; }
+  if (!MODEL_BY_KIND[kind]) return { error: 'Invalid event kind.' };
+
+  const model = MODEL_BY_KIND[kind];
+  const event = await prisma[model].findUnique({
+    where: { id: eventId },
+    include: { phase: { include: { project: true } } },
+  });
+  if (!event) return { error: 'Event not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== event.phase.project.regionId) {
+    return { error: 'Access denied.' };
+  }
+
+  // Cascade-safety check: deleting an FTC event may leave TOC > FTC, etc.
+  // Re-validate the chain after the proposed delete.
+  const [ftc, toc, cod] = await Promise.all([
+    prisma.ftcEvent.findMany({ where: { phaseId: event.phaseId } }),
+    prisma.tocEvent.findMany({ where: { phaseId: event.phaseId } }),
+    prisma.codEvent.findMany({ where: { phaseId: event.phaseId } }),
+  ]);
+  const sum = (rows) => rows.reduce((s, r) => s + Number(r.capacityMw || 0), 0);
+  const projFtc = kind === 'ftc' ? sum(ftc) - Number(event.capacityMw) : sum(ftc);
+  const projToc = kind === 'toc' ? sum(toc) - Number(event.capacityMw) : sum(toc);
+  const projCod = kind === 'cod' ? sum(cod) - Number(event.capacityMw) : sum(cod);
+  const TOL = 0.01;
+  if (projToc > projFtc + TOL) {
+    return { error: `Cannot delete: would leave TOC (${projToc.toFixed(2)} MW) greater than FTC (${projFtc.toFixed(2)} MW). Delete downstream TOC/COD first.` };
+  }
+  if (projCod > projToc + TOL) {
+    return { error: `Cannot delete: would leave COD (${projCod.toFixed(2)} MW) greater than TOC (${projToc.toFixed(2)} MW). Delete downstream COD first.` };
+  }
+
+  await prisma[model].delete({ where: { id: eventId } });
+  await refreshCommissioningCache(event.phaseId);
+
+  const label = LABEL_BY_KIND[kind];
+  await prisma.projectNote.create({
+    data: {
+      projectId: event.phase.projectId,
+      phaseId:   event.phaseId,
+      userId:    user.id,
+      text:      `Removed ${label} event: ${Number(event.capacityMw).toFixed(2)} MW (${new Date(event.eventDate).toISOString().slice(0, 10)}, ${event.phase.sourceType}).`,
+      source:    'SYSTEM',
+      field:     `${label}Event`,
+      oldValue:  `${Number(event.capacityMw).toFixed(2)} MW ${new Date(event.eventDate).toISOString().slice(0,10)}`,
+      newValue:  null,
+    },
+  });
+
+  revalidateGridPages(event.phase.projectId);
   return { success: true };
 }
 
@@ -654,7 +1027,9 @@ export async function updateTransmissionElement(elementId, formData) {
   return { success: true };
 }
 
-export async function deleteTransmissionElement(elementId) {
+// Soft-delete (deactivation). Toggle: if already inactive, reactivates.
+// `{ hard: true }` (admin-only) wipes the row entirely.
+export async function deleteTransmissionElement(elementId, opts = {}) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
@@ -664,21 +1039,29 @@ export async function deleteTransmissionElement(elementId) {
     return { error: 'Access denied.' };
   }
 
+  const willReactivate = !!element.activeUntil && !opts.hard;
   await prisma.transmissionAuditLog.create({
     data: {
       elementId:   elementId,
       elementName: element.elementName,
       userId:      user.id,
-      action:      'DELETE',
+      action:      opts.hard ? 'DELETE' : (willReactivate ? 'REACTIVATE' : 'DEACTIVATE'),
       field:       null,
       oldValue:    `${element.elementName} (${element.elementType})`,
-      newValue:    'DELETED',
+      newValue:    opts.hard ? 'DELETED' : (willReactivate ? 'ACTIVE' : 'INACTIVE'),
     },
   });
 
-  await prisma.transmissionElement.delete({ where: { id: elementId } });
+  if (opts.hard && user.role === 'ADMIN') {
+    await prisma.transmissionElement.delete({ where: { id: elementId } });
+  } else {
+    await prisma.transmissionElement.update({
+      where: { id: elementId },
+      data: willReactivate ? { activeUntil: null } : { activeUntil: new Date() },
+    });
+  }
   revalidateTransmissionPages();
-  return { success: true };
+  return { success: true, deactivated: !opts.hard };
 }
 
 // ─── MASTER DATA ─────────────────────────────────────────────────────────────

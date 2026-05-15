@@ -154,9 +154,10 @@ export function GenerationPageClient({
         </DialogContent>
       </Dialog>
 
-      {/* Project Detail modal */}
+      {/* Project Detail modal — re-resolve from latest props so an in-modal
+          router.refresh() updates the displayed data without remount. */}
       <ProjectDetailModal
-        project={selectedProject}
+        project={selectedProject ? (projects.find((p) => p.id === selectedProject.id) ?? selectedProject) : null}
         open={!!selectedProject}
         onOpenChange={(open) => { if (!open) setSelectedProject(null); }}
         canEdit={canEdit}

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layers, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import { FtcTable } from '@/components/grid/FtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
@@ -87,18 +88,17 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
               <label className="block text-sm font-medium text-foreground mb-1.5">
                 Generating Station
               </label>
-              <select
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              <Combobox
                 value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-              >
-                <option value="">— Select a project —</option>
-                {allClearedProjects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.region.code}) — {p.totalCapacityMw.toFixed(1)} MW
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedProjectId}
+                placeholder="— Select a project —"
+                searchPlaceholder="Search by name, region, or capacity…"
+                emptyText="No matching projects."
+                options={allClearedProjects.map((p) => ({
+                  value: p.id,
+                  label: `${p.name} (${p.region.code}) — ${p.totalCapacityMw.toFixed(1)} MW`,
+                }))}
+              />
             </div>
 
             {selectedProject && (
@@ -123,9 +123,13 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
         </DialogContent>
       </Dialog>
 
-      {/* Project Detail modal */}
+      {/* Project Detail modal — re-resolve the project from the latest
+          `projects` prop on every render so router.refresh() inside the
+          modal (e.g. phase add/edit/delete) reflects immediately without
+          remount. Falls back to the stored snapshot if the project was
+          deleted/deactivated underneath. */}
       <ProjectDetailModal
-        project={detailProject}
+        project={detailProject ? (projects.find((p) => p.id === detailProject.id) ?? detailProject) : null}
         open={!!detailProject}
         onOpenChange={(o) => { if (!o) setDetailProject(null); }}
         canEdit={canEdit}

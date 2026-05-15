@@ -27,16 +27,18 @@ async function main() {
       where:  { snapshotDate },
       create: {
         snapshotDate,
-        label:  snap.label,
-        t1Json: snap.t1,
-        t2Json: snap.t2,
-        t3Json: snap.t3,
+        label:       snap.label,
+        t1Json:      snap.t1,
+        t2Json:      snap.t2,
+        t3Json:      snap.t3,
+        detailsJson: snap.details ?? null,
       },
       update: {
-        label:  snap.label,
-        t1Json: snap.t1,
-        t2Json: snap.t2,
-        t3Json: snap.t3,
+        label:       snap.label,
+        t1Json:      snap.t1,
+        t2Json:      snap.t2,
+        t3Json:      snap.t3,
+        detailsJson: snap.details ?? null,
       },
     });
     console.log(`  ✓ ${snap.date}`);

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { Fragment, useState, useEffect } from 'react';
+import { ArrowUp, ArrowDown, Minus, RefreshCw } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ function DeltaCell({ val }) {
   const abs = Math.abs(n);
   if (abs < 0.01) return <td className="px-2 py-1 text-right text-xs text-slate-400">—</td>;
   const color = n > 0 ? 'text-emerald-600' : 'text-red-600';
-  const Icon  = n > 0 ? TrendingUp : TrendingDown;
+  const Icon  = n > 0 ? ArrowUp : ArrowDown;
   return (
     <td className={`px-2 py-1 text-right text-xs font-semibold ${color}`}>
       <span className="inline-flex items-center gap-0.5">
@@ -68,21 +68,21 @@ function T2DiffTable({ changes }) {
     <div className="overflow-x-auto rounded border border-border">
       <table className="w-full text-xs min-w-[700px]">
         <thead>
-          <tr className="bg-slate-700 text-white text-[10px]">
+          <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
             <th className="px-3 py-2 text-left whitespace-nowrap">Region</th>
             <th className="px-3 py-2 text-left whitespace-nowrap">Source</th>
             {T2_COLS.map(c => (
-              <th key={c.key} colSpan={3} className="px-2 py-2 text-center whitespace-nowrap border-l border-slate-600">{c.label}</th>
+              <th key={c.key} colSpan={3} className="px-2 py-2 text-center whitespace-nowrap border-l border-slate-200">{c.label}</th>
             ))}
           </tr>
-          <tr className="bg-slate-600 text-slate-200 text-[10px]">
+          <tr className="bg-slate-50 text-slate-600 text-[10px] border-b border-slate-200">
             <th colSpan={2} />
             {T2_COLS.map(c => (
-              <>
-                <th key={c.key+'-f'} className="px-2 py-1 text-center border-l border-slate-500">From</th>
-                <th key={c.key+'-t'} className="px-2 py-1 text-center">To</th>
-                <th key={c.key+'-d'} className="px-2 py-1 text-center">Δ</th>
-              </>
+              <Fragment key={c.key}>
+                <th className="px-2 py-1 text-center border-l border-slate-200">From</th>
+                <th className="px-2 py-1 text-center">To</th>
+                <th className="px-2 py-1 text-center">Δ</th>
+              </Fragment>
             ))}
           </tr>
         </thead>
@@ -96,11 +96,11 @@ function T2DiffTable({ changes }) {
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? 'bg-slate-100'}`}>{row.source}</span>
               </td>
               {T2_COLS.map(c => (
-                <>
-                  <NumCell key={c.key+'-f'} v={row[c.key]?.from} />
-                  <NumCell key={c.key+'-t'} v={row[c.key]?.to}   />
-                  <DeltaCell key={c.key+'-d'} val={row[c.key]?.delta} />
-                </>
+                <Fragment key={c.key}>
+                  <NumCell v={row[c.key]?.from} />
+                  <NumCell v={row[c.key]?.to}   />
+                  <DeltaCell val={row[c.key]?.delta} />
+                </Fragment>
               ))}
             </tr>
           ))}
@@ -118,18 +118,18 @@ function T1DiffTable({ changes }) {
     <div className="overflow-x-auto rounded border border-border">
       <table className="w-full text-xs min-w-[500px]">
         <thead>
-          <tr className="bg-slate-700 text-white text-[10px]">
+          <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
             <th className="px-3 py-2 text-left">Region</th>
             <th className="px-3 py-2 text-left">Source</th>
-            <th className="px-2 py-2 text-center border-l border-slate-600" colSpan={3}>Total MW</th>
-            <th className="px-2 py-2 text-center border-l border-slate-600" colSpan={3}>Monthly Capacity</th>
+            <th className="px-2 py-2 text-center border-l border-slate-200" colSpan={3}>Total MW</th>
+            <th className="px-2 py-2 text-center border-l border-slate-200" colSpan={3}>Monthly Capacity</th>
           </tr>
-          <tr className="bg-slate-600 text-slate-200 text-[10px]">
+          <tr className="bg-slate-50 text-slate-600 text-[10px] border-b border-slate-200">
             <th colSpan={2} />
-            <th className="px-2 py-1 text-center border-l border-slate-500">From</th>
+            <th className="px-2 py-1 text-center border-l border-slate-200">From</th>
             <th className="px-2 py-1 text-center">To</th>
             <th className="px-2 py-1 text-center">Δ</th>
-            <th className="px-2 py-1 text-center border-l border-slate-500" colSpan={3}>Month / From / To / Δ</th>
+            <th className="px-2 py-1 text-center border-l border-slate-200" colSpan={3}>Month / From / To / Δ</th>
           </tr>
         </thead>
         <tbody>
@@ -183,21 +183,21 @@ function T3DiffTable({ changes }) {
     <div className="overflow-x-auto rounded border border-border">
       <table className="w-full text-xs min-w-[600px]">
         <thead>
-          <tr className="bg-slate-700 text-white text-[10px]">
+          <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
             <th className="px-3 py-2 text-left">Region</th>
             <th className="px-3 py-2 text-left">Category</th>
             {cols.map(c => (
-              <th key={c.key} colSpan={3} className="px-2 py-2 text-center border-l border-slate-600">{c.label}</th>
+              <th key={c.key} colSpan={3} className="px-2 py-2 text-center border-l border-slate-200">{c.label}</th>
             ))}
           </tr>
-          <tr className="bg-slate-600 text-slate-200 text-[10px]">
+          <tr className="bg-slate-50 text-slate-600 text-[10px] border-b border-slate-200">
             <th colSpan={2} />
             {cols.map(c => (
-              <>
-                <th key={c.key+'-f'} className="px-2 py-1 text-center border-l border-slate-500">From</th>
-                <th key={c.key+'-t'} className="px-2 py-1 text-center">To</th>
-                <th key={c.key+'-d'} className="px-2 py-1 text-center">Δ</th>
-              </>
+              <Fragment key={c.key}>
+                <th className="px-2 py-1 text-center border-l border-slate-200">From</th>
+                <th className="px-2 py-1 text-center">To</th>
+                <th className="px-2 py-1 text-center">Δ</th>
+              </Fragment>
             ))}
           </tr>
         </thead>
@@ -209,11 +209,11 @@ function T3DiffTable({ changes }) {
               </td>
               <td className="px-3 py-1.5 font-medium text-slate-700">{row.category}</td>
               {cols.map(c => (
-                <>
-                  <NumCell key={c.key+'-f'} v={row[c.key]?.from} />
-                  <NumCell key={c.key+'-t'} v={row[c.key]?.to}   />
-                  <DeltaCell key={c.key+'-d'} val={row[c.key]?.delta} />
-                </>
+                <Fragment key={c.key}>
+                  <NumCell v={row[c.key]?.from} />
+                  <NumCell v={row[c.key]?.to}   />
+                  <DeltaCell val={row[c.key]?.delta} />
+                </Fragment>
               ))}
             </tr>
           ))}

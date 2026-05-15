@@ -5,10 +5,11 @@ Reads Section 2 (FTC projects), Section 1 (CONTD-4), Section 3 (Transmission).
 Does NOT use ftc_data_dicts.py — reads raw sheets directly.
 """
 
-import sys, json, re, openpyxl
+import sys, json, re, argparse, openpyxl
 from datetime import datetime
 from pathlib import Path
 
+# Defaults; can be overridden with --file / --out
 EXCEL_FILE = Path('public/data/excel/CONTD and FTC details 30.04.xlsx')
 OUT_FILE   = Path('scripts/seed-data.json')
 
@@ -365,6 +366,14 @@ def extract_tx(ws, region_code, title_row, end_row=None):
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main():
+    global EXCEL_FILE, OUT_FILE
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--file', help='Path to Excel file (default: ' + str(EXCEL_FILE) + ')')
+    ap.add_argument('--out',  help='Output JSON path (default: ' + str(OUT_FILE) + ')')
+    args = ap.parse_args()
+    if args.file: EXCEL_FILE = Path(args.file)
+    if args.out:  OUT_FILE   = Path(args.out)
+
     wb = openpyxl.load_workbook(str(EXCEL_FILE), data_only=True)
 
     contd4_projects = []

@@ -3,6 +3,7 @@
 import { FileText, X } from 'lucide-react';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { AuditFeed } from '@/components/grid/AuditFeed';
+import { ProjectHistory } from '@/components/grid/ProjectHistory';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 function InfoRow({ label, value }) {
@@ -35,9 +36,6 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
               <FileText className="size-5 text-amber-600" />
             </div>
             <div>
-              {project.developerName && (
-                <p className="text-xs text-muted-foreground font-medium mb-0.5">{project.developerName}</p>
-              )}
               <DialogTitle className="text-lg font-bold text-foreground leading-tight">
                 {project.name}
               </DialogTitle>
@@ -69,8 +67,7 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
         <div className="px-6 py-5 space-y-4 overflow-y-auto max-h-[75vh]">
 
           {/* Project summary strip */}
-          <div className="rounded-xl border bg-muted/20 px-5 py-4 grid grid-cols-4 gap-6">
-            <InfoRow label="Developer"       value={project.developerName} />
+          <div className="rounded-xl border bg-muted/20 px-5 py-4 grid grid-cols-3 gap-6">
             <InfoRow label="Region"          value={`${project.region.code} — ${project.region.name}`} />
             <InfoRow label="Pooling Station" value={project.poolingStation?.name} />
             <InfoRow label="Total Capacity"  value={`${Number(project.totalCapacityMw).toFixed(1)} MW`} />
@@ -114,6 +111,9 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
             regionCode={project.region.code}
             onClose={() => onOpenChange(false)}
           />
+
+          {/* Day-wise CONTD-4 history */}
+          <ProjectHistory name={project.name} region={project.region.code} kind="contd4" />
 
           {/* Engineering notes / issues log */}
           <div className="rounded-xl border bg-card overflow-hidden">

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, activePeriodFilter } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { serialize } from '@/lib/serialize';
 import { FtcPageClient } from '@/components/grid/FtcPageClient';
@@ -19,14 +19,22 @@ export default async function FtcPage() {
   const projects = await prisma.generationProject.findMany({
     where: {
       ...scope,
+      ...activePeriodFilter(),
       contd4: { status: 'CLEARED' },
     },
     include: {
       region:         true,
       plantType:      true,
       poolingStation: true,
-      contd4:         true,
-      phases:         { orderBy: { createdAt: 'asc' } },
+      contd4:         { include: { phases: { orderBy: { declaredDate: 'asc' } } } },
+      phases:         {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          ftcEvents: { orderBy: { eventDate: 'asc' } },
+          tocEvents: { orderBy: { eventDate: 'asc' } },
+          codEvents: { orderBy: { eventDate: 'asc' } },
+        },
+      },
       notes:          { include: { user: true }, orderBy: { createdAt: 'desc' } },
     },
     orderBy: { createdAt: 'desc' },

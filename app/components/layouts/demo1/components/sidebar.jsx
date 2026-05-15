@@ -13,7 +13,7 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        'sidebar bg-blue-50 lg:border-e lg:border-blue-100 lg:fixed lg:top-0 lg:bottom-0 lg:z-20 lg:flex flex-col items-stretch shrink-0',
+        'sidebar bg-blue-50 lg:border-e lg:border-blue-100 lg:fixed lg:top-0 lg:bottom-0 lg:z-40 lg:flex flex-col items-stretch shrink-0',
         settings.layouts.demo1.sidebarTheme === 'dark' && 'dark',
       )}
     >

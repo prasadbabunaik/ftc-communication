@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { deleteCommissioningPhase, updateCommissioningPhase } from '@/app/actions/grid';
+import {
+  deleteCommissioningPhase, updateCommissioningPhase,
+  addCommissioningEvent, deleteCommissioningEvent,
+} from '@/app/actions/grid';
 import {
   Trash2, ChevronDown, ChevronUp, AlertTriangle, History, ArrowRight,
-  Pencil, Clock, CheckCircle2, AlertCircle,
+  Pencil, Clock, CheckCircle2, AlertCircle, Plus, CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -315,6 +318,136 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
   );
 }
 
+const EVENT_TONE = {
+  ftc: { tint: 'bg-blue-50/40 border-blue-100',    pill: 'bg-blue-100 text-blue-800',       label: 'FTC Completed' },
+  toc: { tint: 'bg-amber-50/40 border-amber-100',  pill: 'bg-amber-100 text-amber-800',     label: 'TOC Issued' },
+  cod: { tint: 'bg-emerald-50/40 border-emerald-100', pill: 'bg-emerald-100 text-emerald-800', label: 'COD Declared' },
+};
+
+function EventLog({ kind, phaseId, events, canEdit, onMutate }) {
+  const tone = EVENT_TONE[kind];
+  const [isPending, startTransition] = useTransition();
+  const [adding, setAdding] = useState(false);
+  const [date, setDate]     = useState('');
+  const [mw, setMw]         = useState('');
+  const [remarks, setRemarks] = useState('');
+
+  const total = events.reduce((s, e) => s + Number(e.capacityMw || 0), 0);
+
+  function submit() {
+    if (!date || !mw || Number(mw) <= 0) {
+      toast.error('Date and Capacity (MW) are required.');
+      return;
+    }
+    startTransition(async () => {
+      const result = await addCommissioningEvent(kind, phaseId, {
+        eventDate: date, capacityMw: mw, remarks,
+      });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${tone.label} entry added.`);
+      setDate(''); setMw(''); setRemarks(''); setAdding(false);
+      onMutate?.();
+    });
+  }
+
+  function remove(eventId, mwVal, dateVal) {
+    startTransition(async () => {
+      const result = await deleteCommissioningEvent(kind, eventId);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${tone.label} entry deleted (${Number(mwVal).toFixed(2)} MW · ${fmtDate(dateVal)}).`);
+      onMutate?.();
+    });
+  }
+
+  return (
+    <div className={`rounded-lg border ${tone.tint} px-3 py-2.5`}>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${tone.pill}`}>
+            {tone.label}
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            {events.length} entr{events.length === 1 ? 'y' : 'ies'} · Total <span className="font-semibold text-foreground">{total.toFixed(2)} MW</span>
+          </span>
+        </div>
+        {canEdit && !adding && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 hover:text-blue-800 hover:bg-blue-100/60 px-2 py-1 rounded transition-colors"
+          >
+            <Plus className="size-3" /> Add entry
+          </button>
+        )}
+      </div>
+
+      {events.length === 0 && !adding && (
+        <p className="text-[11px] text-muted-foreground/70 italic">No {tone.label.toLowerCase()} entries recorded.</p>
+      )}
+
+      {events.length > 0 && (
+        <div className="space-y-1">
+          {events.map((ev) => (
+            <div key={ev.id} className="flex items-center gap-3 bg-background/60 rounded px-2.5 py-1.5">
+              <CalendarDays className="size-3 text-muted-foreground shrink-0" />
+              <span className="text-xs font-medium text-foreground tabular-nums w-[80px] shrink-0">{fmtDate(ev.eventDate)}</span>
+              <span className="text-xs font-semibold text-foreground tabular-nums w-[80px] shrink-0">{Number(ev.capacityMw).toFixed(2)} MW</span>
+              {ev.remarks && <span className="text-[11px] text-muted-foreground truncate flex-1">{ev.remarks}</span>}
+              {!ev.remarks && <span className="flex-1" />}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => remove(ev.id, ev.capacityMw, ev.eventDate)}
+                  disabled={isPending}
+                  className="text-muted-foreground hover:text-red-600 transition-colors p-0.5 rounded shrink-0"
+                  title="Delete this entry"
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {adding && (
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-[140px_120px_1fr_auto] gap-2 items-start bg-background/80 rounded p-2 border border-border/60">
+          <DatePicker value={date} onChange={setDate} className="h-8" />
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Capacity MW"
+            value={mw}
+            onChange={(e) => setMw(e.target.value)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/30"
+          />
+          <input
+            type="text"
+            placeholder="Remarks (optional)"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/30"
+          />
+          <div className="flex gap-1">
+            <Button type="button" size="sm" onClick={submit} disabled={isPending} className="h-8 px-2 text-xs">
+              {isPending ? 'Saving…' : 'Save'}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => { setAdding(false); setDate(''); setMw(''); setRemarks(''); }} disabled={isPending} className="h-8 px-2 text-xs">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DateCell({ label, date, mw }) {
   if (!date && !mw) return null;
   return (
@@ -519,6 +652,13 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
       {expanded && (
         <div className="px-4 pb-4 border-t pt-3 space-y-3">
           <PipelineBar phase={phase} />
+
+          {/* Per-date event logs — append-only history of FTC/TOC/COD increments */}
+          <div className="space-y-2">
+            <EventLog kind="ftc" phaseId={phase.id} events={phase.ftcEvents ?? []} canEdit={canEdit} onMutate={onEditSuccess} />
+            <EventLog kind="toc" phaseId={phase.id} events={phase.tocEvents ?? []} canEdit={canEdit} onMutate={onEditSuccess} />
+            <EventLog kind="cod" phaseId={phase.id} events={phase.codEvents ?? []} canEdit={canEdit} onMutate={onEditSuccess} />
+          </div>
 
           <div className="flex gap-6 flex-wrap">
             {phase.proposedFtcDate && (
