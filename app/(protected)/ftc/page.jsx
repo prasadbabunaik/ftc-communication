@@ -73,6 +73,12 @@ export default async function FtcPage() {
       phases: p.phases.map((ph) => {
         const toc = ph.tocIssuedMw  != null ? Number(ph.tocIssuedMw)  : 0;
         const cod = ph.codDeclaredMw != null ? Number(ph.codDeclaredMw) : 0;
+        const mapEvent = (e) => ({
+          id: e.id,
+          eventDate: e.eventDate,
+          capacityMw: Number(e.capacityMw),
+          remarks: e.remarks ?? null,
+        });
         return {
           ...ph,
           capacityAppliedMw:  ph.capacityAppliedMw  != null ? Number(ph.capacityAppliedMw)  : null,
@@ -83,6 +89,10 @@ export default async function FtcPage() {
           capacityUnderTocMw: ph.capacityUnderTocMw  != null ? Number(ph.capacityUnderTocMw)  : null,
           codPendingMw:       Math.max(0, toc - cod),
           expectedApr26Mw:    ph.expectedApr26Mw     != null ? Number(ph.expectedApr26Mw)     : null,
+          // Preserve per-date events so the FTC tracker can show phased history
+          ftcEvents: (ph.ftcEvents ?? []).map(mapEvent),
+          tocEvents: (ph.tocEvents ?? []).map(mapEvent),
+          codEvents: (ph.codEvents ?? []).map(mapEvent),
         };
       }),
     }))

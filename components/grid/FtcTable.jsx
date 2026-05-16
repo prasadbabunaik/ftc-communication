@@ -123,6 +123,113 @@ function SourceBadge({ source }) {
   );
 }
 
+// Per-event detail panel rendered inside an expanded project row.
+// Shows every FTC / TOC / COD event for every phase as one row each:
+//   Milestone · Date · Capacity (MW) · Source · Remarks
+// Plus the running cumulative MW at the bottom of each milestone group.
+function fmtEventDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function EventTimeline({ phases }) {
+  // Flatten all events from all phases, tag with milestone + source.
+  const rows = [];
+  for (const ph of phases ?? []) {
+    for (const e of (ph.ftcEvents ?? [])) rows.push({ kind: 'FTC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'f' + e.id });
+    for (const e of (ph.tocEvents ?? [])) rows.push({ kind: 'TOC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 't' + e.id });
+    for (const e of (ph.codEvents ?? [])) rows.push({ kind: 'COD', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'c' + e.id });
+  }
+  if (rows.length === 0) return null;
+
+  // Sort by date asc, then by kind (FTC < TOC < COD) so within the same day
+  // the milestones appear in pipeline order.
+  const ORDER = { FTC: 0, TOC: 1, COD: 2 };
+  rows.sort((a, b) => {
+    const cmpDate = new Date(a.date) - new Date(b.date);
+    if (cmpDate !== 0) return cmpDate;
+    return ORDER[a.kind] - ORDER[b.kind];
+  });
+
+  // Running cumulative per milestone (for the right-most "Cumulative" column).
+  const cum = { FTC: 0, TOC: 0, COD: 0 };
+
+  const kindTone = {
+    FTC: 'bg-blue-100 text-blue-800 border-blue-200',
+    TOC: 'bg-violet-100 text-violet-800 border-violet-200',
+    COD: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  };
+
+  // Per-kind totals for the header strip.
+  const total = { FTC: 0, TOC: 0, COD: 0 };
+  for (const r of rows) total[r.kind] += Number(r.mw || 0);
+
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Phased commissioning history</span>
+        <span className="text-[10px] text-slate-500">{rows.length} events</span>
+        <span className="text-[10px] inline-flex items-center gap-1">
+          <span className={`inline-block size-2 rounded-full bg-blue-500`}></span>
+          <span className="text-slate-600 font-medium">FTC</span>
+          <span className="font-mono font-semibold text-blue-700">{total.FTC.toFixed(2)} MW</span>
+        </span>
+        <span className="text-[10px] inline-flex items-center gap-1">
+          <span className={`inline-block size-2 rounded-full bg-violet-500`}></span>
+          <span className="text-slate-600 font-medium">TOC</span>
+          <span className="font-mono font-semibold text-violet-700">{total.TOC.toFixed(2)} MW</span>
+        </span>
+        <span className="text-[10px] inline-flex items-center gap-1">
+          <span className={`inline-block size-2 rounded-full bg-emerald-500`}></span>
+          <span className="text-slate-600 font-medium">COD</span>
+          <span className="font-mono font-semibold text-emerald-700">{total.COD.toFixed(2)} MW</span>
+        </span>
+      </div>
+      <div className="rounded-md border border-border bg-white overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-50 border-b border-border">
+            <tr className="text-[10px] text-slate-600 uppercase tracking-wide">
+              <th className="px-3 py-2 text-left font-semibold">Milestone</th>
+              <th className="px-3 py-2 text-left font-semibold">Date</th>
+              <th className="px-3 py-2 text-right font-semibold">Capacity (MW)</th>
+              <th className="px-3 py-2 text-right font-semibold">Cumulative</th>
+              <th className="px-3 py-2 text-left font-semibold">Source</th>
+              <th className="px-3 py-2 text-left font-semibold">Remarks</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((r) => {
+              cum[r.kind] += Number(r.mw || 0);
+              return (
+                <tr key={r.id} className="hover:bg-slate-50/60">
+                  <td className="px-3 py-2">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${kindTone[r.kind]}`}>
+                      {r.kind}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-mono text-slate-700 tabular-nums">{fmtEventDate(r.date)}</td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">
+                    {Number(r.mw || 0).toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-slate-500 tabular-nums">
+                    {cum[r.kind].toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <SourceBadge source={r.source} />
+                  </td>
+                  <td className="px-3 py-2 text-slate-600 max-w-[420px]">
+                    {r.remarks ? <span className="line-clamp-2" title={r.remarks}>{r.remarks}</span> : <span className="text-slate-400">—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected" }) {
   const [search, setSearch]             = useState('');
   const [regionFilter, setRegionFilter] = useState('All');
@@ -157,6 +264,8 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
       _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
       _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
+      _eventCount:    p.phases.reduce((s, ph) =>
+        s + (ph.ftcEvents?.length ?? 0) + (ph.tocEvents?.length ?? 0) + (ph.codEvents?.length ?? 0), 0),
       _isOverdue:     p.phases.some(ph =>
         ph.proposedFtcDate && !ph.ftcCompletedMw && new Date(ph.proposedFtcDate) < new Date()
       ),
@@ -392,11 +501,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                       })()}
                     </td>
                     <td className="px-2 py-3">
-                      {isHybrid && hasPhases && (
+                      {hasPhases && (isHybrid || p._eventCount > 0) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleExpand(p.id); }}
                           className="size-6 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                          title={isExpanded ? 'Collapse sources' : 'Expand sources'}
+                          title={isExpanded ? 'Collapse details' : (isHybrid ? `Show source breakup + ${p._eventCount} dated events` : `Show ${p._eventCount} dated events`)}
                         >
                           {isExpanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
                         </button>
@@ -405,7 +514,17 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                   </tr>
                 );
 
-                const expandedRows = isExpanded
+                // Per-event detail panel — one row spanning all columns, listing
+                // every FTC / TOC / COD event for every phase in date order.
+                const eventDetailRow = isExpanded && p._eventCount > 0 ? (
+                  <tr key={`${p.id}-events`} className="bg-slate-50/60 border-l-2 border-primary/40">
+                    <td />
+                    <td colSpan={14} className="px-4 py-3">
+                      <EventTimeline phases={p.phases} />
+                    </td>
+                  </tr>
+                ) : null;
+                const expandedRows = (isExpanded && subRows.length > 0)
                   ? subRows.map((sr) => (
                       <tr key={`${p.id}-${sr.sourceType}`} className="bg-muted/10 border-l-2 border-primary/30">
                         <td />
@@ -428,7 +547,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                     ))
                   : [];
 
-                return [mainRow, ...expandedRows];
+                return [mainRow, ...(eventDetailRow ? [eventDetailRow] : []), ...expandedRows];
               })
             )}
           </tbody>
