@@ -27,14 +27,27 @@ export default async function DashboardPage({ searchParams }) {
   // With no asOf, this becomes `activeUntil IS NULL` — i.e. currently-active.
   const activeFilter = activePeriodFilter(asOf);
 
-  const [projects, txElements] = await Promise.all([
+  const [projects, txElements, snapshots] = await Promise.all([
     prisma.generationProject.findMany({
       where: { ...scope, ...activeFilter },
-      include: { region: true, plantType: true, contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } }, phases: true, poolingStation: true },
+      include: {
+        region: true,
+        plantType: true,
+        contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } },
+        // Include per-date events so the pipeline compute can give accurate
+        // point-in-time totals when an `asOf` is selected.
+        phases: { include: { ftcEvents: true, tocEvents: true, codEvents: true } },
+        poolingStation: true,
+      },
     }),
     prisma.transmissionElement.findMany({
       where: { ...scope, ...activeFilter },
       include: { region: true },
+    }),
+    // Snapshots drive the "As on date" picker and the last-changes summary.
+    prisma.gridSnapshot.findMany({
+      select: { id: true, snapshotDate: true, label: true },
+      orderBy: { snapshotDate: 'asc' },
     }),
   ]);
 
@@ -46,27 +59,22 @@ export default async function DashboardPage({ searchParams }) {
   const hybridRows       = computeHybridBreakdown(projects, asOf);
   const monthlyCod       = computeMonthlyCod(projects, fromMonth, toMonth);
 
-  const cleared      = projects.filter(p => p.contd4?.status === 'CLEARED');
-  const allPhases    = cleared.flatMap(p => p.phases);
-  const totalApplied = allPhases.reduce((s, ph) => s + n(ph.capacityAppliedMw), 0);
-  const totalFtc     = allPhases.reduce((s, ph) => {
-    const done = !asOf || (ph.ftcCompletedDate && new Date(ph.ftcCompletedDate) <= asOf);
-    return s + (done ? n(ph.ftcCompletedMw) : 0);
-  }, 0);
-  const totalToc = allPhases.reduce((s, ph) => {
-    const done = !asOf || (ph.tocIssuedDate && new Date(ph.tocIssuedDate) <= asOf);
-    return s + (done ? n(ph.tocIssuedMw) : 0);
-  }, 0);
-  const totalCod = allPhases.reduce((s, ph) => {
-    const done = !asOf || (ph.codDeclaredDate && new Date(ph.codDeclaredDate) <= asOf);
-    return s + (done ? n(ph.codDeclaredMw) : 0);
-  }, 0);
-  const contd4Active = projects.filter(p =>
-    p.contd4 && !['CLEARED', 'REJECTED'].includes(p.contd4.status)
-  ).length;
-  const txPending = txElements.filter(e => e.pendingFtc).length;
+  // Stat-card totals reuse the same milestone aggregation as the pipeline
+  // matrix — sum across cells so values are consistent with the tables below.
+  const totalApplied  = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.appliedMw),     0);
+  const totalFtc      = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.ftcApprovedMw),  0);
+  const totalToc      = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.tocIssuedMw),    0);
+  const totalCod      = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.codCompletedMw), 0);
+  const contd4Active  = projects.filter(p => p.contd4 && !['CLEARED', 'REJECTED'].includes(p.contd4.status)).length;
+  const txPending     = txElements.filter(e => e.pendingFtc).length;
 
   const regionLabel = scope.regionId ? 'Showing your region' : 'All India view';
+
+  // Serialise available snapshot dates for the "As on" picker + Last-changes card.
+  const availableSnapshots = snapshots.map(s => ({
+    date:  s.snapshotDate.toISOString().slice(0, 10),
+    label: s.label,
+  }));
 
   return (
     <SummaryPageClient
@@ -83,6 +91,7 @@ export default async function DashboardPage({ searchParams }) {
       monthlyCod={JSON.parse(JSON.stringify(monthlyCod))}
       projects={JSON.parse(JSON.stringify(projects))}
       txElements={JSON.parse(JSON.stringify(txElements))}
+      availableSnapshots={availableSnapshots}
     />
   );
 }

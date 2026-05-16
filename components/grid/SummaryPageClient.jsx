@@ -6,6 +6,8 @@ import { useSettings } from '@/providers/settings-provider';
 import { SnapshotCompareTab } from '@/components/grid/SnapshotCompareTab';
 import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
 import { TabBreakdown } from '@/components/grid/TabBreakdown';
+import { AsOfDatePicker } from '@/components/grid/AsOfDatePicker';
+import { LastChangesCard } from '@/components/grid/LastChangesCard';
 import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -871,6 +873,7 @@ export function SummaryPageClient({
   regionLabel, asOf, fromMonth, toMonth,
   stats, table2Rows, table5Rows, contd4Study,
   transmissionRows, hybridRows, monthlyCod, projects, txElements,
+  availableSnapshots,
 }) {
   const [activeTab, setActiveTab] = useState('pipeline');
   const [breakdownOpen, setBreakdownOpen] = useState(false);
@@ -907,10 +910,17 @@ export function SummaryPageClient({
             </p>
           </div>
         </div>
+        <AsOfDatePicker availableSnapshots={availableSnapshots} currentAsOf={asOf} />
       </div>
 
       {/* Filter bar */}
       <FilterBar asOf={asOf} fromMonth={fromMonth} toMonth={toMonth} />
+
+      {/* Last changes card — surfaces day-over-day movement at a glance */}
+      <LastChangesCard
+        availableSnapshots={availableSnapshots}
+        onOpenRangeDiff={() => setActiveTab('changes')}
+      />
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
