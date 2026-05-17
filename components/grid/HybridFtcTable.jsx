@@ -98,9 +98,9 @@ export function HybridFtcTable({ projects, userRole, onView }) {
   const sp = { sortField, sortDir, onSort: handleSort };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 p-4 border-b bg-muted/20">
+      <div className="flex flex-wrap gap-3 p-4 border-b bg-muted/20 shrink-0">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -125,7 +125,7 @@ export function HybridFtcTable({ projects, userRole, onView }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full text-sm">
           <thead className="bg-muted/30 border-b">
             <tr>

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { GovLoader } from '@/components/ui/gov-loader';
-import { AlertCircle, Plus, Trash2, CheckCircle2, Lock, ArrowRight } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSettings } from '@/providers/settings-provider';
 
@@ -58,22 +58,26 @@ const SOURCE_COLORS = {
   PSP:   'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
 
+const EMPTY_EVENT = { mw: '', date: '', remarks: '' };
+
 const EMPTY_PHASE = {
-  sourceType: 'SOLAR',
-  capacityAppliedMw: '',
-  ftcCompletedMw: '',
-  ftcCompletedDate: '',
-  proposedFtcDate: '',
+  sourceType:         'SOLAR',
+  capacityAppliedMw:  '',
+  proposedFtcDate:    '',
   capacityUnderFtcMw: '',
-  tocIssuedMw: '',
-  tocIssuedDate: '',
   capacityUnderTocMw: '',
-  codDeclaredMw: '',
-  codDeclaredDate: '',
-  expectedApr26Mw: '',
-  delayRemarks: '',
-  otherRemarks: '',
+  expectedApr26Mw:    '',
+  delayRemarks:       '',
+  otherRemarks:       '',
+  ftcEvents:          [],
+  tocEvents:          [],
+  codEvents:          [],
 };
+
+function sumEvents(evs) {
+  // Form events use `mw`; DB-serialised events (from enriched phases) use `capacityMw`
+  return (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw ?? e.capacityMw) || 0), 0);
+}
 
 function computePipeline(phases) {
   const map = {};
@@ -81,9 +85,10 @@ function computePipeline(phases) {
     const s = ph.sourceType;
     if (!map[s]) map[s] = { applied: 0, ftc: 0, toc: 0, cod: 0 };
     map[s].applied += Number(ph.capacityAppliedMw ?? 0);
-    map[s].ftc     += Number(ph.ftcCompletedMw    ?? 0);
-    map[s].toc     += Number(ph.tocIssuedMw       ?? 0);
-    map[s].cod     += Number(ph.codDeclaredMw     ?? 0);
+    // Support both old summary fields (existingPhases) and new event arrays (form)
+    map[s].ftc += ph.ftcEvents != null ? sumEvents(ph.ftcEvents) : Number(ph.ftcCompletedMw ?? 0);
+    map[s].toc += ph.tocEvents != null ? sumEvents(ph.tocEvents) : Number(ph.tocIssuedMw    ?? 0);
+    map[s].cod += ph.codEvents != null ? sumEvents(ph.codEvents) : Number(ph.codDeclaredMw  ?? 0);
   }
   return map;
 }
@@ -123,7 +128,7 @@ export function AddPhasesForm({
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'phases' });
   const watchedPhases = form.watch('phases');
 
-  const newCodSum = watchedPhases.reduce((s, p) => s + (parseFloat(p.codDeclaredMw) || 0), 0);
+  const newCodSum = watchedPhases.reduce((s, p) => s + sumEvents(p.codEvents ?? []), 0);
   const pendingMw = totalCapacityMw - existingCodMw - newCodSum;
 
   const existingPipeline = useMemo(() => computePipeline(existingPhases), [existingPhases]);
@@ -132,9 +137,9 @@ export function AddPhasesForm({
     computePipeline(watchedPhases.map((ph) => ({
       sourceType:        ph.sourceType,
       capacityAppliedMw: parseFloat(ph.capacityAppliedMw || '0') || 0,
-      ftcCompletedMw:    parseFloat(ph.ftcCompletedMw    || '0') || 0,
-      tocIssuedMw:       parseFloat(ph.tocIssuedMw       || '0') || 0,
-      codDeclaredMw:     parseFloat(ph.codDeclaredMw     || '0') || 0,
+      ftcEvents:         ph.ftcEvents ?? [],
+      tocEvents:         ph.tocEvents ?? [],
+      codEvents:         ph.codEvents ?? [],
     }))),
   [watchedPhases]);
 
@@ -163,6 +168,8 @@ export function AddPhasesForm({
   }, [combinedPipeline]);
 
   const hasPipelineErrors = Object.keys(pipelineErrors).length > 0;
+  // Also check Zod-level errors (schema refine errors have no path set)
+  const zodErrors = form.formState.errors.phases ?? [];
 
   function onSubmit(values) {
     if (hasPipelineErrors) return;
@@ -282,7 +289,7 @@ export function AddPhasesForm({
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors}>
+          <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors || !form.formState.isValid}>
             {isPending ? 'Saving...' : `Save ${fields.length} Phase${fields.length > 1 ? 's' : ''}`}
           </Button>
         </div>
@@ -293,20 +300,136 @@ export function AddPhasesForm({
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
+const MILESTONE_STYLES = {
+  FTC: { label: 'FTC Completed',  header: 'bg-blue-50/60 border-blue-100',   badge: 'bg-blue-100 text-blue-800 border-blue-200',   btn: 'border-blue-200 text-blue-700 hover:bg-blue-50' },
+  TOC: { label: 'TOC Issued',     header: 'bg-violet-50/60 border-violet-100', badge: 'bg-violet-100 text-violet-800 border-violet-200', btn: 'border-violet-200 text-violet-700 hover:bg-violet-50' },
+  COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
+};
+
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel }) {
+  const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
+  const watchedEvents = form.watch(prefix) ?? [];
+  const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  const st = MILESTONE_STYLES[milestone];
+
+  return (
+    <div className={`rounded-lg border p-3 space-y-2.5 ${st.header}`}>
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${st.badge}`}>
+            {milestone}
+          </span>
+          {total > 0 && (
+            <span className="text-xs font-mono font-semibold text-foreground">
+              {total.toFixed(2)} MW total
+            </span>
+          )}
+          {existingMw > 0 && (
+            <span className="text-[10px] text-emerald-600 font-medium">
+              ({existingMw.toFixed(1)} MW already recorded)
+            </span>
+          )}
+          {gated && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+              <Lock className="size-3" /> {gatedMsg}
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-muted-foreground">{fields.length} event{fields.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {/* Event rows */}
+      {fields.length > 0 && (
+        <div className="rounded-md border border-border overflow-hidden bg-white">
+          <div className="grid grid-cols-[1fr_140px_1fr_28px] gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5">
+            <span>MW</span><span>Date</span><span>Remarks</span><span />
+          </div>
+          {fields.map((field, ei) => (
+            <div key={field.id} className="grid grid-cols-[1fr_140px_1fr_28px] gap-1 items-center px-2 py-1.5 border-b last:border-b-0">
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 66.66"
+                {...form.register(`${prefix}.${ei}.mw`)}
+                className="h-8 text-xs font-mono"
+              />
+              <DatePicker
+                value={form.watch(`${prefix}.${ei}.date`) ?? ''}
+                onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
+              />
+              <Input
+                type="text"
+                placeholder="Remarks (optional)"
+                {...form.register(`${prefix}.${ei}.remarks`)}
+                className="h-8 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => remove(ei)}
+                className="size-7 flex items-center justify-center text-muted-foreground hover:text-red-600 transition-colors rounded"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add event button */}
+      {milestone === 'COD' ? (
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <button
+              type="button"
+              onClick={() => append({ mw: '', date: '', remarks: '' })}
+              disabled={gated}
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition-colors disabled:opacity-40 disabled:pointer-events-none ${st.btn}`}
+            >
+              <Plus className="size-3.5" />
+              Add {st.label} Event
+            </button>
+          </div>
+          <div className="w-44">
+            <label className="text-[10px] font-medium text-foreground block mb-1">{refMonthLabel}</label>
+            <Input
+              type="number"
+              step="0.01"
+              {...form.register(`phases.${phaseIndex}.expectedApr26Mw`)}
+              className="h-8 text-xs"
+              placeholder="Expected MW"
+            />
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => append({ mw: '', date: '', remarks: '' })}
+          disabled={gated}
+          className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition-colors disabled:opacity-40 disabled:pointer-events-none ${st.btn}`}
+        >
+          <Plus className="size-3.5" />
+          Add {st.label} Event
+        </button>
+      )}
+    </div>
+  );
+}
+
 function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSources, existingPipeline, refMonthLabel }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
-  const ftcMw  = parseFloat(form.watch(`${prefix}.ftcCompletedMw`)  || '0') || 0;
-  const tocMw  = parseFloat(form.watch(`${prefix}.tocIssuedMw`)     || '0') || 0;
-  const codMw  = parseFloat(form.watch(`${prefix}.codDeclaredMw`)   || '0') || 0;
-
-  const tocExceedsFtc = tocMw > 0 && ftcMw > 0 && tocMw > ftcMw + 0.001;
-  const codExceedsToc = codMw > 0 && tocMw > 0 && codMw > tocMw + 0.001;
-
   const srcState = existingPipeline[selectedSource] ?? { ftc: 0, toc: 0, cod: 0 };
-  const tocGated = isHybrid && srcState.ftc === 0;
-  const codGated = isHybrid && srcState.toc === 0;
+
+  const watchedFtcEvents = form.watch(`${prefix}.ftcEvents`) ?? [];
+  const watchedTocEvents = form.watch(`${prefix}.tocEvents`) ?? [];
+  const ftcTotal = watchedFtcEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  const tocTotal = watchedTocEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+
+  const tocGated = isHybrid && srcState.ftc === 0 && ftcTotal === 0;
+  const codGated = isHybrid && srcState.toc === 0 && tocTotal === 0;
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
@@ -319,105 +442,67 @@ function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSource
         )}
       </div>
 
-      {/* Source + Applied capacity */}
+      {/* Source + Applied */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-medium text-foreground block mb-1.5">Source Type *</label>
           <select
             {...form.register(`${prefix}.sourceType`)}
             className={`h-10 w-full rounded-md border border-input px-3 text-sm ${
-              availableSources.length === 1
-                ? 'bg-muted/30 cursor-default pointer-events-none'
-                : 'bg-background'
+              availableSources.length === 1 ? 'bg-muted/30 cursor-default pointer-events-none' : 'bg-background'
             }`}
           >
             {availableSources.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          {availableSources.length === 1 && (
-            <p className="text-[10px] text-muted-foreground mt-1">Fixed by plant type</p>
-          )}
           {errors?.sourceType && <p className="text-xs text-destructive mt-1">{errors.sourceType.message}</p>}
         </div>
-        <Field prefix={prefix} name="capacityAppliedMw" label="Capacity Applied (MW) *" type="number" form={form} errors={errors} />
-      </div>
-
-      {/* FTC section */}
-      <div className="space-y-3 pt-2 border-t">
-        <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">FTC</p>
-          {srcState.ftc > 0 && isHybrid && (
-            <span className="text-[10px] text-emerald-600 font-medium">
-              {srcState.ftc.toFixed(1)} MW already completed
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Field     prefix={prefix} name="ftcCompletedMw"     label="FTC Completed (MW)" type="number" form={form} errors={errors} />
-          <DateField prefix={prefix} name="ftcCompletedDate"   label="FTC Date"                         form={form} errors={errors} />
-          <DateField prefix={prefix} name="proposedFtcDate"    label="Proposed FTC Date"                form={form} errors={errors} />
-          <Field     prefix={prefix} name="capacityUnderFtcMw" label="Under FTC (MW)"     type="number" form={form} errors={errors} />
+        <div>
+          <Field prefix={prefix} name="capacityAppliedMw" label="Capacity Applied (MW) *" type="number" form={form} errors={errors} />
         </div>
       </div>
 
-      {/* TOC section */}
-      <div className="space-y-3 pt-2 border-t">
-        <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">TOC</p>
-          {tocGated && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium">
-              <Lock className="size-3" /> Requires {selectedSource} FTC to be completed first
-            </span>
-          )}
-          {!tocGated && srcState.toc > 0 && isHybrid && (
-            <span className="text-[10px] text-emerald-600 font-medium">
-              {srcState.toc.toFixed(1)} MW already issued
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <Field prefix={prefix} name="tocIssuedMw" label="TOC Issued (MW)" type="number" form={form} errors={errors} />
-            {tocExceedsFtc && (
-              <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
-                <AlertCircle className="size-3 shrink-0" />
-                TOC ({tocMw.toFixed(1)}) exceeds FTC ({ftcMw.toFixed(1)}) for this phase
-              </p>
-            )}
-          </div>
-          <DateField prefix={prefix} name="tocIssuedDate"      label="TOC Date"          form={form} errors={errors} />
-          <Field     prefix={prefix} name="capacityUnderTocMw" label="Under TOC (MW)"    type="number" form={form} errors={errors} />
-        </div>
+      {/* Proposed FTC date + Under FTC */}
+      <div className="grid grid-cols-2 gap-4">
+        <DateField prefix={prefix} name="proposedFtcDate" label="Proposed FTC Date" form={form} errors={errors} />
+        <Field prefix={prefix} name="capacityUnderFtcMw" label="Under FTC (MW)" type="number" form={form} errors={errors} />
       </div>
 
-      {/* COD section */}
-      <div className="space-y-3 pt-2 border-t">
-        <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">COD</p>
-          {codGated && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium">
-              <Lock className="size-3" /> Requires {selectedSource} TOC to be issued first
-            </span>
-          )}
-          {!codGated && srcState.cod > 0 && isHybrid && (
-            <span className="text-[10px] text-emerald-600 font-medium">
-              {srcState.cod.toFixed(1)} MW already declared
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <Field prefix={prefix} name="codDeclaredMw" label="COD Declared (MW)" type="number" form={form} errors={errors} />
-            {codExceedsToc && (
-              <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
-                <AlertCircle className="size-3 shrink-0" />
-                COD ({codMw.toFixed(1)}) exceeds TOC ({tocMw.toFixed(1)}) for this phase
-              </p>
-            )}
-          </div>
-          <DateField prefix={prefix} name="codDeclaredDate" label="COD Date"          form={form} errors={errors} />
-          <Field     prefix={prefix} name="expectedApr26Mw" label={refMonthLabel}     type="number" form={form} errors={errors} />
-        </div>
+      {/* FTC events */}
+      <EventList
+        phaseIndex={index}
+        milestone="FTC"
+        form={form}
+        gated={false}
+        existingMw={isHybrid ? srcState.ftc : 0}
+        refMonthLabel={refMonthLabel}
+      />
+
+      {/* TOC events */}
+      <EventList
+        phaseIndex={index}
+        milestone="TOC"
+        form={form}
+        gated={tocGated}
+        gatedMsg={`Requires ${selectedSource} FTC to be completed first`}
+        existingMw={isHybrid ? srcState.toc : 0}
+        refMonthLabel={refMonthLabel}
+      />
+
+      {/* Under TOC */}
+      <div className="grid grid-cols-2 gap-4">
+        <Field prefix={prefix} name="capacityUnderTocMw" label="Under TOC (MW)" type="number" form={form} errors={errors} />
       </div>
+
+      {/* COD events */}
+      <EventList
+        phaseIndex={index}
+        milestone="COD"
+        form={form}
+        gated={codGated}
+        gatedMsg={`Requires ${selectedSource} TOC to be issued first`}
+        existingMw={isHybrid ? srcState.cod : 0}
+        refMonthLabel={refMonthLabel}
+      />
 
       {/* Remarks */}
       <div className="grid grid-cols-2 gap-4 pt-2 border-t">

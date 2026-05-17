@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
+import Script from 'next/script';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
+const RECAPTCHA_ENABLED  = Boolean(RECAPTCHA_SITE_KEY);
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -119,19 +123,74 @@ export default function LoginPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
 
+  // reCAPTCHA v2 state. `recaptchaToken` is the g-recaptcha-response value;
+  // it's required to submit when the widget is enabled. `widgetIdRef` lets us
+  // call grecaptcha.reset() after a failed login so the user can try again.
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+  const recaptchaContainerRef = useRef(null);
+  const widgetIdRef           = useRef(null);
+
+  // Mount the widget. We rely on Google's official `onload` URL-param pattern:
+  // when the script loads, Google invokes `window.__onRecaptchaLoad`, which we
+  // wire up here. Idempotent — guards against double-render in StrictMode and
+  // against being called before the container ref is attached.
+  useEffect(() => {
+    if (!RECAPTCHA_ENABLED) return;
+
+    const tryRender = () => {
+      if (widgetIdRef.current !== null)   return;
+      if (!window.grecaptcha?.render)     return;
+      if (!recaptchaContainerRef.current) return;
+      try {
+        widgetIdRef.current = window.grecaptcha.render(recaptchaContainerRef.current, {
+          sitekey:    RECAPTCHA_SITE_KEY,
+          callback:   (token) => setRecaptchaToken(token),
+          'expired-callback': () => setRecaptchaToken(''),
+          'error-callback':   () => setRecaptchaToken(''),
+        });
+      } catch (err) {
+        // Most common cause: domain not whitelisted on this site key in the
+        // Google reCAPTCHA admin console. Log so the dev sees it in console.
+        console.error('[recaptcha] render failed — check site-key domain allowlist:', err);
+      }
+    };
+
+    // Expose a global callback Google will invoke once api.js finishes loading.
+    window.__onRecaptchaLoad = tryRender;
+    // If the script was already cached (Strict-Mode remount, fast nav back),
+    // grecaptcha may already be ready — try rendering immediately too.
+    if (window.grecaptcha?.render) tryRender();
+
+    return () => { delete window.__onRecaptchaLoad; };
+  }, []);
+
+  const resetRecaptcha = () => {
+    setRecaptchaToken('');
+    if (widgetIdRef.current !== null && window.grecaptcha?.reset) {
+      window.grecaptcha.reset(widgetIdRef.current);
+    }
+  };
+
   const form = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
 
   async function onSubmit(values) {
+    if (RECAPTCHA_ENABLED && !recaptchaToken) {
+      setError('Please complete the reCAPTCHA challenge.');
+      return;
+    }
     setIsProcessing(true);
     setError(null);
     try {
-      await login(values.email, values.password);
+      await login(values.email, values.password, recaptchaToken);
       router.push('/dashboard');
     } catch (err) {
       setError(err.message || 'An unexpected error occurred. Please try again.');
+      // The server has consumed the token; if the user retries we need a new
+      // one. Reset the widget so they're forced to re-check.
+      resetRecaptcha();
     } finally {
       setIsProcessing(false);
     }
@@ -339,17 +398,38 @@ export default function LoginPage() {
                   )}
                 />
 
+                {/* reCAPTCHA v2 — only rendered when the site key is set in
+                    env. The widget itself is mounted by the useEffect above
+                    once Google's api.js fires window.__onRecaptchaLoad. */}
+                {RECAPTCHA_ENABLED ? (
+                  <div ref={recaptchaContainerRef} className="flex justify-center pt-1" />
+                ) : (
+                  // Visible diagnostic so it's obvious when the env var didn't
+                  // make it into the client bundle (almost always: dev server
+                  // wasn't restarted after editing .env).
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+                    reCAPTCHA disabled — set <code className="font-mono">NEXT_PUBLIC_RECAPTCHA_SITE_KEY</code> in <code className="font-mono">.env</code> and restart the dev server.
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full mt-2"
                   size="lg"
-                  disabled={isProcessing}
+                  disabled={isProcessing || (RECAPTCHA_ENABLED && !recaptchaToken)}
                 >
                   {isProcessing && <GovLoader size="button" />}
                   {isProcessing ? 'Signing in...' : 'Sign in'}
                 </Button>
               </form>
             </Form>
+
+            {RECAPTCHA_ENABLED && (
+              <Script
+                src="https://www.google.com/recaptcha/api.js?onload=__onRecaptchaLoad&render=explicit"
+                strategy="afterInteractive"
+              />
+            )}
 
             {/* Demo credentials */}
             <div className="mt-6 p-3.5 rounded-lg bg-slate-50 border border-slate-100">

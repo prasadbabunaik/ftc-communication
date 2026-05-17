@@ -15,6 +15,11 @@ out/
 # Prisma
 prisma/dev.db
 
+# Playwright
+test-results/
+playwright-report/
+.playwright/
+
 # Misc
 .DS_Store
 *.pem

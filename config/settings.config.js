@@ -8,7 +8,9 @@ export const APP_SETTINGS = {
   referenceMonth: currentYearMonth(),
   layouts: {
     demo1: {
-      sidebarCollapse: false,
+      // Sidebar starts collapsed (icon-only); hovering expands it.
+      // See css/demos/demo1.css `.demo1.sidebar-collapse .sidebar:hover { ... }`
+      sidebarCollapse: true,
       sidebarTheme: 'light',
     },
   },

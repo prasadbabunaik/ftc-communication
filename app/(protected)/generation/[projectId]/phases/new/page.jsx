@@ -26,7 +26,15 @@ export default async function AddPhasePage({ params }) {
     include: {
       region:    true,
       plantType: true,
-      phases:    { select: { sourceType: true, codDeclaredMw: true, capacityAppliedMw: true } },
+      phases:    {
+        select: {
+          sourceType:        true,
+          capacityAppliedMw: true,
+          ftcCompletedMw:    true,
+          tocIssuedMw:       true,
+          codDeclaredMw:     true,
+        },
+      },
     },
   });
 
@@ -39,11 +47,19 @@ export default async function AddPhasePage({ params }) {
 
   const existingCodMw = project.phases.reduce((s, p) => s + Number(p.codDeclaredMw ?? 0), 0);
 
-  // Per-source used capacity (for hybrid cap display)
   const sourceUsed = project.phases.reduce((acc, p) => {
     acc[p.sourceType] = (acc[p.sourceType] ?? 0) + Number(p.capacityAppliedMw);
     return acc;
   }, {});
+
+  // Serialise to plain numbers so client component can compute existing pipeline
+  const existingPhases = project.phases.map((p) => ({
+    sourceType:        p.sourceType,
+    capacityAppliedMw: Number(p.capacityAppliedMw),
+    ftcCompletedMw:    Number(p.ftcCompletedMw ?? 0),
+    tocIssuedMw:       Number(p.tocIssuedMw    ?? 0),
+    codDeclaredMw:     Number(p.codDeclaredMw  ?? 0),
+  }));
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -67,6 +83,7 @@ export default async function AddPhasePage({ params }) {
         windCapacityMw={project.windCapacityMw ? Number(project.windCapacityMw) : null}
         solarCapacityMw={project.solarCapacityMw ? Number(project.solarCapacityMw) : null}
         bessCapacityMw={project.bessCapacityMw ? Number(project.bessCapacityMw) : null}
+        existingPhases={existingPhases}
         sourceUsed={sourceUsed}
       />
     </div>

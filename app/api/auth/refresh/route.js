@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signAccessToken, signRefreshToken, verifyRefreshToken, setAuthCookies } from '@/lib/auth';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
+
+// Loose IP cap on refresh — legit clients refresh every ~13 min; even a tab
+// re-mount only fires a handful per hour. 60/min is high enough to never hit
+// in normal use but cuts off a misbehaving client / scripted token cycling.
+const REFRESH_THROTTLE = { limit: 60, windowMs: 60 * 1000 };
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const gate = rateLimit(`refresh:ip:${ip}`, REFRESH_THROTTLE);
+    if (!gate.ok) {
+      const res = NextResponse.json({ message: 'Too many refresh attempts.' }, { status: 429 });
+      res.headers.set('Retry-After', String(gate.retryAfterSec));
+      return res;
+    }
+
     const refreshToken = request.cookies.get('refresh_token')?.value;
 
     if (!refreshToken) {

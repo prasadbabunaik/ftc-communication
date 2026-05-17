@@ -31,6 +31,7 @@ model User {
   createdProjects      GenerationProject[]    @relation("ProjectCreator")
   projectNotes         ProjectNote[]          @relation("NoteAuthor")
   transmissionAuditLogs TransmissionAuditLog[] @relation("TxAuditAuthor")
+  notifications        Notification[]
 
   @@map("users")
 }
@@ -347,6 +348,57 @@ model TransmissionElement {
   @@index([regionId])
   @@index([activeFrom, activeUntil])
   @@map("transmission_elements")
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+// Per-user notification feed surfaced in the header bell. Emitted by server
+// actions (project mutations, phase events, snapshot diffs). Region-scoped at
+// emit time: helpers in lib/notifications.js fan a single logical event out
+// into one Notification per recipient user.
+//
+// Severity tiers map to the bell-icon badge color. Keep light — this is
+// transient activity, not an audit log (use ProjectNote / TransmissionAuditLog
+// for the durable history).
+
+enum NotificationType {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  CONTD4_STATUS_CHANGED
+  PHASE_ADDED
+  FTC_EVENT
+  TOC_EVENT
+  COD_EVENT
+  TRANSMISSION_UPDATED
+  SNAPSHOT_DIFF
+  SYSTEM
+}
+
+enum NotificationSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  severity  NotificationSeverity @default(INFO)
+  title     String
+  body      String?
+  // Optional deep-link: e.g. "/generation/<projectId>" or "/dashboard".
+  link      String?
+  // Optional structured context for the UI (regionCode, projectId, phaseId…).
+  metadata  Json?
+  isRead    Boolean              @default(false)
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
 }
 
 // ─── GRID TRACKER: SNAPSHOTS ──────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, getUserRegion } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { PrintSummaryClient } from '@/components/grid/PrintSummaryClient';
 import {
@@ -18,7 +18,8 @@ export default async function PrintSummaryPage({ searchParams }) {
   const asOfStr = params.asOf ?? null;
   const asOf    = asOfStr ? new Date(asOfStr) : null;
 
-  const scope = await buildRegionScope(user.role);
+  const scope      = await buildRegionScope(user.role);
+  const userRegion = await getUserRegion(user.role); // null for NLDC/ADMIN
 
   const [projects, txElements] = await Promise.all([
     prisma.generationProject.findMany({
@@ -44,6 +45,8 @@ export default async function PrintSummaryPage({ searchParams }) {
   return (
     <PrintSummaryClient
       dateLabel={dateLabel}
+      scopeRegionCode={userRegion?.code ?? null}  // null → All India view (NLDC/ADMIN)
+      scopeRegionName={userRegion?.name ?? null}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}
       contd4Study={JSON.parse(JSON.stringify(contd4Study))}

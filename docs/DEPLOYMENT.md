@@ -4,21 +4,32 @@
 
 The application reads its configuration from `.env`. Use [`.env.example`](../.env.example) as a template.
 
-| Variable                   | Required | Description                                           |
-|----------------------------|----------|-------------------------------------------------------|
-| `DATABASE_URL`             | yes      | Postgres URL — `postgresql://user:pass@host:5432/db`  |
-| `JWT_ACCESS_SECRET`        | yes      | ≥ 32 chars — signs short-lived access tokens          |
-| `JWT_REFRESH_SECRET`       | yes      | ≥ 32 chars — signs refresh tokens                     |
-| `JWT_ACCESS_EXPIRES_IN`    | no       | Default `15m`                                         |
-| `JWT_REFRESH_EXPIRES_IN`   | no       | Default `7d`                                          |
-| `NEXT_PUBLIC_APP_URL`      | yes      | Public origin — used for CORS, cookies, emails        |
+| Variable                          | Required | Description                                           |
+|-----------------------------------|----------|-------------------------------------------------------|
+| `DATABASE_URL`                    | yes      | Postgres URL — `postgresql://user:pass@host:5432/db`  |
+| `JWT_ACCESS_SECRET`               | yes      | ≥ 32 chars — signs short-lived access tokens          |
+| `JWT_REFRESH_SECRET`              | yes      | ≥ 32 chars — signs refresh tokens                     |
+| `JWT_ACCESS_EXPIRES_IN`           | no       | Default `15m`                                         |
+| `JWT_REFRESH_EXPIRES_IN`          | no       | Default `7d`                                          |
+| `NEXT_PUBLIC_APP_URL`             | yes      | Public origin — used for CORS, cookies, emails        |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`  | recommended | reCAPTCHA v2 site key (public). Login widget is hidden when unset. |
+| `RECAPTCHA_SECRET_KEY`            | recommended | reCAPTCHA v2 secret. Server-side `siteverify` is skipped when unset, so login still works in dev environments without keys. |
 
 **Generating secrets** (Linux/macOS):
 ```bash
 openssl rand -base64 48
 ```
 
+**reCAPTCHA keys** — get a v2 ("I'm not a robot" checkbox) key pair from <https://www.google.com/recaptcha/admin>. Add every domain the portal is served from (including `localhost` for dev) under "Domains". `NEXT_PUBLIC_*` vars are inlined at server-start time — restart `npm run dev` after editing `.env`.
+
 **Cookie domain** — access/refresh tokens are HttpOnly cookies scoped to `NEXT_PUBLIC_APP_URL`. Set this to the canonical https origin in production.
+
+## Security Headers + Rate Limiting
+
+Both are wired in by default — no env config needed for the baseline:
+
+- **Security headers** ([lib/security-headers.js](../lib/security-headers.js)) — applied by `middleware.js` to every response. Includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` that disables 14 unused browser APIs, and `Strict-Transport-Security` in production HTTPS only. **Content-Security-Policy is not yet set** — add as a follow-up after auditing the inline-script surface (reCAPTCHA's google.com, Tailwind's inline styles).
+- **Rate limits** ([lib/rate-limit.js](../lib/rate-limit.js)) — in-memory sliding-window. Login: 20 attempts / 10 min per IP, 10 attempts / 10 min per email, 5-strike account lockout (15 min). Refresh: 60/min per IP. 429 responses include `Retry-After`. **Single-instance only** — if you scale horizontally or move to serverless, swap to Upstash Redis or a `RateLimitBucket` Postgres table; the public API of `rate-limit.js` is narrow enough that it's a one-file change.
 
 ## Prerequisites
 

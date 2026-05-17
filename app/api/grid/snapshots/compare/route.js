@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireServerUser } from '@/lib/server-auth';
+import { requireServerUser, getUserRegion } from '@/lib/server-auth';
 
 // ── GET /api/grid/snapshots/compare?from=YYYY-MM-DD&to=YYYY-MM-DD
+//
+// Region scoping: snapshots are stored globally (one row covers every region)
+// so the diff has to be filtered server-side to the caller's region. ADMIN /
+// NLDC see everything; the 5 RLDC roles see only their own region's rows.
+// This mirrors buildRegionScope() applied to the live-data queries elsewhere.
 export async function GET(request) {
   try {
-    await requireServerUser(request);
+    const user = await requireServerUser(request);
+    const userRegion = await getUserRegion(user.role);  // null for ADMIN/NLDC
+    const regionCode = userRegion?.code ?? null;
 
     const { searchParams } = new URL(request.url);
     const fromDate = searchParams.get('from');
@@ -26,9 +33,9 @@ export async function GET(request) {
     const diff = {
       from: { date: fromDate, label: fromSnap.label },
       to:   { date: toDate,   label: toSnap.label   },
-      t2:   diffT2(fromSnap.t2Json, toSnap.t2Json),
-      t1:   diffT1(fromSnap.t1Json, toSnap.t1Json),
-      t3:   diffT3(fromSnap.t3Json, toSnap.t3Json),
+      t2:   filterByRegion(diffT2(fromSnap.t2Json, toSnap.t2Json), regionCode),
+      t1:   filterByRegion(diffT1(fromSnap.t1Json, toSnap.t1Json), regionCode),
+      t3:   filterByRegion(diffT3(fromSnap.t3Json, toSnap.t3Json), regionCode),
     };
 
     return NextResponse.json({ data: diff });
@@ -37,6 +44,14 @@ export async function GET(request) {
     console.error(e);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
+}
+
+// Drop rows that don't belong to `regionCode`. Null regionCode means "no scope"
+// (ADMIN / NLDC) and returns the array unchanged. Every diff row produced by
+// diffT1 / diffT2 / diffT3 carries a `region` field — that's what we match on.
+function filterByRegion(rows, regionCode) {
+  if (!regionCode) return rows;
+  return rows.filter(r => r.region === regionCode);
 }
 
 // ── diff helpers ──────────────────────────────────────────────────────────────

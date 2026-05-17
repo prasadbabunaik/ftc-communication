@@ -128,9 +128,9 @@ export function TransmissionTable({ elements, userRole, onView }) {
   const sp = { sortField, sortDir, onSort: handleSort };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 p-4 border-b bg-muted/20">
+      <div className="flex flex-wrap gap-3 p-4 border-b bg-muted/20 shrink-0">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -168,9 +168,9 @@ export function TransmissionTable({ elements, userRole, onView }) {
         <span className="text-sm text-muted-foreground self-center">{filtered.length} elements</span>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full text-sm">
-          <thead className="bg-muted/30 border-b">
+          <thead className="bg-muted/30 border-b sticky top-0 z-10">
             <tr>
               <Th label="Sr. No"                               className="w-[52px]" />
               <SortableTh label="Agency / Owner"  field="agency"    className="min-w-[140px]" {...sp} />
@@ -232,7 +232,7 @@ export function TransmissionTable({ elements, userRole, onView }) {
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/10">
+      <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/10 shrink-0">
         <span className="text-xs text-muted-foreground">
           {filtered.length === 0 ? '0 records' : `${(page - 1) * PER_PAGE + 1}–${Math.min(page * PER_PAGE, filtered.length)} of ${filtered.length} records`}
         </span>

@@ -63,11 +63,11 @@ export function AuthProvider({ children }) {
   const logoutRef = useRef(logout);
   useEffect(() => { logoutRef.current = logout; }, [logout]);
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, recaptchaToken) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, recaptchaToken }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Login failed');

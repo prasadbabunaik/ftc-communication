@@ -4,7 +4,32 @@ This file tracks notable changes to the FTC Communication Portal.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates use the IST calendar.
 
-## [Unreleased] — 2026-05-14
+## [Unreleased] — 2026-05-17
+
+### Added
+- **Notifications system** — new `Notification` model (`prisma/migrations/20260517143825_add_notifications`) with `type`, `severity`, `title`, `body`, `link`, `metadata`, `isRead` fields. `lib/notifications.js` exposes `notifyRegion()` / `notifyAll()` / `notifyUser()` plus typed builders (`notifyProjectCreated`, `notifyContd4StatusChanged`, `notifyMilestoneEvent`, `notifyTransmissionUpdated`). Wired into the major server actions (project create, CONTD-4 clearance, FTC/TOC/COD events, transmission create). Recipient rules: ADMIN + NLDC always notified, RLDCs only for their own region, actor excluded from their own action. API routes: `GET /api/notifications`, `PATCH /api/notifications/[id]`, `DELETE /api/notifications/[id]`, `POST /api/notifications/read-all`.
+- **Header notification bell** — replaces the static "3" badge. Polls `/api/notifications` every 30 s (paused on hidden tabs), surfaces an unread badge, popover dropdown with mark-read / delete / open-link, mark-all-read button. See [components/common/NotificationBell.jsx](components/common/NotificationBell.jsx).
+- **Google reCAPTCHA v2** on the login form — `lib/recaptcha.js` for server-side `siteverify`, env vars `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` (public) + `RECAPTCHA_SECRET_KEY` (server). Verification skipped when either env var is unset, so dev environments without keys keep working.
+- **Rate limiting** — `lib/rate-limit.js` in-memory sliding-window limiter. Login endpoint: per-IP (20/10 min) + per-email (10/10 min) + account lockout (5 wrong passwords → 15 min lock). Refresh endpoint: 60/min per-IP. 429 responses include `Retry-After`. See module header for the path to swap to Upstash Redis for multi-instance deployments.
+- **Security response headers** — `lib/security-headers.js` applied by `middleware.js`: `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (14 APIs disabled), `X-DNS-Prefetch-Control`, plus `Strict-Transport-Security` in production HTTPS only.
+- **Playwright E2E test suite** — 74 tests across 6 specs in `tests/`: auth flow, RBAC, dashboard tabs, page smoke, snapshot compare, API security (401 on unauth, injection-payload fuzz, cross-region IDOR probe, HttpOnly Set-Cookie). `npm run test:e2e` auto-starts `next dev`.
+- **Per-page export controls** — Excel + Print/PDF icons on `/ftc` and `/contd4` via new shared [components/grid/ExportButtons.jsx](components/grid/ExportButtons.jsx).
+- **Sidebar default** — collapsed (hoverable) icon-rail by default. Existing user preferences in `localStorage` are honored.
+
+### Changed
+- **Snapshot storage is now always global** — previously the dashboard's auto-upsert wrote today's snapshot using the *current viewer's region-scoped data*, so an RLDC visit corrupted the global time-series with single-region data and the next admin visit saw a phantom "everything disappeared" diff. The upsert now runs a separate unscoped query and writes all-India data regardless of viewer. See [app/(protected)/dashboard/page.jsx](app/(protected)/dashboard/page.jsx).
+- **Snapshot compare API filters by region** — `/api/grid/snapshots/compare` now applies `getUserRegion(role)` to the response so RLDCs see only their own region's deltas. ADMIN / NLDC get the unfiltered diff.
+- **`availableSnapshots` deduplication** — dashboard page now dedupes consecutive identical snapshots by content hash before passing them to the client. Today's snapshot is always preserved (even if identical to yesterday) so the LastChangesCard can always anchor "from → today".
+- **LastChangesCard default** — `from` now defaults to literal yesterday (today − 1 day) instead of the last change-point. Picking a historical date in the AsOf picker overrides as before.
+- **Sticky-vertical region cell** on Pipeline (region & source-wise) and Hybrid Breakdown tables — the merged region badge stays pinned under the sticky thead while scrolling through that region's source rows. Uses `position: sticky` directly on the rowSpan'd `<td>` with `align-top` so it doesn't conflict with sticky `<tfoot>` column-width measurement.
+- **Pipeline rowSpan bug fix** — the All India breakdown rows and the grand Total row all carry `region='All India'`, so `groupSize` was over-counting and stealing the Total row's first column (visible as a phantom 13th column where `4,623.92` rendered far to the right of the Exp May'26 body values). `groupSize` now stops at `isTotal`. See [components/grid/SummaryPageClient.jsx:139-147](components/grid/SummaryPageClient.jsx#L139-L147).
+- **Print page is region-scoped** — `/dashboard/print` now passes `scopeRegionCode` + `scopeRegionName` from `getUserRegion(user.role)` to `PrintSummaryClient`. Header subtitle, "Grand Total" label, and per-source "All India X Total" footer all reflect the user's region. Redundant All India breakdown rows are filtered out for RLDC users.
+
+### Fixed
+- LastChangesCard / SnapshotCompareTab no longer surface phantom inter-region deltas to RLDC users (combination of snapshot-storage and compare-API fixes above).
+- "Cannot read properties of undefined (reading 'call')" webpack runtime error from stale `.next/` cache after schema changes — resolved by clearing the cache; documented in dev workflow that `next build` should not be run while `next dev` is alive.
+
+## [0.4.0] — 2026-05-14
 
 ### Added
 - **Dashboard tabs**: Source-wise FTC pipeline (Table 5), Hybrid Breakdown component-level view (Table 4), Project Details, Day-wise Changes, Monthly COD.

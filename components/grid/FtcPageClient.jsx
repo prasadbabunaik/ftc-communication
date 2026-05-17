@@ -8,6 +8,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { FtcTable } from '@/components/grid/FtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
+import { ExportButtons } from '@/components/grid/ExportButtons';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
@@ -44,35 +45,40 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <Zap className="size-5 text-blue-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <Zap className="size-4 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-lg font-bold text-foreground leading-tight">
               Generation Capacity Under Process of FTC
             </h1>
-            <p className="text-sm text-muted-foreground">{regionLabel}</p>
+            <p className="text-[12px] text-muted-foreground leading-tight">{regionLabel}</p>
           </div>
         </div>
 
-        {canEdit && (
-          <Button variant="outline" onClick={() => setPhaseOpen(true)}>
-            <Layers className="size-4 mr-2" />
-            Add Phase
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <Button variant="outline" onClick={() => setPhaseOpen(true)}>
+              <Layers className="size-4 mr-2" />
+              Add Phase
+            </Button>
+          )}
+          <ExportButtons size="sm" />
+        </div>
       </div>
 
-      <FtcTable
-        projects={projects}
-        userRole={userRole}
-        onView={setDetailProject}
-        refMonthLabel={refMonthLabel}
-      />
+      <div className="flex-1 min-h-0 flex flex-col">
+        <FtcTable
+          projects={projects}
+          userRole={userRole}
+          onView={setDetailProject}
+          refMonthLabel={refMonthLabel}
+        />
+      </div>
 
       {/* Add Phase modal */}
       <Dialog open={phaseOpen} onOpenChange={(o) => { if (!o) handlePhaseClose(); }}>

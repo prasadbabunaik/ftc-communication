@@ -320,7 +320,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
   const sortProps = { sortField, sortDir, onSort: handleSort };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
       {/* As-of-date snapshot banner */}
       {asOf && (
         <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-[12px] text-amber-800">
@@ -482,9 +482,9 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full text-sm">
-          <thead className="bg-muted/30 border-b">
+          <thead className="bg-muted/30 border-b sticky top-0 z-10">
             <tr>
               <Th label="Sr. No"  className="w-[52px]" />
               <SortableTh label="Name of Developer"  field="developer" className="min-w-[180px]" {...sortProps} />

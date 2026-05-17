@@ -199,15 +199,41 @@ Materialised dashboard state per day. The three `Json` columns store pre-compute
 | t3Json       | Json       | Transmission rows            |
 | createdAt    | DateTime   |                              |
 
+### Notification
+
+Per-user transient feed surfaced in the header bell. Distinct from `ProjectNote`/`TransmissionAuditLog` which are durable audit records — notifications can be marked read or deleted by the user.
+
+| Field     | Type                 | Notes                                              |
+|-----------|----------------------|----------------------------------------------------|
+| id        | cuid                 | PK                                                 |
+| userId    | FK → User            | recipient; cascades on user delete                 |
+| type      | NotificationType     | enum (see below)                                   |
+| severity  | NotificationSeverity | `INFO` / `SUCCESS` / `WARNING` / `CRITICAL`        |
+| title     | String               | headline                                           |
+| body      | String?              | optional sub-text                                  |
+| link      | String?              | in-app deep link                                   |
+| metadata  | Json?                | free-form context for the UI (`projectId`, etc.)   |
+| isRead    | Boolean              | default `false`                                    |
+| readAt    | DateTime?            | set when marked read                               |
+| createdAt | DateTime             |                                                    |
+
+Emission is fan-out: a single logical event (e.g. project created in SR) becomes one Notification row per recipient user. Recipient resolution lives in [`lib/notifications.js`](../lib/notifications.js): ADMIN + NLDC always receive; the region's RLDC also receives when the event has a `regionCode`; the actor who triggered the event is excluded.
+
+Indexed on `(userId, isRead, createdAt)` for the bell's unread-first listing.
+
 ## Enums
 
 ```prisma
-enum UserRole          { ADMIN  NLDC  NRLDC  WRLDC  SRLDC  ERLDC  NERLDC }
-enum GenerationCategory{ RENEWABLE  CONVENTIONAL  STORAGE }
-enum SourceType        { WIND  SOLAR  COAL  HYDRO  PSP  BESS }
-enum Contd4Status      { PENDING  RECEIVED  CLEARED  REJECTED }
-enum NoteSource        { MANUAL  SYSTEM }
-enum TransmissionType  { LINE  ICT  GT  ST }
+enum UserRole              { ADMIN  NLDC  NRLDC  WRLDC  SRLDC  ERLDC  NERLDC }
+enum GenerationCategory    { RENEWABLE  CONVENTIONAL  STORAGE }
+enum SourceType            { WIND  SOLAR  COAL  HYDRO  PSP  BESS }
+enum Contd4Status          { PENDING  RECEIVED  CLEARED  REJECTED }
+enum NoteSource            { MANUAL  SYSTEM }
+enum TransmissionType      { LINE  ICT  GT  ST }
+enum NotificationType      { PROJECT_CREATED  PROJECT_UPDATED  CONTD4_STATUS_CHANGED
+                             PHASE_ADDED  FTC_EVENT  TOC_EVENT  COD_EVENT
+                             TRANSMISSION_UPDATED  SNAPSHOT_DIFF  SYSTEM }
+enum NotificationSeverity  { INFO  SUCCESS  WARNING  CRITICAL }
 ```
 
 ## Notes on Decimal Precision
@@ -223,16 +249,22 @@ The validation layer accepts up to **3 decimal places** (Excel snapshots use val
 ## Indexes
 
 - `GenerationProject(regionId)` — region-scoped fetches
+- `GenerationProject(activeFrom, activeUntil)` — point-in-time / soft-delete reads
 - `CommissioningPhase(projectId)` — per-project phase loads
+- `FtcEvent(phaseId, eventDate)`, `TocEvent(phaseId, eventDate)`, `CodEvent(phaseId, eventDate)` — point-in-time milestone sums
+- `Contd4Phase(contd4Id)` — append-only declaration log per CONTD-4
 - `ProjectNote(projectId)`, `ProjectNote(phaseId)` — audit-feed reads
-- `TransmissionElement(regionId)`, `TransmissionAuditLog(elementId)`
+- `TransmissionElement(regionId)`, `TransmissionElement(activeFrom, activeUntil)`, `TransmissionAuditLog(elementId)`
+- `Notification(userId, isRead, createdAt)` — bell unread-first listing
 - `GridSnapshot(snapshotDate)` unique
 
 ## Migrations
 
-Located in `prisma/migrations/`. Two migrations exist:
+Located in `prisma/migrations/`:
 
 1. `20260513142440_init` — initial schema
 2. `20260513175411_add_grid_snapshot` — adds the `grid_snapshots` table
+3. `20260516170053_add_events_and_soft_delete` — append-only `FtcEvent`/`TocEvent`/`CodEvent` tables, `Contd4Phase`, plus `activeFrom`/`activeUntil` columns on `GenerationProject`/`TransmissionElement`
+4. `20260517143825_add_notifications` — adds the `notifications` table with `NotificationType` + `NotificationSeverity` enums
 
 Run `npm run db:migrate` in dev or `npx prisma migrate deploy` in prod.

@@ -9,6 +9,20 @@ import {
   computeHybridBreakdown, computeMonthlyCod,
 } from '@/lib/grid-computations';
 
+// Returns ISO date strings (YYYY-MM-DD, UTC) for every day strictly between
+// `fromIso` (exclusive) and `toIso` (inclusive). Used to backfill snapshots
+// for any calendar day that doesn't have one — so "yesterday vs today" is
+// always a meaningful comparison.
+function datesBetween(fromIso, toIso) {
+  const out = [];
+  const start = new Date(fromIso + 'T00:00:00Z');
+  const end   = new Date(toIso   + 'T00:00:00Z');
+  for (let d = new Date(start.getTime() + 86400000); d <= end; d = new Date(d.getTime() + 86400000)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+
 export const metadata = { title: 'Dashboard — FTC Portal' };
 
 export default async function DashboardPage({ searchParams }) {
@@ -21,6 +35,12 @@ export default async function DashboardPage({ searchParams }) {
   const fromMonth = params.from   ?? null;
   const toMonth   = params.to     ?? null;
   const asOf      = asOfStr ? new Date(asOfStr) : null;
+  // For point-in-time computation: live view uses today (end of day), historical
+  // uses the picked date (end of day). This keeps the live display in sync with
+  // today's stored snapshot, and gives a stable snapshot series.
+  const computeAsOf = (asOf ? new Date(asOfStr + 'T23:59:59.999Z') : (() => {
+    const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t;
+  })());
 
   const scope = await buildRegionScope(user.role);
   // Restrict to projects/elements that were "live" on the requested date.
@@ -51,12 +71,12 @@ export default async function DashboardPage({ searchParams }) {
     }),
   ]);
 
-  const pipelineMatrix   = computePipelineMatrix(projects, asOf);
+  const pipelineMatrix   = computePipelineMatrix(projects, computeAsOf);
   const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source');
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
   const contd4Study      = computeContd4Study(projects);
   const transmissionRows = computeTransmission(txElements);
-  const hybridRows       = computeHybridBreakdown(projects, asOf);
+  const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
   const monthlyCod       = computeMonthlyCod(projects, fromMonth, toMonth);
 
   // Stat-card totals reuse the same milestone aggregation as the pipeline
@@ -70,8 +90,108 @@ export default async function DashboardPage({ searchParams }) {
 
   const regionLabel = scope.regionId ? 'Showing your region' : 'All India view';
 
-  // Serialise available snapshot dates for the "As on" picker + Last-changes card.
-  const availableSnapshots = snapshots.map(s => ({
+  // Auto-upsert today's snapshot on every live page load. Also backfill any
+  // missing day between the most recent stored snapshot and today, so
+  // "yesterday vs today" is always a meaningful comparison even if no one
+  // viewed the dashboard on those intermediate days.
+  //
+  // CRITICAL: snapshots are GLOBAL data — every viewer must compare against
+  // the same time-series. If we wrote the snapshot using the current viewer's
+  // region-scoped `projects` array, an RLDC visit would overwrite today's
+  // snapshot with single-region data and an admin viewing the next day would
+  // see a phantom "everything disappeared" diff. So here we always re-query
+  // WITHOUT the region scope (only the activeFilter is kept) to build the
+  // snapshot payload. The user's region-scoped view above is unaffected.
+  let snapshotsList = snapshots;
+  if (!asOf) {
+    try {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().slice(0, 10);
+
+      const [allProjects, allTxElements] = await Promise.all([
+        prisma.generationProject.findMany({
+          where: activeFilter,
+          include: {
+            region: true,
+            plantType: true,
+            contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } },
+            phases: { include: { ftcEvents: true, tocEvents: true, codEvents: true } },
+          },
+        }),
+        prisma.transmissionElement.findMany({
+          where: activeFilter,
+          include: { region: true },
+        }),
+      ]);
+
+      const globalPipelineMatrix = computePipelineMatrix(allProjects, computeAsOf);
+      const globalContd4         = computeContd4Study(allProjects);
+      const globalTransmission   = computeTransmission(allTxElements);
+      const { rows: c4Rows, allMonths: c4Months } = globalContd4;
+
+      // Backfill missing calendar days between the most-recent snapshot BEFORE
+      // today and today, so "yesterday vs today" is always available.
+      const priorSnaps = snapshotsList.filter(s => s.snapshotDate.toISOString().slice(0, 10) < todayStr);
+      const lastPriorStr = priorSnaps.length
+        ? priorSnaps[priorSnaps.length - 1].snapshotDate.toISOString().slice(0, 10)
+        : null;
+      const missing = lastPriorStr ? datesBetween(lastPriorStr, todayStr) : [];
+      for (const dStr of missing) {
+        if (dStr === todayStr) continue; // today is handled separately below
+        const d = new Date(dStr + 'T00:00:00Z');
+        const endOfD = new Date(d); endOfD.setUTCHours(23, 59, 59, 999);
+        const pMatrix = computePipelineMatrix(allProjects, endOfD);
+        await prisma.gridSnapshot.upsert({
+          where:  { snapshotDate: d },
+          create: { snapshotDate: d, label: null, t1Json: { rows: c4Rows, allMonths: c4Months }, t2Json: pMatrix, t3Json: globalTransmission },
+          update: {                                t1Json: { rows: c4Rows, allMonths: c4Months }, t2Json: pMatrix, t3Json: globalTransmission },
+        });
+        if (!snapshotsList.some(s => s.snapshotDate.toISOString().slice(0, 10) === dStr)) {
+          snapshotsList = [...snapshotsList, { id: `bf-${dStr}`, snapshotDate: d, label: null }];
+        }
+      }
+
+      // Today's snapshot — always global, never the scoped view.
+      await prisma.gridSnapshot.upsert({
+        where:  { snapshotDate: today },
+        create: { snapshotDate: today, label: null, t1Json: { rows: c4Rows, allMonths: c4Months }, t2Json: globalPipelineMatrix, t3Json: globalTransmission },
+        update: {                                    t1Json: { rows: c4Rows, allMonths: c4Months }, t2Json: globalPipelineMatrix, t3Json: globalTransmission },
+      });
+      if (!snapshotsList.some(s => s.snapshotDate.toISOString().slice(0, 10) === todayStr)) {
+        snapshotsList = [...snapshotsList, { id: 'today', snapshotDate: today, label: null }];
+      }
+    } catch (e) {
+      console.error('[dashboard] auto-snapshot failed:', e?.message);
+    }
+  }
+
+  // Serialise available snapshot dates for the "As on" picker + Last-changes
+  // card. Refetch WITH content JSON so we can drop dates whose T1/T2/T3 are
+  // identical to the previous date — i.e. days where nothing actually changed.
+  // Without this, the LastChangesCard ends up comparing two identical days and
+  // displays a noisy "No changes between X and Y" banner.
+  //
+  // IMPORTANT: today's snapshot is preserved even when its content matches the
+  // previous change-point — LastChangesCard uses it as the "to" date for the
+  // historical-vs-today comparison. If today gets deduped out, `to` falls back
+  // to the previous change-point and the comparison loses its anchor.
+  const snapshotsForDedupe = await prisma.gridSnapshot.findMany({
+    select: { id: true, snapshotDate: true, label: true, t1Json: true, t2Json: true, t3Json: true },
+    orderBy: { snapshotDate: 'asc' },
+  });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const changePoints = [];
+  let prevHash = null;
+  for (const s of snapshotsForDedupe) {
+    const h = JSON.stringify([s.t1Json, s.t2Json, s.t3Json]);
+    const dateStr = s.snapshotDate.toISOString().slice(0, 10);
+    if (h !== prevHash || dateStr === todayStr) {
+      changePoints.push(s);
+      prevHash = h;
+    }
+  }
+  const availableSnapshots = changePoints.map(s => ({
     date:  s.snapshotDate.toISOString().slice(0, 10),
     label: s.label,
   }));

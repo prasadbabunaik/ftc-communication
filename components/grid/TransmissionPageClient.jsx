@@ -19,16 +19,16 @@ export function TransmissionPageClient({ elements, regions, lockedRegionId, user
   const canCreate = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-purple-50 flex items-center justify-center">
-            <Cable className="size-5 text-purple-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-purple-50 flex items-center justify-center">
+            <Cable className="size-4 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Transmission Elements</h1>
-            <p className="text-sm text-muted-foreground">Lines, ICTs, and transformers under FTC process</p>
+            <h1 className="text-lg font-bold text-foreground leading-tight">Transmission Elements</h1>
+            <p className="text-[12px] text-muted-foreground leading-tight">Lines, ICTs, and transformers under FTC process</p>
           </div>
         </div>
         {canCreate && (
@@ -39,7 +39,9 @@ export function TransmissionPageClient({ elements, regions, lockedRegionId, user
         )}
       </div>
 
-      <TransmissionTable elements={elements} userRole={userRole} onView={setViewElement} />
+      <div className="flex-1 min-h-0 flex flex-col">
+        <TransmissionTable elements={elements} userRole={userRole} onView={setViewElement} />
+      </div>
 
       {/* Add Element modal */}
       <Dialog open={addOpen} onOpenChange={(o) => { if (!o) setAddOpen(false); }}>

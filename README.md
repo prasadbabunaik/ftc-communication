@@ -21,12 +21,15 @@ The portal replaces a manually-maintained Excel workbook (`CONTD and FTC details
 ## Highlights
 
 - **Replaces an Excel workbook** with seven data tables that previously lived in `Summary` sheet (CONTD-4 study, FTC pipeline region-wise & source-wise, Hybrid breakdown by component, Transmission elements, Monthly COD)
-- **Role-scoped data access** — each RLDC sees only its own region; NLDC and admins see All India
-- **Daily snapshots & day-wise diff view** — capture state each day and inspect changes between any two dates
+- **Role-scoped data access** — each RLDC sees only its own region; NLDC and admins see All India. Enforced server-side on every Prisma query, every server action, and the snapshot diff API.
+- **Daily snapshots & day-wise diff view** — capture state each day and inspect changes between any two dates. Snapshots are stored globally; the diff API filters to the caller's region.
 - **Audit history per project** — every field change (manual or imported) lands in the project's audit feed
+- **In-app notifications** — header bell with unread badge, popover dropdown, polling every 30 s. Server actions emit notifications for project creation, CONTD-4 clearance, FTC/TOC/COD events, and transmission updates. Recipients scoped by role + region.
 - **Server-side validation everywhere** — Zod schemas enforce pipeline rules (FTC ≤ Applied, TOC ≤ FTC, COD ≤ TOC, dates monotonically increasing)
 - **Built-in Excel import wizard** plus standalone backfill / diff / snapshot scripts under `scripts/`
-- **Pixel-correct printable summary** for sharing with stakeholders
+- **Pixel-correct printable summary** for sharing with stakeholders, region-scoped per the viewer's role.
+- **Login hardening** — Google reCAPTCHA v2, per-IP + per-email rate limiting, 5-strike account lockout, full security-header set on every response.
+- **Playwright E2E test suite** — 74 tests covering auth, RBAC, dashboard tabs, snapshot compare, and API security (401s, IDOR probes, injection-payload fuzz).
 
 ## Tech Stack
 
@@ -50,7 +53,9 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env
-# Fill in DATABASE_URL and two JWT secrets (32+ chars each)
+# Fill in DATABASE_URL, two JWT secrets (32+ chars each), and (optionally)
+# the reCAPTCHA v2 site + secret keys for login. reCAPTCHA is skipped at
+# runtime if either key is unset, so dev can run without it.
 
 # 3. Migrate and seed the database
 npm run db:migrate         # runs Prisma migrations
@@ -62,6 +67,16 @@ node scripts/backfill-hybrid-components.js
 # 5. Run dev server
 npm run dev                # http://localhost:3000
 ```
+
+### Running tests
+
+```bash
+npx playwright install chromium   # one-time, downloads the browser binary
+npm run test:e2e                  # 74 tests, headless
+npm run test:e2e:ui               # Playwright UI mode
+```
+
+See [tests/README.md](tests/README.md) for the spec map and what's intentionally *not* covered (CRUD writes, DAST scanning, network/infra).
 
 Default seed accounts (passwords in `prisma/seed.js`):
 

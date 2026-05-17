@@ -51,17 +51,23 @@ const PRINT_STYLES = `
 
 // ── Document header ────────────────────────────────────────────────────────────
 
-function DocHeader({ dateLabel }) {
+function DocHeader({ dateLabel, scopeRegionCode, scopeRegionName }) {
+  // For RLDCs show the specific region name (e.g. "Southern Region"). For NLDC/
+  // ADMIN scopeRegionCode is null so we fall back to the All India label.
+  const scopeLabel = scopeRegionName ?? 'All India';
+  const issuerLabel = scopeRegionCode
+    ? `${scopeRegionCode}LDC — Regional Load Despatch Centre`
+    : 'National Load Despatch Centre';
   return (
     <div className="print-header mb-4 border-b-2 border-[#1e3a5f] pb-3">
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-[7pt] font-bold text-[#1e3a5f] uppercase tracking-widest mb-0.5">National Load Despatch Centre</div>
+          <div className="text-[7pt] font-bold text-[#1e3a5f] uppercase tracking-widest mb-0.5">{issuerLabel}</div>
           <h1 className="text-[13pt] font-black text-[#1e3a5f] leading-tight">
             Summary of Generation Capacity
           </h1>
           <h2 className="text-[11pt] font-bold text-[#1e3a5f]">
-            Under FTC / TOC / COD — All India
+            Under FTC / TOC / COD — {scopeLabel}
           </h2>
         </div>
         <div className="text-right">
@@ -92,8 +98,14 @@ function SectionTitle({ children, tableNo }) {
 
 // ── FTC Pipeline table ────────────────────────────────────────────────────────
 
-function PipelineTable({ rows, primaryKey }) {
+function PipelineTable({ rows, primaryKey, scopeRegionCode }) {
   const isRegionPrimary = primaryKey === 'region';
+  // For RLDC users the data only contains a single region, so the "All India
+  // breakdown" rows duplicate the regional subtotal and the Grand Total — drop
+  // them and just keep the region rows + final Grand Total.
+  const filteredRows = scopeRegionCode
+    ? rows.filter(r => !r.isAllIndiaBreakdown)
+    : rows;
   return (
     <table>
       <thead>
@@ -113,10 +125,10 @@ function PipelineTable({ rows, primaryKey }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, i) => {
+        {filteredRows.map((row, i) => {
           const p = isRegionPrimary ? row.region : row.source;
           const s = isRegionPrimary ? row.source : row.region;
-          const label1 = row.isTotal ? 'Grand Total'
+          const label1 = row.isTotal ? (scopeRegionCode ? `${scopeRegionCode} — Grand Total` : 'Grand Total')
             : row.isSubtotal ? `${p} — Total`
             : row.isAllIndiaBreakdown ? 'All India'
             : p;
@@ -146,8 +158,10 @@ function PipelineTable({ rows, primaryKey }) {
 
 // ── CONTD-4 table ─────────────────────────────────────────────────────────────
 
-function Contd4Table({ contd4Study }) {
+function Contd4Table({ contd4Study, scopeRegionCode }) {
   const { rows, allMonths } = contd4Study;
+  // Contd4 doesn't have All-India breakdown rows but the Grand Total label
+  // should still reflect the user's region when applicable.
   return (
     <table>
       <thead>
@@ -162,7 +176,9 @@ function Contd4Table({ contd4Study }) {
       </thead>
       <tbody>
         {rows.map((row, i) => {
-          const label1 = row.isTotal ? 'Grand Total' : row.isSubtotal ? `${row.region} — Total` : row.region;
+          const label1 = row.isTotal ? (scopeRegionCode ? `${scopeRegionCode} — Grand Total` : 'Grand Total')
+            : row.isSubtotal ? `${row.region} — Total`
+            : row.region;
           const label2 = row.isTotal || row.isSubtotal ? '' : row.source;
           const cls = row.isTotal ? 'total-row' : row.isSubtotal ? 'subtotal-row' : '';
           return (
@@ -226,7 +242,7 @@ function TransmissionTable({ transmissionRows }) {
 
 // ── Per-source project detail table ──────────────────────────────────────────
 
-function SourceProjectTable({ source, projects }) {
+function SourceProjectTable({ source, projects, scopeRegionCode }) {
   const cleared = (projects ?? []).filter(p => {
     if (p.contd4?.status !== 'CLEARED') return false;
     return getProjectSource(p) === source;
@@ -298,7 +314,7 @@ function SourceProjectTable({ source, projects }) {
         </tbody>
         <tfoot>
           <tr className="subtotal-row">
-            <td colSpan={4} style={{ fontWeight: 700 }}>All India {source} Total ({sorted.length} projects)</td>
+            <td colSpan={4} style={{ fontWeight: 700 }}>{scopeRegionCode ?? 'All India'} {source} Total ({sorted.length} projects)</td>
             <td style={{ textAlign: 'right' }}>{fmt(total.total)}</td>
             <td style={{ textAlign: 'right' }}>{fmt(total.applied)}</td>
             <td style={{ textAlign: 'right' }}>{fmt(total.ftcOK)}</td>
@@ -348,7 +364,7 @@ function PrintToolbar({ dateLabel }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PrintSummaryClient({ dateLabel, table2Rows, table5Rows, contd4Study, transmissionRows, projects }) {
+export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, projects }) {
   useEffect(() => {
     const t = setTimeout(() => window.print(), 1200);
     return () => clearTimeout(t);
@@ -377,14 +393,14 @@ export function PrintSummaryClient({ dateLabel, table2Rows, table5Rows, contd4St
 
       <div className="print-page">
         <div className="inner">
-          <DocHeader dateLabel={dateLabel} />
+          <DocHeader dateLabel={dateLabel} scopeRegionCode={scopeRegionCode} scopeRegionName={scopeRegionName} />
 
           {/* ── Table 1: Region-wise Pipeline ── */}
           <div className="avoid-break mb-6">
             <SectionTitle tableNo="1">
               Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
             </SectionTitle>
-            <PipelineTable rows={table2Rows} primaryKey="region" />
+            <PipelineTable rows={table2Rows} primaryKey="region" scopeRegionCode={scopeRegionCode} />
           </div>
 
           {/* ── Table 2: Source-wise Pipeline ── */}
@@ -392,7 +408,7 @@ export function PrintSummaryClient({ dateLabel, table2Rows, table5Rows, contd4St
             <SectionTitle tableNo="2">
               Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
             </SectionTitle>
-            <PipelineTable rows={table5Rows} primaryKey="source" />
+            <PipelineTable rows={table5Rows} primaryKey="source" scopeRegionCode={scopeRegionCode} />
           </div>
 
           {/* ── Table 3: CONTD-4 Study ── */}
@@ -400,7 +416,7 @@ export function PrintSummaryClient({ dateLabel, table2Rows, table5Rows, contd4St
             <SectionTitle tableNo="3">
               Total Capacity Under CONTD-4 Study (MW) — Region &amp; Source-wise
             </SectionTitle>
-            <Contd4Table contd4Study={contd4Study} />
+            <Contd4Table contd4Study={contd4Study} scopeRegionCode={scopeRegionCode} />
           </div>
 
           {/* ── Table 4: Transmission ── */}
@@ -417,13 +433,13 @@ export function PrintSummaryClient({ dateLabel, table2Rows, table5Rows, contd4St
               <SectionTitle tableNo={`5.${idx + 1}`}>
                 {src} — Project-wise Generation Capacity Details Under FTC / TOC / COD
               </SectionTitle>
-              <SourceProjectTable source={src} projects={projects} />
+              <SourceProjectTable source={src} projects={projects} scopeRegionCode={scopeRegionCode} />
             </div>
           ))}
 
           {/* Footer */}
           <div className="mt-8 pt-3 border-t border-slate-200 flex justify-between text-[7pt] text-slate-400">
-            <span>FTC Communication Portal — NLDC, New Delhi</span>
+            <span>FTC Communication Portal — {scopeRegionCode ? `${scopeRegionCode}LDC` : 'NLDC, New Delhi'}</span>
             <span>Generated: {new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' })}</span>
             <span>As on: {dateLabel}</span>
           </div>

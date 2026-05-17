@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree } from 'lucide-react';
+import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer } from 'lucide-react';
 import { useSettings } from '@/providers/settings-provider';
 import { SnapshotCompareTab } from '@/components/grid/SnapshotCompareTab';
 import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
@@ -94,29 +94,29 @@ function ViewBreakupBtn({ onClick }) {
 // Dark two-row grouped header used by Pipeline (Tables 2 & 5)
 function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   return (
-    <thead className="sticky top-0 z-20 text-[10px]">
+    <thead className="sticky top-0 z-20 text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-        <th rowSpan={2} className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>
+        <th rowSpan={2} className="sticky left-0 z-30 bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
         </th>
-        <th rowSpan={2} className="sticky z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 80 }}>
+        <th rowSpan={2} className="sticky z-30 bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
           {isRegionPrimary ? 'Source' : 'Region'}
         </th>
-        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
-        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap text-slate-400">CONTD-4 (MW)</th>
-        <th rowSpan={2} className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied (MW)</th>
-        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC (MW)</th>
-        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-violet-50 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC (MW)</th>
-        <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD (MW)</th>
-        <th rowSpan={2} className="px-3 py-2 text-center font-bold bg-amber-50 text-amber-700 border-l border-amber-200 whitespace-nowrap">{refMonthLabel}</th>
+        <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
+        <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap text-slate-400">CONTD-4 (MW)</th>
+        <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied (MW)</th>
+        <th colSpan={2} className="px-4 py-2 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC (MW)</th>
+        <th colSpan={2} className="px-4 py-2 text-center font-bold bg-violet-50 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC (MW)</th>
+        <th colSpan={2} className="px-4 py-2 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD (MW)</th>
+        <th rowSpan={2} className="px-4 py-3 text-center font-bold bg-amber-50 text-amber-700 border-l border-amber-200 whitespace-nowrap">{refMonthLabel}</th>
       </tr>
-      <tr className="text-[10px]">
-        <th className="px-3 py-1 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">Approved</th>
-        <th className="px-3 py-1 text-right font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
-        <th className="px-3 py-1 text-right font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">Issued</th>
-        <th className="px-3 py-1 text-right font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap">Pending</th>
-        <th className="px-3 py-1 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">Done</th>
-        <th className="px-3 py-1 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
+      <tr className="text-[11px]">
+        <th className="px-4 py-1.5 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">Approved</th>
+        <th className="px-4 py-1.5 text-right font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
+        <th className="px-4 py-1.5 text-right font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">Issued</th>
+        <th className="px-4 py-1.5 text-right font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap">Pending</th>
+        <th className="px-4 py-1.5 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">Done</th>
+        <th className="px-4 py-1.5 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
       </tr>
     </thead>
   );
@@ -129,10 +129,27 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
   const primary    = isRegionPrimary ? row.region : row.source;
   const secondary  = isRegionPrimary ? row.source : row.region;
 
-  const prevRow   = rows[i - 1];
-  const sameGroup = !isSubtotal && !isTotal && prevRow &&
-    !prevRow.isSubtotal && !prevRow.isTotal &&
-    (isRegionPrimary ? prevRow.region === row.region : prevRow.source === row.source);
+  const prevRow      = rows[i - 1];
+  const prevPrimary  = prevRow ? (isRegionPrimary ? prevRow.region : prevRow.source) : null;
+  // First row of a primary-group → emit the merged (rowSpan'd) primary cell here.
+  // Subsequent rows in the same group → omit the primary cell entirely so the
+  // spanning cell from the first row covers them visually.
+  const isFirstInGroup = primary !== prevPrimary || isTotal;
+  // Compute how many consecutive rows share this primary (only when first-in-group).
+  // IMPORTANT: stop at the Total row — in region-primary view the All India
+  // breakdown rows AND the Total row all carry region='All India', so without
+  // this guard the first All India row's rowSpan would extend over the Total
+  // row, steal its Region column, and shove its remaining cells one column to
+  // the right (creating a phantom 13th column in the footer).
+  let groupSize = 1;
+  if (isFirstInGroup && !isTotal) {
+    for (let j = i + 1; j < rows.length; j++) {
+      if (rows[j].isTotal) break;
+      const rPrim = isRegionPrimary ? rows[j].region : rows[j].source;
+      if (rPrim !== primary) break;
+      groupSize++;
+    }
+  }
 
   const isFirstAllIndia = isAllIndia && !prevRow?.isAllIndiaBreakdown;
 
@@ -148,14 +165,14 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
     : 'bg-white';
 
   const rowCls = isTotal
-    ? 'border-t border-slate-300 text-[11px] font-bold'
+    ? 'border-t border-slate-300 text-[13px] font-bold'
     : isSubtotal
-    ? 'border-t border-slate-200 text-[11px]'
+    ? 'border-t border-slate-200 text-[13px]'
     : isFirstAllIndia
-    ? 'border-t-2 border-slate-300 text-[11px] transition-colors'
+    ? 'border-t-2 border-slate-300 text-[13px] transition-colors'
     : isAllIndia
-    ? 'border-t border-slate-200 text-[11px]'
-    : 'border-t border-gray-100 hover:bg-blue-50/20 text-[11px] transition-colors';
+    ? 'border-t border-slate-200 text-[13px]'
+    : 'border-t border-gray-100 hover:bg-blue-50/20 text-[13px] transition-colors';
 
   const bold = isSubtotal || isTotal;
 
@@ -175,35 +192,44 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
     return (
       <td
         style={cellStyle}
-        className={`px-3 py-2 text-right tabular-nums ${bold ? 'font-bold' : ''} ${cleanCls}`}
+        className={`px-4 py-2.5 text-right tabular-nums ${bold ? 'font-bold' : ''} ${cleanCls}`}
       >
         {fmt(v)}
       </td>
     );
   };
 
+  // Region cell is rowSpan-merged. For body rows (not footer), it's also
+  // vertically sticky — `top: 70px` parks the cell below PipelineHead's
+  // two-row sticky <thead>, so the badge stays visible while the user scrolls
+  // through the source rows in this region group. align-top keeps the badge
+  // at the natural top of the merged cell when the group is already in view.
+  const regionTdStyle = isFooterRow
+    ? cellStyle
+    : { ...(cellStyle ?? {}), top: 70 };
   return (
     <tr className={`${rowCls} ${bg}`}>
+      {isFirstInGroup && (
+        <td
+          rowSpan={groupSize}
+          style={regionTdStyle}
+          className={`px-4 py-2.5 align-top text-center sticky left-0 border-r border-gray-200 z-10 ${bg}`}
+        >
+          {isTotal
+            ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+            : isAllIndia
+              ? <span className="text-[12px] font-bold text-slate-600">All India</span>
+              : <Chip label={primary} colorCls={isRegionPrimary ? REGION_BADGE[primary] : SOURCE_BADGE[primary]} />}
+        </td>
+      )}
       <td
-        style={cellStyle}
-        className={`px-3 py-2 sticky left-0 border-r border-gray-200 z-10 ${bg}`}
+        style={{ ...cellStyle, left: 90 }}
+        className={`px-4 py-2.5 sticky border-r border-gray-200 z-10 ${bg}`}
       >
-        {/* Region/source chip — only on first row of a group. For the
-            All India breakdown the label appears once (on the first
-            breakdown row); the grand-total row at the bottom acts as
-            that section's subtotal (matches per-region layout). */}
-        {!isTotal && !isSubtotal && !sameGroup && (
-          isAllIndia
-            ? <span className="text-[11px] font-bold text-slate-600">All India</span>
-            : <Chip label={primary} colorCls={isRegionPrimary ? REGION_BADGE[primary] : SOURCE_BADGE[primary]} />
-        )}
-      </td>
-      <td
-        style={{ ...cellStyle, left: 76 }}
-        className={`px-3 py-2 sticky border-r border-gray-200 z-10 ${bg}`}
-      >
-        {isSubtotal || isTotal
-          ? <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+        {isTotal
+          ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+          : isSubtotal
+          ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Subtotal</span>
           : <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />}
       </td>
       <N v={row.totalCapacityMw}  cls="border-r border-gray-100" />
@@ -232,9 +258,9 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   const footerRows = rows.filter((r) =>  r.isAllIndiaBreakdown ||  r.isTotal);
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       {title && (
-        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-start justify-between gap-3 shrink-0">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">{title}</p>
             {desc && <p className="text-[10px] text-slate-500 mt-0.5">{desc}</p>}
@@ -242,7 +268,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           <ViewBreakupBtn onClick={onViewBreakup} />
         </div>
       )}
-      <div className="overflow-auto" style={{ maxHeight: '62vh' }}>
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse">
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
@@ -344,7 +370,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
   const footerRows = rows.filter(r =>  r.isAllIndiaBreakdown ||  r.isTotal);
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Capacity (MW) Under CONTD-4 Study</p>
@@ -359,7 +385,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-auto" style={{ maxHeight: '58vh' }}>
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 z-20">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
@@ -409,7 +435,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
   if (!transmissionRows?.length) return <Empty />;
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Transmission Elements — FTC Status</p>
@@ -417,7 +443,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-auto" style={{ maxHeight: '58vh' }}>
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 z-20">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
@@ -514,7 +540,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
   }
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Hybrid Capacity Details Under FTC / TOC / COD (MW)</p>
@@ -522,7 +548,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-auto" style={{ maxHeight: '58vh' }}>
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 z-20">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
@@ -550,6 +576,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                   {regionSpan > 0 && (
                     <td
                       rowSpan={regionSpan}
+                      style={{ top: 34 }}
                       className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top"
                     >
                       <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />
@@ -700,23 +727,23 @@ function FilterBar({ asOf, fromMonth, toMonth }) {
   };
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center gap-2">
       <a
         href={buildExportUrl()}
         download
-        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+        title="Download as Excel"
+        className="inline-flex items-center justify-center size-11 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors"
       >
-        <Download className="size-3.5" />
-        Download Excel
+        <FileSpreadsheet className="size-5" />
       </a>
       <a
         href={`/dashboard/print${asOf ? `?asOf=${asOf}` : ''}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-colors"
+        title="Open print / PDF view"
+        className="inline-flex items-center justify-center size-11 rounded-lg bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-colors"
       >
-        <Download className="size-3.5" />
-        Print / PDF
+        <Printer className="size-5" />
       </a>
     </div>
   );
@@ -852,15 +879,15 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
     slate:   'bg-slate-50 text-slate-600',
   };
   return (
-    <div className="rounded-xl border bg-card p-4 flex items-start gap-3">
-      <div className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${colors[color]}`}>
-        <Icon className="size-5" />
+    <div className="rounded-lg border bg-card px-3 py-2 flex items-center gap-2">
+      <div className={`size-8 rounded-md flex items-center justify-center shrink-0 ${colors[color]}`}>
+        <Icon className="size-4" />
       </div>
-      <div>
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
-        <p className="text-xl font-bold text-foreground leading-tight">
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight truncate">{label}</p>
+        <p className="text-base font-bold text-foreground leading-tight">
           {typeof value === 'number' ? Math.round(value).toLocaleString('en-IN') : value}
-          {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+          {unit && <span className="text-[11px] font-normal text-muted-foreground ml-1">{unit}</span>}
         </p>
       </div>
     </div>
@@ -895,35 +922,36 @@ export function SummaryPageClient({
   ];
 
   return (
-    <div className="p-6 space-y-5">
-      {/* Page header */}
+    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
+      {/* Page header — title left, controls (date picker + export buttons) right */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <BarChart3 className="size-5 text-blue-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <BarChart3 className="size-4 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Generation &amp; Transmission Summary</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-lg font-bold text-foreground leading-tight">Generation &amp; Transmission Summary</h1>
+            <p className="text-[12px] text-muted-foreground leading-tight">
               {regionLabel}
               {asOf && <span className="ml-2 text-amber-600 font-medium">· As of {new Date(asOf).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</span>}
             </p>
           </div>
         </div>
-        <AsOfDatePicker availableSnapshots={availableSnapshots} currentAsOf={asOf} />
+        <div className="flex items-center gap-2">
+          <AsOfDatePicker currentAsOf={asOf} />
+          <FilterBar asOf={asOf} fromMonth={fromMonth} toMonth={toMonth} />
+        </div>
       </div>
-
-      {/* Filter bar */}
-      <FilterBar asOf={asOf} fromMonth={fromMonth} toMonth={toMonth} />
 
       {/* Last changes card — surfaces day-over-day movement at a glance */}
       <LastChangesCard
         availableSnapshots={availableSnapshots}
+        currentAsOf={asOf}
         onOpenRangeDiff={() => setActiveTab('changes')}
       />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
         <StatCard icon={Zap}        label="Applied for FTC" value={stats.totalApplied}  color="blue"    />
         <StatCard icon={TrendingUp} label="FTC Approved"    value={stats.totalFtc}      color="emerald" />
         <StatCard icon={BarChart3}  label="TOC Issued"      value={stats.totalToc}      color="amber"   />
@@ -932,9 +960,9 @@ export function SummaryPageClient({
         <StatCard icon={Cable}      label="Tx Pending FTC"  value={stats.txPending}     unit="elements" color="slate" />
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar — fits without scroll, label hides on small screens */}
       <div className="border-b">
-        <nav className="-mb-px flex gap-0 overflow-x-auto">
+        <nav className="-mb-px flex w-full">
           {tabs.map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -942,14 +970,15 @@ export function SummaryPageClient({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                title={tab.label}
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[13px] lg:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   active
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
-                <Icon className="size-3.5" />
-                {tab.label}
+                <Icon className="size-4 shrink-0" />
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -968,8 +997,8 @@ export function SummaryPageClient({
         toMonth={toMonth}
       />
 
-      {/* Tab content */}
-      <div>
+      {/* Tab content — flex-grows to fill the remaining viewport height */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === 'pipeline' && (
           <PipelineTable
             rows={table2Rows}

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, canEditGridData, isAdmin } from '@/lib/server-auth';
 import { prisma } from '@/lib/prisma';
 import {
   createProjectSchema,
@@ -9,6 +9,17 @@ import {
   createTransmissionSchema,
   contd4Schema,
 } from '@/lib/validations/grid';
+import {
+  computePipelineMatrix,
+  computeContd4Study,
+  computeTransmission,
+} from '@/lib/grid-computations';
+import {
+  notifyProjectCreated,
+  notifyContd4StatusChanged,
+  notifyMilestoneEvent,
+  notifyTransmissionUpdated,
+} from '@/lib/notifications';
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -47,6 +58,49 @@ function revalidateGridPages(projectId = null) {
 function revalidateTransmissionPages() {
   revalidatePath('/dashboard');
   revalidatePath('/transmission');
+}
+
+// Silently upsert a GridSnapshot for today so day-wise history stays current.
+// Called after every mutation; errors are swallowed so they never break the action.
+// Snapshot semantics: a snapshot for date D = point-in-time grid state for D,
+// computed from the *current* DB. Events with eventDate > D are excluded. This
+// keeps the snapshot series stable — if no new events are added, snapshots
+// don't drift, and a diff between two snapshots reflects exactly the events
+// whose eventDate falls in that interval.
+async function takeSnapshot() {
+  try {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const endOfToday = new Date(today);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
+    const [projects, txElements] = await Promise.all([
+      prisma.generationProject.findMany({
+        include: {
+          region:         { select: { code: true } },
+          plantType:      { select: { label: true, isHybrid: true } },
+          poolingStation: { select: { name: true } },
+          contd4:         true,
+          phases:         { include: { ftcEvents: true, tocEvents: true, codEvents: true } },
+        },
+      }),
+      prisma.transmissionElement.findMany({
+        include: { region: { select: { code: true } } },
+      }),
+    ]);
+
+    const pipelineMatrix = computePipelineMatrix(projects, endOfToday);
+    const { rows: contd4Rows, allMonths } = computeContd4Study(projects);
+    const txMatrix = computeTransmission(txElements);
+
+    await prisma.gridSnapshot.upsert({
+      where:  { snapshotDate: today },
+      create: { snapshotDate: today, label: null, t1Json: { rows: contd4Rows, allMonths }, t2Json: pipelineMatrix, t3Json: txMatrix },
+      update: {                                    t1Json: { rows: contd4Rows, allMonths }, t2Json: pipelineMatrix, t3Json: txMatrix },
+    });
+  } catch (e) {
+    console.error('[takeSnapshot] failed silently:', e?.message ?? e);
+  }
 }
 
 function diffFields(tracked, projectId, userId, phaseId = null) {
@@ -91,6 +145,8 @@ function validateSourceCap(project, newPhases) {
 }
 
 function validateSourcePipeline(existingPhases, newPhases) {
+  const evSumPhase = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+
   const acc = {};
   for (const ph of existingPhases) {
     const s = ph.sourceType;
@@ -102,9 +158,10 @@ function validateSourcePipeline(existingPhases, newPhases) {
   for (const ph of newPhases) {
     const s = ph.sourceType;
     if (!acc[s]) acc[s] = { ftc: 0, toc: 0, cod: 0 };
-    acc[s].ftc += parseFloat(ph.ftcCompletedMw || '0') || 0;
-    acc[s].toc += parseFloat(ph.tocIssuedMw    || '0') || 0;
-    acc[s].cod += parseFloat(ph.codDeclaredMw  || '0') || 0;
+    // New form submissions use event arrays; fall back to summary fields for legacy data
+    acc[s].ftc += ph.ftcEvents != null ? evSumPhase(ph.ftcEvents) : (parseFloat(ph.ftcCompletedMw || '0') || 0);
+    acc[s].toc += ph.tocEvents != null ? evSumPhase(ph.tocEvents) : (parseFloat(ph.tocIssuedMw    || '0') || 0);
+    acc[s].cod += ph.codEvents != null ? evSumPhase(ph.codEvents) : (parseFloat(ph.codDeclaredMw  || '0') || 0);
     const { ftc, toc, cod } = acc[s];
     if (toc > ftc + 0.001)
       throw new Error(`${s}: TOC total (${toc.toFixed(1)} MW) would exceed FTC completed (${ftc.toFixed(1)} MW). FTC must be completed before TOC can be issued for ${s}.`);
@@ -118,6 +175,7 @@ function validateSourcePipeline(existingPhases, newPhases) {
 export async function createGenerationProject(formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const parsed = createProjectSchema.safeParse(formData);
   if (!parsed.success) return { error: parsed.error.flatten() };
 
@@ -132,6 +190,7 @@ export async function createGenerationProject(formData) {
   let project;
   try {
     project = await prisma.generationProject.create({
+      include: { region: { select: { code: true } }, plantType: { select: { label: true } } },
       data: {
         name: data.name,
         developerName: data.developerName || null,
@@ -172,12 +231,19 @@ export async function createGenerationProject(formData) {
   }
 
   revalidateGridPages(project.id);
+  void takeSnapshot();
+  void notifyProjectCreated({
+    project,
+    regionCode: project.region?.code,
+    actorUserId: user.id,
+  });
   return { success: true, id: project.id };
 }
 
 export async function updateGenerationProject(projectId, formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
 
   const scope = await buildRegionScope(user.role);
@@ -210,6 +276,7 @@ export async function updateGenerationProject(projectId, formData) {
   if (logs.length) await prisma.projectNote.createMany({ data: logs });
 
   revalidateGridPages(projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
@@ -219,6 +286,7 @@ export async function updateGenerationProject(projectId, formData) {
 export async function deleteGenerationProject(projectId, opts = {}) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
   if (!project) return { error: 'Project not found.' };
 
@@ -237,6 +305,7 @@ export async function deleteGenerationProject(projectId, opts = {}) {
     await prisma.generationProject.update({ where: { id: projectId }, data });
   }
   revalidateGridPages();
+  void takeSnapshot();
   return { success: true, deactivated: !opts.hard };
 }
 
@@ -246,6 +315,7 @@ export async function upsertContd4(projectId, formData) {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please refresh the page and log in again.' }; }
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
 
   const scope = await buildRegionScope(user.role);
@@ -344,6 +414,7 @@ export async function upsertContd4(projectId, formData) {
   }
 
   revalidateGridPages(projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
@@ -374,6 +445,7 @@ export async function addContd4Phase(projectId, formData) {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please log in again.' }; }
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
 
   const project = await prisma.generationProject.findUnique({
     where: { id: projectId },
@@ -443,6 +515,7 @@ export async function addContd4Phase(projectId, formData) {
   });
 
   revalidateGridPages(projectId);
+  void takeSnapshot();
   return { success: true, phaseId: phase.id };
 }
 
@@ -450,6 +523,7 @@ export async function deleteContd4Phase(phaseId) {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please log in again.' }; }
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
 
   const phase = await prisma.contd4Phase.findUnique({
     where: { id: phaseId },
@@ -478,6 +552,7 @@ export async function deleteContd4Phase(phaseId) {
   });
 
   revalidateGridPages(phase.contd4.projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
@@ -531,7 +606,7 @@ async function loadPhaseWithGuards(phaseId) {
   return prisma.commissioningPhase.findUnique({
     where: { id: phaseId },
     include: {
-      project:    true,
+      project:    { include: { region: { select: { code: true } } } },
       ftcEvents:  true,
       tocEvents:  true,
       codEvents:  true,
@@ -543,6 +618,7 @@ export async function addCommissioningEvent(kind, phaseId, formData) {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please log in again.' }; }
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   if (!MODEL_BY_KIND[kind]) return { error: 'Invalid event kind.' };
 
   const phase = await loadPhaseWithGuards(phaseId);
@@ -619,6 +695,15 @@ export async function addCommissioningEvent(kind, phaseId, formData) {
   });
 
   revalidateGridPages(phase.projectId);
+  void takeSnapshot();
+  void notifyMilestoneEvent({
+    kind: kind === 'ftc' ? 'FTC_EVENT' : kind === 'toc' ? 'TOC_EVENT' : 'COD_EVENT',
+    project: phase.project,
+    regionCode: phase.project.region?.code,
+    capacityMw,
+    eventDate,
+    actorUserId: user.id,
+  });
   return { success: true, eventId: created.id };
 }
 
@@ -626,6 +711,7 @@ export async function deleteCommissioningEvent(kind, eventId) {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please log in again.' }; }
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   if (!MODEL_BY_KIND[kind]) return { error: 'Invalid event kind.' };
 
   const model = MODEL_BY_KIND[kind];
@@ -677,6 +763,7 @@ export async function deleteCommissioningEvent(kind, eventId) {
   });
 
   revalidateGridPages(event.phase.projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
@@ -743,6 +830,14 @@ export async function clearContd4(projectId, clearanceRemarks) {
   }
 
   revalidateGridPages(projectId);
+  void takeSnapshot();
+  void notifyContd4StatusChanged({
+    project,
+    regionCode: project.region?.code,
+    oldStatus: existing.status,
+    newStatus: 'CLEARED',
+    actorUserId: user.id,
+  });
   return { success: true };
 }
 
@@ -751,6 +846,7 @@ export async function clearContd4(projectId, clearanceRemarks) {
 export async function addCommissioningPhases(projectId, formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
 
   const project = await prisma.generationProject.findUniqueOrThrow({
     where: { id: projectId },
@@ -780,28 +876,69 @@ export async function addCommissioningPhases(projectId, formData) {
     return { error: e.message };
   }
 
+  // Helper: sum MW from event list
+  const evSum  = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  // Helper: latest date from event list (for the cached summary date field)
+  const evLatestDate = (evs) => {
+    const dates = (evs ?? []).map((e) => parseDate(e.date)).filter(Boolean);
+    if (!dates.length) return null;
+    return dates.reduce((max, d) => (d > max ? d : max));
+  };
+
   const createdPhases = await prisma.$transaction(
-    parsed.data.phases.map((p) =>
-      prisma.commissioningPhase.create({
+    parsed.data.phases.map((p) => {
+      const ftcTotal = evSum(p.ftcEvents);
+      const tocTotal = evSum(p.tocEvents);
+      const codTotal = evSum(p.codEvents);
+      return prisma.commissioningPhase.create({
         data: {
           projectId,
-          sourceType:          p.sourceType,
-          capacityAppliedMw:   parseFloat(p.capacityAppliedMw),
-          ftcCompletedMw:      parseDecimal(p.ftcCompletedMw),
-          ftcCompletedDate:    parseDate(p.ftcCompletedDate),
-          proposedFtcDate:     parseDate(p.proposedFtcDate),
-          capacityUnderFtcMw:  parseDecimal(p.capacityUnderFtcMw),
-          tocIssuedMw:         parseDecimal(p.tocIssuedMw),
-          tocIssuedDate:       parseDate(p.tocIssuedDate),
-          capacityUnderTocMw:  parseDecimal(p.capacityUnderTocMw),
-          codDeclaredMw:       parseDecimal(p.codDeclaredMw),
-          codDeclaredDate:     parseDate(p.codDeclaredDate),
-          expectedApr26Mw:     parseDecimal(p.expectedApr26Mw),
-          delayRemarks:        p.delayRemarks || null,
-          otherRemarks:        p.otherRemarks || null,
+          sourceType:         p.sourceType,
+          capacityAppliedMw:  parseFloat(p.capacityAppliedMw),
+          // Summary fields derived from events (kept in sync for legacy readers)
+          ftcCompletedMw:     ftcTotal > 0 ? ftcTotal : null,
+          ftcCompletedDate:   evLatestDate(p.ftcEvents),
+          proposedFtcDate:    parseDate(p.proposedFtcDate),
+          capacityUnderFtcMw: parseDecimal(p.capacityUnderFtcMw),
+          tocIssuedMw:        tocTotal > 0 ? tocTotal : null,
+          tocIssuedDate:      evLatestDate(p.tocEvents),
+          capacityUnderTocMw: parseDecimal(p.capacityUnderTocMw),
+          codDeclaredMw:      codTotal > 0 ? codTotal : null,
+          codDeclaredDate:    evLatestDate(p.codEvents),
+          expectedApr26Mw:    parseDecimal(p.expectedApr26Mw),
+          delayRemarks:       p.delayRemarks || null,
+          otherRemarks:       p.otherRemarks || null,
+          // Event records — one row per partial FTC / TOC / COD commissioning
+          ftcEvents: {
+            createMany: {
+              data: (p.ftcEvents ?? []).map((e) => ({
+                eventDate:  parseDate(e.date),
+                capacityMw: parseFloat(e.mw),
+                remarks:    e.remarks || null,
+              })),
+            },
+          },
+          tocEvents: {
+            createMany: {
+              data: (p.tocEvents ?? []).map((e) => ({
+                eventDate:  parseDate(e.date),
+                capacityMw: parseFloat(e.mw),
+                remarks:    e.remarks || null,
+              })),
+            },
+          },
+          codEvents: {
+            createMany: {
+              data: (p.codEvents ?? []).map((e) => ({
+                eventDate:  parseDate(e.date),
+                capacityMw: parseFloat(e.mw),
+                remarks:    e.remarks || null,
+              })),
+            },
+          },
         },
-      })
-    )
+      });
+    })
   );
 
   await prisma.projectNote.createMany({
@@ -818,12 +955,14 @@ export async function addCommissioningPhases(projectId, formData) {
   });
 
   revalidateGridPages(projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
 export async function updateCommissioningPhase(phaseId, formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const phase = await prisma.commissioningPhase.findUniqueOrThrow({
     where: { id: phaseId },
     include: { project: true },
@@ -871,12 +1010,14 @@ export async function updateCommissioningPhase(phaseId, formData) {
   if (logs.length) await prisma.projectNote.createMany({ data: logs });
 
   revalidateGridPages(phase.projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
 export async function deleteCommissioningPhase(phaseId) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const phase = await prisma.commissioningPhase.findUniqueOrThrow({
     where: { id: phaseId },
     include: { project: true },
@@ -905,6 +1046,7 @@ export async function deleteCommissioningPhase(phaseId) {
 
   await prisma.commissioningPhase.delete({ where: { id: phaseId } });
   revalidateGridPages(projectId);
+  void takeSnapshot();
   return { success: true };
 }
 
@@ -913,6 +1055,7 @@ export async function deleteCommissioningPhase(phaseId) {
 export async function createTransmissionElement(formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
 
   const scope = await buildRegionScope(user.role);
   if (scope.regionId && scope.regionId !== formData.regionId) {
@@ -924,6 +1067,7 @@ export async function createTransmissionElement(formData) {
 
   const data = parsed.data;
   const el = await prisma.transmissionElement.create({
+    include: { region: { select: { code: true } } },
     data: {
       regionId:          data.regionId,
       agencyOwner:       data.agencyOwner,
@@ -955,12 +1099,20 @@ export async function createTransmissionElement(formData) {
   });
 
   revalidateTransmissionPages();
+  void takeSnapshot();
+  void notifyTransmissionUpdated({
+    element: el,
+    regionCode: el.region?.code,
+    action: 'created',
+    actorUserId: user.id,
+  });
   return { success: true };
 }
 
 export async function updateTransmissionElement(elementId, formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
 
   const scope = await buildRegionScope(user.role);
@@ -1024,6 +1176,7 @@ export async function updateTransmissionElement(elementId, formData) {
   });
 
   revalidateTransmissionPages();
+  void takeSnapshot();
   return { success: true };
 }
 
@@ -1032,6 +1185,7 @@ export async function updateTransmissionElement(elementId, formData) {
 export async function deleteTransmissionElement(elementId, opts = {}) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
 
   const scope = await buildRegionScope(user.role);
@@ -1061,6 +1215,7 @@ export async function deleteTransmissionElement(elementId, opts = {}) {
     });
   }
   revalidateTransmissionPages();
+  void takeSnapshot();
   return { success: true, deactivated: !opts.hard };
 }
 
@@ -1069,6 +1224,7 @@ export async function deleteTransmissionElement(elementId, opts = {}) {
 export async function createPoolingStation(formData) {
   const _auth = await authedUser();
   if (!_auth) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(_auth.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const name = String(formData.name ?? '').trim();
   const regionId = String(formData.regionId ?? '').trim();
   const voltageKv = formData.voltageKv ? parseInt(formData.voltageKv) : null;
@@ -1090,6 +1246,7 @@ export async function createPoolingStation(formData) {
 export async function bulkImportRows(type, rows) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const scope = await buildRegionScope(user.role);
 
   let created = 0;
@@ -1165,6 +1322,7 @@ export async function bulkImportRows(type, rows) {
 
   revalidateGridPages();
   revalidateTransmissionPages();
+  void takeSnapshot();
 
   return { success: true, created, failed, errors };
 }
@@ -1196,6 +1354,7 @@ export async function addProjectNote(projectId, text) {
 export async function markTransmissionFtcDone(elementId) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
 
   const scope = await buildRegionScope(user.role);
@@ -1221,5 +1380,6 @@ export async function markTransmissionFtcDone(elementId) {
   });
 
   revalidateTransmissionPages();
+  void takeSnapshot();
   return { success: true };
 }

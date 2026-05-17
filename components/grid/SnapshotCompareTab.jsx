@@ -234,14 +234,16 @@ export function SnapshotCompareTab() {
   const [error,    setError]      = useState(null);
 
   useEffect(() => {
-    fetch('/api/grid/snapshots')
+    // Only show dates where something actually changed — otherwise the
+    // dropdowns are flooded with identical snapshots from days nobody edited.
+    fetch('/api/grid/snapshots?changesOnly=1')
       .then(r => r.json())
       .then(d => {
         const snaps = d.data ?? [];
         setSnapshots(snaps);
         if (snaps.length >= 2) {
-          setFromDate(snaps[0].snapshotDate.slice(0, 10));
           setToDate(snaps[snaps.length - 1].snapshotDate.slice(0, 10));
+          setFromDate(snaps[snaps.length - 2].snapshotDate.slice(0, 10));
         }
       })
       .catch(() => setError('Failed to load snapshots'));
@@ -322,7 +324,7 @@ export function SnapshotCompareTab() {
       {/* Available snapshots */}
       {!diff && snapshots.length > 0 && (
         <div className="bg-slate-50 border border-border rounded-lg p-4">
-          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Available Snapshots ({snapshots.length})</h4>
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Change Points ({snapshots.length}) — dates where data actually changed</h4>
           <div className="flex flex-wrap gap-2">
             {snapshots.map(s => (
               <span key={s.id} className="inline-flex items-center px-2 py-1 rounded bg-white border border-border text-xs text-slate-700 font-mono">

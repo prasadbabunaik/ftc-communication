@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Zap, X, ArrowLeft } from 'lucide-react';
+import { Plus, Zap, X, ArrowLeft, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { ProjectPhaseTimeline } from '@/components/grid/ProjectPhaseTimeline';
@@ -39,6 +39,184 @@ function BreakdownItem({ label, mw }) {
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-semibold text-sm">{Number(mw).toFixed(1)} MW</p>
+    </div>
+  );
+}
+
+const SOURCE_COLORS = {
+  WIND:  'bg-sky-50 text-sky-700 border-sky-200',
+  SOLAR: 'bg-amber-50 text-amber-700 border-amber-200',
+  BESS:  'bg-violet-50 text-violet-700 border-violet-200',
+  COAL:  'bg-stone-100 text-stone-700 border-stone-300',
+  HYDRO: 'bg-teal-50 text-teal-700 border-teal-200',
+  PSP:   'bg-emerald-50 text-emerald-700 border-emerald-200',
+};
+
+function SourceBadge({ source }) {
+  const cls = SOURCE_COLORS[source] ?? 'bg-muted text-muted-foreground border-border';
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${cls}`}>
+      {source}
+    </span>
+  );
+}
+
+function fmtEventDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const KIND_TONE = {
+  FTC: 'bg-blue-100 text-blue-800 border-blue-200',
+  TOC: 'bg-violet-100 text-violet-800 border-violet-200',
+  COD: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+};
+const KIND_DOT = {
+  FTC: 'bg-blue-500',
+  TOC: 'bg-violet-500',
+  COD: 'bg-emerald-500',
+};
+const KIND_TEXT = {
+  FTC: 'text-blue-700',
+  TOC: 'text-violet-700',
+  COD: 'text-emerald-700',
+};
+
+function EventTable({ rows }) {
+  if (rows.length === 0) return (
+    <p className="py-6 text-center text-sm text-slate-400">No events recorded.</p>
+  );
+  return (
+    <div className="rounded-lg border border-border bg-white overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="bg-slate-50 border-b border-border">
+          <tr className="text-[10px] text-slate-500 uppercase tracking-wide">
+            <th className="px-3 py-2 text-left font-semibold w-[70px]">Milestone</th>
+            <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">Date</th>
+            <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Capacity (MW)</th>
+            <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Cumulative</th>
+            <th className="px-3 py-2 text-left font-semibold">Source</th>
+            <th className="px-3 py-2 text-left font-semibold">Remarks</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {rows.map((r) => (
+            <tr key={r.id} className="hover:bg-slate-50/60">
+              <td className="px-3 py-2">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${KIND_TONE[r.kind]}`}>
+                  {r.kind}
+                </span>
+              </td>
+              <td className="px-3 py-2 font-mono text-slate-700 tabular-nums whitespace-nowrap">{fmtEventDate(r.date)}</td>
+              <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">
+                {Number(r.mw || 0).toFixed(2)}
+              </td>
+              <td className="px-3 py-2 text-right font-mono text-slate-500 tabular-nums">
+                {r.cumulative.toFixed(2)}
+              </td>
+              <td className="px-3 py-2"><SourceBadge source={r.source} /></td>
+              <td className="px-3 py-2 text-slate-600 max-w-[280px]">
+                {r.remarks
+                  ? <span className="line-clamp-2" title={r.remarks}>{r.remarks}</span>
+                  : <span className="text-slate-400">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CommissioningTimeline({ phases }) {
+  const [activeTab, setActiveTab] = useState('ALL');
+
+  // Build flat list of all events
+  const allRows = [];
+  for (const ph of phases ?? []) {
+    for (const e of (ph.ftcEvents ?? [])) allRows.push({ kind: 'FTC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'f' + e.id });
+    for (const e of (ph.tocEvents ?? [])) allRows.push({ kind: 'TOC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 't' + e.id });
+    for (const e of (ph.codEvents ?? [])) allRows.push({ kind: 'COD', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'c' + e.id });
+  }
+  if (allRows.length === 0) return null;
+
+  // Sort ascending to compute running cumulative correctly
+  const ORDER = { FTC: 0, TOC: 1, COD: 2 };
+  allRows.sort((a, b) => {
+    const d = new Date(a.date) - new Date(b.date);
+    return d !== 0 ? d : ORDER[a.kind] - ORDER[b.kind];
+  });
+
+  // Attach cumulative to each row (ascending pass)
+  const cumAcc = { FTC: 0, TOC: 0, COD: 0 };
+  for (const r of allRows) {
+    cumAcc[r.kind] += Number(r.mw || 0);
+    r.cumulative = cumAcc[r.kind];
+  }
+
+  const total = { FTC: cumAcc.FTC, TOC: cumAcc.TOC, COD: cumAcc.COD };
+
+  // Available tabs (only show kind tabs that have data)
+  const tabs = [
+    { key: 'ALL', label: 'All', count: allRows.length },
+    { key: 'FTC', label: 'FTC', count: allRows.filter(r => r.kind === 'FTC').length },
+    { key: 'TOC', label: 'TOC', count: allRows.filter(r => r.kind === 'TOC').length },
+    { key: 'COD', label: 'COD', count: allRows.filter(r => r.kind === 'COD').length },
+  ].filter(t => t.count > 0 || t.key === 'ALL');
+
+  // Filter by active tab then reverse for descending display
+  const displayRows = allRows
+    .filter(r => activeTab === 'ALL' || r.kind === activeTab)
+    .slice()
+    .reverse();
+
+  return (
+    <div className="space-y-3">
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-border">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-t-md border-b-2 transition-colors -mb-px ${
+              activeTab === t.key
+                ? t.key === 'ALL'
+                  ? 'border-slate-700 text-slate-700'
+                  : t.key === 'FTC'
+                  ? 'border-blue-600 text-blue-700'
+                  : t.key === 'TOC'
+                  ? 'border-violet-600 text-violet-700'
+                  : 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              {t.key !== 'ALL' && (
+                <span className={`inline-block size-1.5 rounded-full ${KIND_DOT[t.key]}`} />
+              )}
+              {t.label}
+              <span className={`text-[10px] font-normal px-1 py-0.5 rounded ${
+                activeTab === t.key ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-400'
+              }`}>
+                {t.count}
+              </span>
+            </span>
+          </button>
+        ))}
+
+        {/* Totals on the right */}
+        <div className="ml-auto flex items-center gap-3 pr-1 pb-1.5">
+          {['FTC', 'TOC', 'COD'].map((k) => total[k] > 0 && (
+            <span key={k} className="text-[10px] inline-flex items-center gap-1">
+              <span className={`inline-block size-1.5 rounded-full ${KIND_DOT[k]}`} />
+              <span className="text-slate-500">{k}</span>
+              <span className={`font-mono font-semibold ${KIND_TEXT[k]}`}>{total[k].toFixed(1)} MW</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <EventTable rows={displayRows} />
     </div>
   );
 }
@@ -196,6 +374,25 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
                   />
                 )}
               </div>
+
+              {/* Phased Commissioning Timeline */}
+              {(() => {
+                const totalEvents = (project.phases ?? []).reduce((s, ph) =>
+                  s + (ph.ftcEvents?.length ?? 0) + (ph.tocEvents?.length ?? 0) + (ph.codEvents?.length ?? 0), 0);
+                if (totalEvents === 0) return null;
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <CalendarClock className="size-4 text-blue-600" />
+                      <h3 className="text-sm font-semibold text-foreground">Phased Commissioning History</h3>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-semibold">
+                        {totalEvents} events
+                      </span>
+                    </div>
+                    <CommissioningTimeline phases={project.phases} />
+                  </div>
+                );
+              })()}
 
               {/* Day-wise History */}
               <ProjectHistory name={project.name} region={project.region.code} kind="ftc" />

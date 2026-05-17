@@ -7,15 +7,38 @@ import {
   computeTransmission,
 } from '@/lib/grid-computations';
 
-// ── GET /api/grid/snapshots ── list all snapshots (id, date, label)
+// ── GET /api/grid/snapshots ── list all snapshots (id, date, label).
+// Pass ?changesOnly=1 to filter out dates whose pipeline / transmission /
+// CONTD-4 content is identical to the previous date (i.e. "no real change").
 export async function GET(request) {
   try {
     await requireServerUser(request);
-    const snapshots = await prisma.gridSnapshot.findMany({
-      select: { id: true, snapshotDate: true, label: true, createdAt: true },
+    const url = new URL(request.url);
+    const changesOnly = url.searchParams.get('changesOnly') === '1';
+
+    if (!changesOnly) {
+      const snapshots = await prisma.gridSnapshot.findMany({
+        select: { id: true, snapshotDate: true, label: true, createdAt: true },
+        orderBy: { snapshotDate: 'asc' },
+      });
+      return NextResponse.json({ data: snapshots });
+    }
+
+    // Pull full JSON to compare; serialise + hash each so we can detect dupes.
+    const all = await prisma.gridSnapshot.findMany({
+      select: { id: true, snapshotDate: true, label: true, createdAt: true, t1Json: true, t2Json: true, t3Json: true },
       orderBy: { snapshotDate: 'asc' },
     });
-    return NextResponse.json({ data: snapshots });
+    const filtered = [];
+    let prevHash = null;
+    for (const s of all) {
+      const h = JSON.stringify([s.t1Json, s.t2Json, s.t3Json]);
+      if (h !== prevHash) {
+        filtered.push({ id: s.id, snapshotDate: s.snapshotDate, label: s.label, createdAt: s.createdAt });
+        prevHash = h;
+      }
+    }
+    return NextResponse.json({ data: filtered });
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error(e);

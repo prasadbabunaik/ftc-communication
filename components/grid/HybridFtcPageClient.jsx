@@ -31,18 +31,18 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-            <GitMerge className="size-5 text-violet-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+            <GitMerge className="size-4 text-violet-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-lg font-bold text-foreground leading-tight">
               Source-wise Segregation of Hybrid Generation FTC
             </h1>
-            <p className="text-sm text-muted-foreground">{regionLabel}</p>
+            <p className="text-[12px] text-muted-foreground leading-tight">{regionLabel}</p>
           </div>
         </div>
 
@@ -54,11 +54,13 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
         )}
       </div>
 
-      <HybridFtcTable
-        projects={projects}
-        userRole={userRole}
-        onView={setDetailProject}
-      />
+      <div className="flex-1 min-h-0 flex flex-col">
+        <HybridFtcTable
+          projects={projects}
+          userRole={userRole}
+          onView={setDetailProject}
+        />
+      </div>
 
       {/* Log Phase modal */}
       <Dialog open={logOpen} onOpenChange={(o) => { if (!o) handleLogClose(); }}>

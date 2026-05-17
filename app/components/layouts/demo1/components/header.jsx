@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Clock, LogOut, Menu, Settings, User } from 'lucide-react';
+import { Clock, LogOut, Menu, Settings, User } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/common/container';
+import { NotificationBell } from '@/components/common/NotificationBell';
 import { SidebarMenu } from './sidebar-menu';
 
 function useScrollPosition() {
@@ -145,19 +146,6 @@ function FrequencyPill() {
       </span>
       <span className="text-[9px] text-muted-foreground/60 font-medium tracking-wider uppercase">
         Grid
-      </span>
-    </div>
-  );
-}
-
-function NotificationBell() {
-  return (
-    <div className="relative">
-      <Button variant="ghost" mode="icon" shape="circle" className="size-9">
-        <Bell className="size-4!" />
-      </Button>
-      <span className="absolute top-0.5 end-0.5 size-4 rounded-full bg-red-500 flex items-center justify-center text-[9px] font-bold text-white leading-none pointer-events-none">
-        3
       </span>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowUp, ArrowDown, Activity, ChevronRight } from 'lucide-react';
+import { ArrowUp, ArrowDown, Activity, ChevronRight, Minus } from 'lucide-react';
 
 function fmt(v) {
   if (v == null) return '—';
@@ -18,20 +18,19 @@ function fmt(v) {
 function fmtDate(iso) {
   if (!iso) return '';
   return new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit', month: 'short', year: '2-digit',
   });
 }
 
 // Pick the most material deltas across all pipeline cells.
-// Returns up to 4 (region, source, field, delta) entries sorted by |delta|.
-function topDeltas(t2Changes) {
+function topDeltas(t2Changes, max = 3) {
   if (!t2Changes) return [];
   const FIELDS = [
-    { key: 'codCompletedMw', label: 'COD declared' },
-    { key: 'tocIssuedMw',    label: 'TOC issued'   },
-    { key: 'ftcApprovedMw',  label: 'FTC approved' },
-    { key: 'appliedMw',      label: 'Applied'      },
-    { key: 'totalCapacityMw',label: 'Capacity'     },
+    { key: 'codCompletedMw', label: 'COD' },
+    { key: 'tocIssuedMw',    label: 'TOC' },
+    { key: 'ftcApprovedMw',  label: 'FTC' },
+    { key: 'appliedMw',      label: 'Applied' },
+    { key: 'totalCapacityMw',label: 'Cap' },
   ];
   const all = [];
   for (const row of t2Changes) {
@@ -44,21 +43,28 @@ function topDeltas(t2Changes) {
   }
   return all
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, 4);
+    .slice(0, max);
 }
 
-export function LastChangesCard({ availableSnapshots, onOpenRangeDiff }) {
+export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDiff }) {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
-  // Use the last two snapshot dates available.
-  const snaps = availableSnapshots ?? [];
-  const from  = snaps.length >= 2 ? snaps[snaps.length - 2].date : null;
-  const to    = snaps.length >= 1 ? snaps[snaps.length - 1].date : null;
+  // The card always compares against TODAY:
+  //   - default:        from = literal yesterday (today - 1 day)
+  //   - asOf selected:  from = that historical date
+  // We deliberately don't pick the "last change-point" anymore. The user wants
+  // a day-over-day view by default — even if yesterday had no changes, the
+  // "No changes" banner is the right answer. The compare API works for any
+  // date that has a snapshot in DB; the dashboard auto-backfills daily.
+  const today     = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const from = currentAsOf ?? yesterday;
+  const to   = today;
 
   useEffect(() => {
-    if (!from || !to) { setLoading(false); return; }
+    if (!from || !to || from === to) { setLoading(false); setData(null); return; }
     let cancelled = false;
     setLoading(true);
     fetch(`/api/grid/snapshots/compare?from=${from}&to=${to}`)
@@ -66,33 +72,38 @@ export function LastChangesCard({ availableSnapshots, onOpenRangeDiff }) {
       .then(j => {
         if (cancelled) return;
         if (j.error) setError(j.error);
-        else setData(j.data);
+        else { setError(null); setData(j.data); }
       })
       .catch(e => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [from, to]);
 
-  if (!from || !to) {
+  // Compact single-row wrapper for empty/loading/error/no-change states.
+  const wrapper = 'rounded-lg border px-3 py-1.5 flex items-center gap-2 text-[12px]';
+
+  if (!from || !to || from === to) {
     return (
-      <div className="rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm text-muted-foreground">
-        Not enough snapshots to show recent changes. Capture a snapshot to start tracking day-over-day deltas.
+      <div className={`${wrapper} border-border bg-slate-50 text-slate-500`}>
+        <Activity className="size-3.5 shrink-0" />
+        <span>Pick a past date in the picker to see changes vs today.</span>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground animate-pulse">
-        Loading last changes…
+      <div className={`${wrapper} border-border bg-card text-muted-foreground animate-pulse`}>
+        <Activity className="size-3.5 shrink-0" />
+        <span>Comparing {fmtDate(from)} → {fmtDate(to)}…</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-        Couldn't load recent changes: {error}
+      <div className={`${wrapper} border-rose-200 bg-rose-50 text-rose-700`}>
+        Couldn't load changes: {error}
       </div>
     );
   }
@@ -100,54 +111,54 @@ export function LastChangesCard({ availableSnapshots, onOpenRangeDiff }) {
   const t2 = data?.t2 ?? [];
   const t3 = data?.t3 ?? [];
   const total = t2.length + t3.length + (data?.t1?.length ?? 0);
-  const tops  = topDeltas(t2);
+  const tops  = topDeltas(t2, 3);
+
+  if (total === 0) {
+    return (
+      <div className={`${wrapper} border-emerald-200 bg-emerald-50 text-emerald-800`}>
+        <Minus className="size-3.5 shrink-0" />
+        <span className="font-semibold">No changes</span>
+        <span className="text-emerald-700/80">between {fmtDate(from)} and {fmtDate(to)}</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-4 py-3 shadow-sm">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-100">
-            <Activity className="size-3.5 text-blue-700" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-blue-900 leading-tight">
-              {total === 0 ? 'No changes' : `${total} change${total === 1 ? '' : 's'}`}
-              <span className="font-normal text-blue-700"> between {fmtDate(from)} and {fmtDate(to)}</span>
-            </div>
-            <div className="text-[10px] text-blue-700/80 mt-0.5">
-              Pipeline cells changed: {t2.length} · Transmission: {t3.length}
-            </div>
-          </div>
-        </div>
-        {onOpenRangeDiff && (
-          <button
-            type="button"
-            onClick={onOpenRangeDiff}
-            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 text-[11px] font-semibold transition-colors shrink-0"
-          >
-            See all <ChevronRight className="size-3" />
-          </button>
-        )}
+    <div className="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-3 py-1.5 flex items-center gap-2 flex-wrap text-[12px]">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Activity className="size-3.5 text-blue-700" />
+        <span className="font-semibold text-blue-900">
+          {total} change{total === 1 ? '' : 's'}
+        </span>
+        <span className="text-blue-700">{fmtDate(from)} → {fmtDate(to)}</span>
       </div>
 
       {tops.length > 0 && (
-        <ul className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+        <div className="flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-slate-600 pl-2 border-l border-blue-200">
           {tops.map((d, i) => {
             const Icon = d.delta > 0 ? ArrowUp : ArrowDown;
             const cls  = d.delta > 0 ? 'text-emerald-600' : 'text-rose-600';
             return (
-              <li key={i} className="flex items-center gap-1.5 text-[11px] text-slate-700">
-                <Icon className={`size-3 shrink-0 ${cls}`} />
-                <span className="font-semibold tabular-nums shrink-0">
-                  <span className={cls}>{d.delta > 0 ? '+' : ''}{fmt(d.delta)} MW</span>
+              <span key={i} className="inline-flex items-center gap-0.5 whitespace-nowrap">
+                <Icon className={`size-3 ${cls}`} />
+                <span className={`font-bold tabular-nums ${cls}`}>
+                  {d.delta > 0 ? '+' : ''}{fmt(d.delta)}
                 </span>
-                <span className="text-slate-500 truncate">
-                  {d.region} · {d.source} · {d.field}
-                </span>
-              </li>
+                <span className="text-slate-500">{d.region}·{d.source}·{d.field}</span>
+              </span>
             );
           })}
-        </ul>
+        </div>
+      )}
+
+      {onOpenRangeDiff && (
+        <button
+          type="button"
+          onClick={onOpenRangeDiff}
+          className="ml-auto inline-flex items-center gap-0.5 h-6 px-2 rounded border border-blue-300 bg-white hover:bg-blue-100 text-blue-700 text-[11px] font-semibold transition-colors shrink-0"
+        >
+          See all <ChevronRight className="size-3" />
+        </button>
       )}
     </div>
   );

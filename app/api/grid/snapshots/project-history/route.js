@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireServerUser } from '@/lib/server-auth';
 
+const ROLE_REGION_MAP = { SRLDC: 'SR', NRLDC: 'NR', ERLDC: 'ER', WRLDC: 'WR', NERLDC: 'NER' };
+
 /**
  * GET /api/grid/snapshots/project-history?name=...&region=...&kind=ftc|contd4|tx
  *
@@ -16,13 +18,22 @@ import { requireServerUser } from '@/lib/server-auth';
  */
 export async function GET(request) {
   try {
-    await requireServerUser();
+    const user = await requireServerUser(request);
     const url    = new URL(request.url);
     const name   = (url.searchParams.get('name')   || '').trim();
     const region = (url.searchParams.get('region') || '').trim();
     const kind   = (url.searchParams.get('kind')   || 'ftc').trim();
 
     if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
+
+    // Region scope: an xRLDC user may only inspect projects/elements in their
+    // own region — block cross-region history queries.
+    const ownRegionCode = ROLE_REGION_MAP[user.role];
+    if (ownRegionCode && region && region !== ownRegionCode) {
+      return NextResponse.json({ error: 'Forbidden — cross-region access denied' }, { status: 403 });
+    }
+    // If the user is an xRLDC and no region was supplied, auto-restrict to their own.
+    const effectiveRegion = ownRegionCode || region;
 
     // Query without an explicit select so older Prisma clients (no detailsJson
     // field in the generated types) don't reject the query at runtime.
@@ -39,7 +50,7 @@ export async function GET(request) {
       const list    = details ? (details[collection] || []) : [];
       const match = list.find(
         (r) => String(r?.[nameField] ?? '').toLowerCase() === needle
-          && (!region || r?.region === region),
+          && (!effectiveRegion || r?.region === effectiveRegion),
       ) || null;
       const dateStr = s.snapshotDate instanceof Date
         ? s.snapshotDate.toISOString().slice(0, 10)

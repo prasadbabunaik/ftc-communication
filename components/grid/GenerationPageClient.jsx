@@ -70,16 +70,16 @@ export function GenerationPageClient({
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <Zap className="size-5 text-blue-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <Zap className="size-4 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Generation Tracker</h1>
-            <p className="text-sm text-muted-foreground">{regionLabel}</p>
+            <h1 className="text-lg font-bold text-foreground leading-tight">Generation Tracker</h1>
+            <p className="text-[12px] text-muted-foreground leading-tight">{regionLabel}</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export function GenerationPageClient({
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-4 py-2 rounded-md text-sm font-medium transition-all',
+              'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
               activeTab === tab.id
                 ? 'bg-background shadow-sm text-foreground'
                 : 'text-muted-foreground hover:text-foreground'
@@ -109,27 +109,24 @@ export function GenerationPageClient({
         ))}
       </div>
 
-      {/* Tab description */}
-      <p className="text-xs text-muted-foreground -mt-3">
-        {TABS.find((t) => t.id === activeTab)?.description}
-      </p>
+      {/* Tab content — flex-grows to fill the viewport */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {activeTab === 'contd4' && (
+          <GenerationTable
+            projects={projects}
+            userRole={userRole}
+            onView={handleViewProject}
+          />
+        )}
 
-      {/* Tab content */}
-      {activeTab === 'contd4' && (
-        <GenerationTable
-          projects={projects}
-          userRole={userRole}
-          onView={handleViewProject}
-        />
-      )}
-
-      {activeTab === 'ftc' && (
-        <FtcTable
-          phases={phases}
-          userRole={userRole}
-          onView={handleViewPhase}
-        />
-      )}
+        {activeTab === 'ftc' && (
+          <FtcTable
+            phases={phases}
+            userRole={userRole}
+            onView={handleViewPhase}
+          />
+        )}
+      </div>
 
       {/* Add Project modal */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
