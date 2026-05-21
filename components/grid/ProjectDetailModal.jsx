@@ -43,6 +43,90 @@ function BreakdownItem({ label, mw }) {
   );
 }
 
+// Per-component (Solar / Wind / BESS / PSP) breakdown for hybrid projects,
+// sourced from the Excel's "Source wise Segregation of hybrid Generation
+// Capacity" sheet (stored on GenerationProject.hybridComponentsJson by the
+// seed + backfill scripts). Replaces the old single-line capacity stat so
+// the operator can see the milestone split per component, matching the
+// Google Sheet exactly.
+function fmtMw(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return '0';
+  // Strip trailing zeros after up to 2 decimal places.
+  const s = n.toFixed(2);
+  return s.replace(/\.?0+$/, '') || '0';
+}
+const COMPONENT_TABLE_SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP', 'HYDRO', 'COAL'];
+function HybridComponentTable({ components, hybridType }) {
+  // Order the rows like the Google Sheet (Solar → Wind → BESS → PSP).
+  const ordered = [...components].sort((a, b) => {
+    const ai = COMPONENT_TABLE_SRC_ORDER.indexOf(a.sourceType);
+    const bi = COMPONENT_TABLE_SRC_ORDER.indexOf(b.sourceType);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+  });
+  const totals = ordered.reduce((acc, c) => {
+    acc.totalMw    += Number(c.totalMw    ?? 0);
+    acc.appliedMw  += Number(c.appliedMw  ?? 0);
+    acc.ftcMw      += Number(c.ftcMw      ?? 0);
+    acc.tocMw      += Number(c.tocMw      ?? 0);
+    acc.codMw      += Number(c.codMw      ?? 0);
+    acc.expectedMw += Number(c.expectedMw ?? 0);
+    return acc;
+  }, { totalMw: 0, appliedMw: 0, ftcMw: 0, tocMw: 0, codMw: 0, expectedMw: 0 });
+
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="px-4 py-2.5 border-b bg-slate-50 flex items-baseline justify-between gap-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          Hybrid Capacity Breakdown
+        </p>
+        {hybridType && (
+          <p className="text-[11px] text-slate-500 truncate max-w-[70%]" title={hybridType}>
+            {hybridType}
+          </p>
+        )}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="bg-slate-50/70 text-slate-600 border-b border-slate-200">
+              <th className="px-3 py-2 text-left font-semibold">Source</th>
+              <th className="px-3 py-2 text-right font-semibold">Total (MW)</th>
+              <th className="px-3 py-2 text-right font-semibold">Applied</th>
+              <th className="px-3 py-2 text-right font-semibold bg-blue-50/70 text-blue-700">FTC</th>
+              <th className="px-3 py-2 text-right font-semibold bg-violet-50/70 text-violet-700">TOC</th>
+              <th className="px-3 py-2 text-right font-semibold bg-emerald-50/70 text-emerald-700">COD</th>
+              <th className="px-3 py-2 text-right font-semibold bg-amber-50/70 text-amber-700">Expected</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ordered.map((c, i) => (
+              <tr key={`${c.sourceType}-${i}`} className="border-b border-slate-100 last:border-b-0 hover:bg-blue-50/20">
+                <td className="px-3 py-2"><SourceBadge source={c.sourceType} /></td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmtMw(c.totalMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmtMw(c.appliedMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-blue-800">{fmtMw(c.ftcMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-violet-800">{fmtMw(c.tocMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-emerald-800">{fmtMw(c.codMw)}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-amber-800">{fmtMw(c.expectedMw)}</td>
+              </tr>
+            ))}
+            <tr className="bg-slate-100 border-t-2 border-slate-300 font-bold">
+              <td className="px-3 py-2 text-[10px] uppercase tracking-wide text-slate-700">Total</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtMw(totals.totalMw)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtMw(totals.appliedMw)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtMw(totals.ftcMw)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtMw(totals.tocMw)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtMw(totals.codMw)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtMw(totals.expectedMw)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 const SOURCE_COLORS = {
   WIND:  'bg-sky-50 text-sky-700 border-sky-200',
   SOLAR: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -495,18 +579,26 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                 />
               </div>
 
-              {/* Hybrid breakdown */}
+              {/* Hybrid breakdown — full per-component view from the Excel's
+                  "Source wise Segregation" sheet (stored in
+                  hybridComponentsJson). Falls back to the compact 3-stat
+                  layout when only the legacy capacity fields are present. */}
               {project.plantType.isHybrid && (
-                <div className="rounded-xl border bg-card p-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                    Hybrid Capacity Breakdown
-                  </p>
-                  <div className="flex gap-8">
-                    {project.windCapacityMw  && <BreakdownItem label="Wind"  mw={project.windCapacityMw} />}
-                    {project.solarCapacityMw && <BreakdownItem label="Solar" mw={project.solarCapacityMw} />}
-                    {project.bessCapacityMw  && <BreakdownItem label="BESS"  mw={project.bessCapacityMw} />}
+                project.hybridComponentsJson?.components?.length ? (
+                  <HybridComponentTable components={project.hybridComponentsJson.components} hybridType={project.hybridComponentsJson.hybridType ?? project.plantType.label} />
+                ) : (
+                  <div className="rounded-xl border bg-card p-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                      Hybrid Capacity Breakdown
+                    </p>
+                    <div className="flex gap-8">
+                      {project.windCapacityMw  && <BreakdownItem label="Wind"  mw={project.windCapacityMw} />}
+                      {project.solarCapacityMw && <BreakdownItem label="Solar" mw={project.solarCapacityMw} />}
+                      {project.bessCapacityMw  && <BreakdownItem label="BESS"  mw={project.bessCapacityMw} />}
+                      {project.pspCapacityMw   && <BreakdownItem label="PSP"   mw={project.pspCapacityMw} />}
+                    </div>
                   </div>
-                </div>
+                )
               )}
 
               {/* CONTD-4 */}
