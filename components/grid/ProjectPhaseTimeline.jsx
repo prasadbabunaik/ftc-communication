@@ -16,6 +16,21 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
 
+// Month options for the "Expected For" dropdown — 12 past + 24 future from
+// today. Past months matter when editing back-dated phase data.
+function buildMonthOptionsForEdit() {
+  const options = [];
+  const now = new Date();
+  for (let i = -12; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const month = d.toLocaleString('en-US', { month: 'short' });
+    const year  = String(d.getFullYear()).slice(2);
+    options.push({ value, label: `${month}'${year}` });
+  }
+  return options;
+}
+
 function fmtDateTime(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('en-IN', {
@@ -151,35 +166,50 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
   const [codMw,       setCodMw]       = useState(phase.codDeclaredMw      != null ? String(Number(phase.codDeclaredMw))      : '');
   const [codDate,     setCodDate]     = useState(toDateInput(phase.codDeclaredDate));
   const [expectedMw,  setExpectedMw]  = useState(phase.expectedApr26Mw    != null ? String(Number(phase.expectedApr26Mw))    : '');
+  // Default to the phase's stored month, else current YYYY-MM. ADMIN/NLDC
+  // can change it freely; other roles see a locked label.
+  const [expectedMonth, setExpectedMonth] = useState(() => {
+    if (phase.expectedMonth) return phase.expectedMonth;
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [delayCat,    setDelayCat]    = useState(phase.delayCategory ?? '');
   const [delayRem,    setDelayRem]    = useState(phase.delayRemarks ?? '');
   const [otherRem,    setOtherRem]    = useState(phase.otherRemarks ?? '');
 
+  // Real-time validation — same invariants enforced at submit time, but
+  // recomputed on every render so warnings appear as the user types and
+  // the Save button can be disabled until they're clean.
+  const applied     = Number(phase.capacityAppliedMw) || 0;
+  const ftcMwNum    = ftcMw     ? Number(ftcMw)     || 0 : 0;
+  const underFtcNum = underFtcMw ? Number(underFtcMw) || 0 : 0;
+  const tocMwNum    = tocMw     ? Number(tocMw)     || 0 : 0;
+  const underTocNum = underTocMw ? Number(underTocMw) || 0 : 0;
+  const codMwNum    = codMw     ? Number(codMw)     || 0 : 0;
+  const liveErrors = [];
+  if (ftcMwNum > applied + 0.01)
+    liveErrors.push(`FTC Approved (${ftcMwNum.toFixed(1)} MW) cannot exceed Applied capacity (${applied.toFixed(1)} MW)`);
+  if (underFtcNum + ftcMwNum > applied + 0.01)
+    liveErrors.push(`FTC Approved + Under FTC (${(ftcMwNum + underFtcNum).toFixed(1)} MW) exceeds Applied (${applied.toFixed(1)} MW)`);
+  if (tocMwNum > ftcMwNum + 0.01)
+    liveErrors.push(`TOC Issued (${tocMwNum.toFixed(1)} MW) cannot exceed FTC Approved (${ftcMwNum.toFixed(1)} MW) — FTC ≥ TOC`);
+  if (underTocNum + tocMwNum > ftcMwNum + 0.01)
+    liveErrors.push(`TOC Issued + Under TOC (${(tocMwNum + underTocNum).toFixed(1)} MW) exceeds FTC Approved (${ftcMwNum.toFixed(1)} MW)`);
+  if (codMwNum > tocMwNum + 0.01)
+    liveErrors.push(`COD Declared (${codMwNum.toFixed(1)} MW) cannot exceed TOC Issued (${tocMwNum.toFixed(1)} MW) — TOC ≥ COD`);
+  // Date ordering — TOC date should be on/after FTC date when both exist.
+  if (ftcDate && tocDate && tocDate < ftcDate)
+    liveErrors.push(`TOC Date (${tocDate}) must be on or after FTC Date (${ftcDate})`);
+  if (tocDate && codDate && codDate < tocDate)
+    liveErrors.push(`COD Date (${codDate}) must be on or after TOC Date (${tocDate})`);
+  const hasErrors = liveErrors.length > 0;
+
   function handleSubmit(e) {
     e.preventDefault();
-
-    // Pipeline validation
-    const applied     = Number(phase.capacityAppliedMw) || 0;
-    const ftcMwNum    = ftcMw     ? Number(ftcMw)     : 0;
-    const underFtcNum = underFtcMw ? Number(underFtcMw) : 0;
-    const tocMwNum    = tocMw     ? Number(tocMw)     : 0;
-    const underTocNum = underTocMw ? Number(underTocMw) : 0;
-    const codMwNum    = codMw     ? Number(codMw)     : 0;
-
-    const errs = [];
-    if (ftcMwNum > applied + 0.01)
-      errs.push(`FTC Approved (${ftcMwNum.toFixed(1)} MW) cannot exceed Applied capacity (${applied.toFixed(1)} MW)`);
-    if (underFtcNum + ftcMwNum > applied + 0.01)
-      errs.push(`FTC Approved + Under FTC (${(ftcMwNum + underFtcNum).toFixed(1)} MW) exceeds Applied (${applied.toFixed(1)} MW)`);
-    if (tocMwNum > ftcMwNum + 0.01)
-      errs.push(`TOC Issued (${tocMwNum.toFixed(1)} MW) cannot exceed FTC Approved (${ftcMwNum.toFixed(1)} MW) — FTC ≥ TOC`);
-    if (underTocNum + tocMwNum > ftcMwNum + 0.01)
-      errs.push(`TOC Issued + Under TOC (${(tocMwNum + underTocNum).toFixed(1)} MW) exceeds FTC Approved (${ftcMwNum.toFixed(1)} MW)`);
-    if (codMwNum > tocMwNum + 0.01)
-      errs.push(`COD Declared (${codMwNum.toFixed(1)} MW) cannot exceed TOC Issued (${tocMwNum.toFixed(1)} MW) — TOC ≥ COD`);
-
-    if (errs.length > 0) {
-      errs.forEach((msg) => toast.error(msg, { duration: 6000 }));
+    // Belt-and-suspenders: reuse the live errors computed above so a stray
+    // race can't slip past the (also-live) disabled-Save guard.
+    if (liveErrors.length > 0) {
+      liveErrors.forEach((msg) => toast.error(msg, { duration: 6000 }));
       return;
     }
 
@@ -195,6 +225,7 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
         codDeclaredMw:      codMw,
         codDeclaredDate:    codDate,
         expectedApr26Mw:    expectedMw,
+        expectedMonth:      expectedMonth,
         delayCategory:      delayCat,
         delayRemarks:       delayRem,
         otherRemarks:       otherRem,
@@ -261,10 +292,20 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
               <Field label="COD Date">
                 <DateInput value={codDate} onChange={setCodDate} />
               </Field>
-              <Field label="Expected This Month (MW)">
+              <Field label="Expected (MW)">
                 <NumInput value={expectedMw} onChange={setExpectedMw} />
               </Field>
-              <div />
+              <Field label="Expected For (Month)">
+                <select
+                  value={expectedMonth}
+                  onChange={(e) => setExpectedMonth(e.target.value)}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {buildMonthOptionsForEdit().map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </Field>
             </FieldGroup>
 
             {/* Remarks */}
@@ -303,11 +344,23 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
               </div>
             </div>
 
+            {/* Live validation banner — appears as soon as any invariant
+                breaks (FTC>Applied, TOC>FTC, COD>TOC, date out of order).
+                Save button is locked while this is visible. */}
+            {hasErrors && (
+              <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 space-y-1">
+                <div className="font-semibold">⚠ Fix these before saving:</div>
+                <ul className="list-disc list-inside space-y-0.5 ml-1">
+                  {liveErrors.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-1 border-t">
               <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isPending}>
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={isPending}>
+              <Button type="submit" size="sm" disabled={isPending || hasErrors}>
                 {isPending ? 'Saving…' : 'Save Changes'}
               </Button>
             </div>

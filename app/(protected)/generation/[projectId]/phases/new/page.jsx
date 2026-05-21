@@ -85,6 +85,7 @@ export default async function AddPhasePage({ params }) {
         bessCapacityMw={project.bessCapacityMw ? Number(project.bessCapacityMw) : null}
         existingPhases={existingPhases}
         sourceUsed={sourceUsed}
+        userRole={user.role}
       />
     </div>
   );

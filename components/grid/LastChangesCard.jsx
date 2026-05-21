@@ -100,7 +100,19 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
     );
   }
 
+  // A missing snapshot on either end means we have no recording for that day,
+  // which in practice means nothing was captured/changed — render the same
+  // "No changes" banner instead of a red error.
   if (error) {
+    if (/^No snapshot /.test(error)) {
+      return (
+        <div className={`${wrapper} border-emerald-200 bg-emerald-50 text-emerald-800`}>
+          <Minus className="size-3.5 shrink-0" />
+          <span className="font-semibold">No changes</span>
+          <span className="text-emerald-700/80">between {fmtDate(from)} and {fmtDate(to)}</span>
+        </div>
+      );
+    }
     return (
       <div className={`${wrapper} border-rose-200 bg-rose-50 text-rose-700`}>
         Couldn't load changes: {error}

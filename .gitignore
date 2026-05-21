@@ -23,3 +23,9 @@ playwright-report/
 # Misc
 .DS_Store
 *.pem
+
+# Source data — extracted into the database, no need to track in git.
+# The .py / .js extractor + backfill scripts ARE tracked.
+public/data/excel/*.xlsx
+scripts/seed-may21.json
+scripts/__pycache__/

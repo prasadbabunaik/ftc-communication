@@ -6,7 +6,7 @@ import { FtcPageClient } from '@/components/grid/FtcPageClient';
 
 export const metadata = { title: 'FTC Tracker — FTC Portal' };
 
-export default async function FtcPage() {
+export default async function FtcPage({ searchParams }) {
   let user;
   try {
     user = await requireServerUser();
@@ -14,25 +14,41 @@ export default async function FtcPage() {
     redirect('/login');
   }
 
+  // ── Point-in-time view ─────────────────────────────────────────────────────
+  // ?asOf=YYYY-MM-DD restricts every dated read to the supplied cutoff. The
+  // computation layer (lib/grid-computations) already sums per-event MW; here
+  // we just need to filter the *queries* so events/phases after the cutoff
+  // never load.
+  const params  = await searchParams;
+  const asOfStr = params?.asOf ?? null;
+  const asOf    = asOfStr ? new Date(asOfStr + 'T23:59:59.999Z') : null;
+
   const scope = await buildRegionScope(user.role);
 
   const projects = await prisma.generationProject.findMany({
     where: {
       ...scope,
-      ...activePeriodFilter(),
+      ...activePeriodFilter(asOf),
       contd4: { status: 'CLEARED' },
     },
     include: {
       region:         true,
       plantType:      true,
       poolingStation: true,
-      contd4:         { include: { phases: { orderBy: { declaredDate: 'asc' } } } },
-      phases:         {
+      contd4: {
+        include: {
+          phases: {
+            where: asOf ? { declaredDate: { lte: asOf } } : undefined,
+            orderBy: { declaredDate: 'asc' },
+          },
+        },
+      },
+      phases: {
         orderBy: { createdAt: 'asc' },
         include: {
-          ftcEvents: { orderBy: { eventDate: 'asc' } },
-          tocEvents: { orderBy: { eventDate: 'asc' } },
-          codEvents: { orderBy: { eventDate: 'asc' } },
+          ftcEvents: { where: asOf ? { eventDate: { lte: asOf } } : undefined, orderBy: { eventDate: 'asc' } },
+          tocEvents: { where: asOf ? { eventDate: { lte: asOf } } : undefined, orderBy: { eventDate: 'asc' } },
+          codEvents: { where: asOf ? { eventDate: { lte: asOf } } : undefined, orderBy: { eventDate: 'asc' } },
         },
       },
       notes:          { include: { user: true }, orderBy: { createdAt: 'desc' } },
@@ -40,16 +56,30 @@ export default async function FtcPage() {
     orderBy: { createdAt: 'desc' },
   });
 
+  // For hybrids the per-component capacities (Wind/Solar/BESS/PSP) live in
+  // hybridComponentsJson — the Excel's "Source wise Segregation" data.
+  // Fall back to the explicit Decimal columns when present (legacy path).
+  const componentCap = (p, src) => {
+    const explicit = {
+      WIND:  p.windCapacityMw, SOLAR: p.solarCapacityMw, BESS: p.bessCapacityMw,
+    }[src];
+    if (explicit != null) return Number(explicit);
+    const comp = p.hybridComponentsJson?.components?.find((c) => c.sourceType === src);
+    return comp ? Number(comp.totalMw) : null;
+  };
+
   const allCleared = serialize(
     projects.map((p) => ({
       id:              p.id,
       name:            p.name,
       totalCapacityMw: Number(p.totalCapacityMw),
-      windCapacityMw:  p.windCapacityMw  != null ? Number(p.windCapacityMw)  : null,
-      solarCapacityMw: p.solarCapacityMw != null ? Number(p.solarCapacityMw) : null,
-      bessCapacityMw:  p.bessCapacityMw  != null ? Number(p.bessCapacityMw)  : null,
+      windCapacityMw:  componentCap(p, 'WIND'),
+      solarCapacityMw: componentCap(p, 'SOLAR'),
+      bessCapacityMw:  componentCap(p, 'BESS'),
+      pspCapacityMw:   componentCap(p, 'PSP'),
       region:          p.region,
       plantType:       p.plantType,
+      hybridComponentsJson: p.hybridComponentsJson ?? null,
       phases: p.phases.map((ph) => ({
         sourceType:        ph.sourceType,
         capacityAppliedMw: ph.capacityAppliedMw != null ? Number(ph.capacityAppliedMw) : null,
@@ -64,9 +94,10 @@ export default async function FtcPage() {
     projects.map((p) => ({
       ...p,
       totalCapacityMw:   Number(p.totalCapacityMw),
-      windCapacityMw:    p.windCapacityMw  != null ? Number(p.windCapacityMw)  : null,
-      solarCapacityMw:   p.solarCapacityMw != null ? Number(p.solarCapacityMw) : null,
-      bessCapacityMw:    p.bessCapacityMw  != null ? Number(p.bessCapacityMw)  : null,
+      windCapacityMw:    componentCap(p, 'WIND'),
+      solarCapacityMw:   componentCap(p, 'SOLAR'),
+      bessCapacityMw:    componentCap(p, 'BESS'),
+      pspCapacityMw:     componentCap(p, 'PSP'),
       commissionedMw:    p.phases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0),
       pendingCapacityMw: Number(p.totalCapacityMw) -
                          p.phases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0),
@@ -78,6 +109,11 @@ export default async function FtcPage() {
           eventDate: e.eventDate,
           capacityMw: Number(e.capacityMw),
           remarks: e.remarks ?? null,
+          // Audit trail — when this event row was last written by the
+          // upsert. Preserved across edits when the event ID is sent back
+          // through the form.
+          createdAt: e.createdAt,
+          updatedAt: e.updatedAt,
         });
         return {
           ...ph,
@@ -108,6 +144,7 @@ export default async function FtcPage() {
       allClearedProjects={allCleared}
       userRole={user.role}
       regionLabel={regionLabel}
+      asOf={asOfStr}
     />
   );
 }

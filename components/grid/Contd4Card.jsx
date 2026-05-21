@@ -32,10 +32,12 @@ function monthLabel(yyyyMm) {
   return `${mon}'${String(y).slice(-2)}`;
 }
 
+// 12 months back + 24 months ahead so back-dated phase declarations can
+// target a past capacity month (e.g. declaring Apr'26 capacity in May).
 function buildMonthOptions() {
   const options = [];
   const now = new Date();
-  for (let i = 0; i < 24; i++) {
+  for (let i = -12; i < 24; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const label = monthLabel(value);
@@ -90,7 +92,7 @@ function toDateInput(date) {
   return new Date(date).toISOString().split('T')[0];
 }
 
-export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, onClose }) {
+export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, notes, onClose }) {
   const [editing, setEditing]         = useState(false);
   const [clearing, setClearing]       = useState(false);
   const [clearNote, setClearNote]     = useState('');
@@ -101,6 +103,24 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
   const showClearButton = contd4
     && contd4.status !== 'CLEARED'
     && canClearProject(userRole, regionCode);
+
+  const canBackdate = userRole === 'ADMIN' || userRole === 'NLDC';
+  const todayISO    = new Date().toISOString().slice(0, 10);
+
+  // Pre-fill Effective Date with the back-date applied on the LAST save.
+  // contd4.remarksUpdatedAt is the canonical source — every save with an
+  // effectiveDate writes it there, and it's the same field the list view
+  // reads to render the date beside the remark. Reusing it here keeps the
+  // form and the list in sync. Falls back to today when nothing's been
+  // saved yet (brand-new contd4 record).
+  const lastEffectiveISO = canBackdate
+    ? (contd4?.remarksUpdatedAt
+        ? new Date(contd4.remarksUpdatedAt).toISOString().slice(0, 10)
+        : todayISO)
+    : '';
+  // `notes` is unused for now but the prop is plumbed in so future logic
+  // (e.g. status-only back-dates) can pull from it without another wiring pass.
+  void notes;
 
   const form = useForm({
     resolver: zodResolver(contd4Schema),
@@ -113,6 +133,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
       capacityMonth:   '',
       status: contd4?.status ?? 'PENDING',
       remarks: contd4?.remarks ?? '',
+      effectiveDate: lastEffectiveISO,
     },
   });
 
@@ -239,11 +260,24 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
         </div>
         <div className="px-5 py-4">
           <div className="grid grid-cols-4 gap-x-8 gap-y-4">
-            <Detail label="Application Date"  value={toDateInput(contd4.applicationDate)} />
+            <Detail label="Application Date"  value={toDateInput(contd4.applicationDate) || '—'} />
             <Detail label="Proposed FTC Date" value={toDateInput(contd4.proposedFtcDate) || '—'} />
             <Detail
               label="Total Declared Capacity"
-              value={totalDeclared > 0 ? `${totalDeclared.toFixed(1)} MW · ${phases.length} phase${phases.length !== 1 ? 's' : ''}` : '—'}
+              value={(() => {
+                // Prefer the sum of dated phases when any exist (that's the
+                // "true" declaration timeline). Fall back to the application-
+                // level capacityApr26Mw + capacityMonth pair for legacy
+                // onboarding where no phases have been recorded yet.
+                if (totalDeclared > 0) {
+                  return `${totalDeclared.toFixed(1)} MW · ${phases.length} phase${phases.length !== 1 ? 's' : ''}`;
+                }
+                const appCap = Number(contd4.capacityApr26Mw ?? 0);
+                if (appCap > 0) {
+                  return `${appCap.toFixed(1)} MW${contd4.capacityMonth ? ` · for ${monthLabel(contd4.capacityMonth)}` : ''}`;
+                }
+                return '—';
+              })()}
             />
             <div>
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Status</p>
@@ -262,11 +296,15 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
             </div>
           )}
 
-          {/* ── Capacity phases — append-only timeline of declared capacity ── */}
+          {/* ── Capacity phases — append-only timeline of CONTD-4 capacity
+              declarations (date + MW + target month). This is DIFFERENT from
+              "Commissioning Phases" which record FTC/TOC/COD events. The
+              button is renamed accordingly to avoid the ambiguity the user
+              hit when both sections had buttons labelled "Add Phase". */}
           <div className="mt-5 pt-4 border-t">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                <History className="size-3" /> Capacity Phases
+                <History className="size-3" /> CONTD-4 Capacity Declarations
               </p>
               {canEdit && !showPhaseForm && (
                 <button
@@ -274,13 +312,13 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
                   onClick={() => { setShowPhaseForm(true); setPhaseDate(toDateInput(new Date())); }}
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded px-2 py-0.5 transition-colors"
                 >
-                  <Plus className="size-3" /> Add Phase
+                  <Plus className="size-3" /> Add CONTD-4 Declaration
                 </button>
               )}
             </div>
 
             {phases.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No capacity phases recorded yet. Each phase preserves the date and MW declared.</p>
+              <p className="text-xs text-muted-foreground italic">No CONTD-4 capacity declarations recorded yet. Each declaration preserves the date and MW announced for a target month.</p>
             ) : (
               <div className="overflow-hidden rounded-md border border-slate-200">
                 <table className="w-full text-xs">
@@ -551,6 +589,20 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, o
                 </FormItem>
               );
             }} />
+            {canBackdate && contd4 && (
+              <FormField control={form.control} name="effectiveDate" render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Effective Date <span className="text-[10px] text-muted-foreground font-normal">(ADMIN/NLDC only — back-dates the change in history)</span></FormLabel>
+                  <FormControl>
+                    <DatePicker value={field.value} onChange={field.onChange} placeholder="Defaults to today" />
+                  </FormControl>
+                  <p className="text-[11px] text-muted-foreground">
+                    Snapshots from this date forward will be rebuilt to reflect the change.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>

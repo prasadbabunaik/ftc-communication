@@ -170,7 +170,7 @@ export function TransmissionTable({ elements, userRole, onView }) {
 
       <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full text-sm">
-          <thead className="bg-muted/30 border-b sticky top-0 z-10">
+          <thead className="bg-card border-b sticky top-0 z-20 shadow-sm">
             <tr>
               <Th label="Sr. No"                               className="w-[52px]" />
               <SortableTh label="Agency / Owner"  field="agency"    className="min-w-[140px]" {...sp} />

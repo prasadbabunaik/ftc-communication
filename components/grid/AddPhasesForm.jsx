@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createPhasesSchema } from '@/lib/validations/grid';
-import { addCommissioningPhases } from '@/app/actions/grid';
+import { upsertProjectPhases } from '@/app/actions/grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -61,12 +61,14 @@ const SOURCE_COLORS = {
 const EMPTY_EVENT = { mw: '', date: '', remarks: '' };
 
 const EMPTY_PHASE = {
+  existingId:         null,
   sourceType:         'SOLAR',
   capacityAppliedMw:  '',
   proposedFtcDate:    '',
   capacityUnderFtcMw: '',
   capacityUnderTocMw: '',
   expectedApr26Mw:    '',
+  expectedMonth:      '',
   delayRemarks:       '',
   otherRemarks:       '',
   ftcEvents:          [],
@@ -74,9 +76,61 @@ const EMPTY_PHASE = {
   codEvents:          [],
 };
 
+// Month options for the "Expected (MW)" dropdown — 12 past + 24 future from
+// today. Past months matter when ADMIN/NLDC back-fills historical data.
+function buildMonthOptions() {
+  const options = [];
+  const now = new Date();
+  for (let i = -12; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const month = d.toLocaleString('en-US', { month: 'short' });
+    const year  = String(d.getFullYear()).slice(2);
+    options.push({ value, label: `${month}'${year}` });
+  }
+  return options;
+}
+const MONTH_OPTIONS = buildMonthOptions();
+function fmtMonthShort(ym) {
+  if (!ym) return '';
+  const opt = MONTH_OPTIONS.find((o) => o.value === ym);
+  return opt?.label ?? ym;
+}
+
 function sumEvents(evs) {
   // Form events use `mw`; DB-serialised events (from enriched phases) use `capacityMw`
   return (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw ?? e.capacityMw) || 0), 0);
+}
+
+// Convert a DB-shape phase to the form's string-everywhere shape. Used
+// when the modal is opened for a project that already has phases — the
+// form pre-fills with the current state and the save handler routes to
+// an upsert action (existingId carries the phase identity so saving
+// modifies the existing row instead of creating a duplicate).
+function existingPhaseToFormRow(ph, defaultMonth) {
+  const ev = (e) => ({
+    id: e.id,
+    mw: e.capacityMw != null ? String(Number(e.capacityMw)) : '',
+    date: e.eventDate ? new Date(e.eventDate).toISOString().slice(0, 10) : '',
+    remarks: e.remarks ?? '',
+  });
+  return {
+    // Hidden marker — distinguishes "edit this existing phase" from "add a
+    // new one". Server action upsertProjectPhases reads it.
+    existingId:         ph.id ?? null,
+    sourceType:         ph.sourceType,
+    capacityAppliedMw:  ph.capacityAppliedMw  != null ? String(Number(ph.capacityAppliedMw))  : '',
+    proposedFtcDate:    ph.proposedFtcDate    ? new Date(ph.proposedFtcDate).toISOString().slice(0, 10) : '',
+    capacityUnderFtcMw: ph.capacityUnderFtcMw != null ? String(Number(ph.capacityUnderFtcMw)) : '',
+    capacityUnderTocMw: ph.capacityUnderTocMw != null ? String(Number(ph.capacityUnderTocMw)) : '',
+    expectedApr26Mw:    ph.expectedApr26Mw    != null ? String(Number(ph.expectedApr26Mw))    : '',
+    expectedMonth:      ph.expectedMonth ?? defaultMonth,
+    delayRemarks:       ph.delayRemarks ?? '',
+    otherRemarks:       ph.otherRemarks ?? '',
+    ftcEvents:          (ph.ftcEvents ?? []).map(ev),
+    tocEvents:          (ph.tocEvents ?? []).map(ev),
+    codEvents:          (ph.codEvents ?? []).map(ev),
+  };
 }
 
 function computePipeline(phases) {
@@ -101,8 +155,10 @@ export function AddPhasesForm({
   windCapacityMw,
   solarCapacityMw,
   bessCapacityMw,
+  pspCapacityMw,
   existingPhases = [],
   sourceUsed,
+  userRole,
   onSuccess,
   onCancel,
 }) {
@@ -110,26 +166,82 @@ export function AddPhasesForm({
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState(null);
   const { settings } = useSettings();
-  const refMonthLabel = fmtRefMonth(settings.referenceMonth);
+  // Default expectedMonth = the current reference month (the same value that
+  // used to drive the rolling "Exp. May'26" label). ADMIN/NLDC can change it
+  // freely; RLDC sees the label locked to that default.
+  const defaultExpectedMonth = settings.referenceMonth || (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const canPickExpectedMonth = userRole === 'ADMIN' || userRole === 'NLDC';
+  const refMonthLabel = fmtRefMonth(defaultExpectedMonth);
 
-  // Derive valid sources from plant type; pre-populate one phase per source
+  // Build one row per plant source, every time.
+  //   - For hybrids the project has multiple components (Wind / Solar /
+  //     BESS / etc.); each one must be addressable in the form even when
+  //     it has no DB phase yet, otherwise the operator can't enter
+  //     milestones for the missing components (the original bug — a
+  //     Wind+Solar+BESS project with only a BESS phase rendered as a
+  //     single BESS row, with no way to add Solar or Wind).
+  //   - For non-hybrids plantSources has a single entry, so the behaviour
+  //     collapses back to one row.
+  // Existing DB phases are mapped onto the matching plant-source row so
+  // edits land in place (existingId preserved); unmatched plant sources
+  // get empty rows pre-typed to their source. Phases that don't map to
+  // any plant source (data drift) are appended at the end so they remain
+  // visible and editable rather than disappearing silently.
   const plantSources = useMemo(() => getPlantSources(plantType), [plantType]);
-  const initialPhases = useMemo(
-    () => plantSources.map((s) => ({ ...EMPTY_PHASE, sourceType: s })),
+  const isEditMode = existingPhases.length > 0;
+  const initialPhases = useMemo(() => {
+    const byType = new Map();
+    for (const ph of existingPhases) {
+      if (!byType.has(ph.sourceType)) byType.set(ph.sourceType, ph);
+    }
+    const rows = plantSources.map((src) => {
+      const ph = byType.get(src);
+      byType.delete(src);
+      return ph
+        ? existingPhaseToFormRow(ph, defaultExpectedMonth)
+        : { ...EMPTY_PHASE, sourceType: src, expectedMonth: defaultExpectedMonth };
+    });
+    // Surface any orphaned phases (sourceType not in plantSources) at the
+    // end. Usually empty — but better than silently dropping data.
+    for (const ph of byType.values()) {
+      rows.push(existingPhaseToFormRow(ph, defaultExpectedMonth));
+    }
+    return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(createPhasesSchema),
     defaultValues: { phases: initialPhases },
+    // Real-time validation — errors surface as the user types so manual
+    // entry mistakes (FTC>Applied, TOC>FTC, missing dates, etc.) get caught
+    // immediately instead of only at submit.
+    mode: 'onChange',
   });
 
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'phases' });
+  // Single-phase-per-project: we only need `fields` for iteration. There's
+  // no append/remove from the outer phase array (auto-populated per source
+  // for hybrids, otherwise one row). Event-level append/remove still works
+  // inside each EventList.
+  const { fields } = useFieldArray({ control: form.control, name: 'phases' });
   const watchedPhases = form.watch('phases');
 
+  // Counter math:
+  //   newCodSum     — COD MW the form will write (across all phase rows)
+  //   survivingCod  — COD from existing phases the form is NOT replacing
+  // Total project COD after save = survivingCod + newCodSum. So:
+  //   pendingMw = totalCapacityMw - (survivingCod + newCodSum)
+  // In add-mode (no existingId rows), survivingCod === existingCodMw and
+  // the math collapses back to the original.
   const newCodSum = watchedPhases.reduce((s, p) => s + sumEvents(p.codEvents ?? []), 0);
-  const pendingMw = totalCapacityMw - existingCodMw - newCodSum;
+  const survivingCodMw = existingPhases.reduce(
+    (s, p) => s + (watchedPhases.some((w) => w.existingId === p.id) ? 0 : Number(p.codDeclaredMw ?? 0)),
+    0,
+  );
+  const pendingMw = totalCapacityMw - survivingCodMw - newCodSum;
 
   const existingPipeline = useMemo(() => computePipeline(existingPhases), [existingPhases]);
 
@@ -143,18 +255,30 @@ export function AddPhasesForm({
     }))),
   [watchedPhases]);
 
+  // When a form row has an existingId, it REPLACES that existing phase on
+  // save — so the existing phase's contribution shouldn't be double-counted
+  // alongside the batch. Compute the subset of existingPipeline that the
+  // form is NOT replacing, then add the batch on top.
+  const replacedIds = useMemo(
+    () => new Set(watchedPhases.map((p) => p.existingId).filter(Boolean)),
+    [watchedPhases],
+  );
+  const survivingExisting = useMemo(
+    () => computePipeline(existingPhases.filter((p) => !replacedIds.has(p.id))),
+    [existingPhases, replacedIds],
+  );
   const combinedPipeline = useMemo(() => {
-    const sources = new Set([...Object.keys(existingPipeline), ...Object.keys(batchPipeline)]);
+    const sources = new Set([...Object.keys(survivingExisting), ...Object.keys(batchPipeline)]);
     const out = {};
     for (const s of sources) {
       out[s] = {
-        ftc: (existingPipeline[s]?.ftc ?? 0) + (batchPipeline[s]?.ftc ?? 0),
-        toc: (existingPipeline[s]?.toc ?? 0) + (batchPipeline[s]?.toc ?? 0),
-        cod: (existingPipeline[s]?.cod ?? 0) + (batchPipeline[s]?.cod ?? 0),
+        ftc: (survivingExisting[s]?.ftc ?? 0) + (batchPipeline[s]?.ftc ?? 0),
+        toc: (survivingExisting[s]?.toc ?? 0) + (batchPipeline[s]?.toc ?? 0),
+        cod: (survivingExisting[s]?.cod ?? 0) + (batchPipeline[s]?.cod ?? 0),
       };
     }
     return out;
-  }, [existingPipeline, batchPipeline]);
+  }, [survivingExisting, batchPipeline]);
 
   const pipelineErrors = useMemo(() => {
     const errs = {};
@@ -175,7 +299,10 @@ export function AddPhasesForm({
     if (hasPipelineErrors) return;
     setServerError(null);
     startTransition(async () => {
-      const result = await addCommissioningPhases(projectId, values);
+      // upsertProjectPhases handles both new and existing phases — rows
+      // carrying an existingId update in place; rows without one are
+      // created. Saves never duplicate when the form is in edit mode.
+      const result = await upsertProjectPhases(projectId, values);
       if (result?.error) {
         const msg = typeof result.error === 'string'
           ? result.error
@@ -232,10 +359,15 @@ export function AddPhasesForm({
               {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={windCapacityMw}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  />}
               {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={solarCapacityMw} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} />}
               {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={bessCapacityMw}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  />}
+              {pspCapacityMw   != null && <SourcePipelineCard source="PSP"   cap={pspCapacityMw}   existing={existingPipeline.PSP}   combined={combinedPipeline.PSP}   hasError={!!pipelineErrors.PSP}   />}
             </div>
           </div>
         )}
       </div>
+
+      {/* Edit-mode behaviour is implicit — fields below are pre-filled
+          with current phase data, and save updates in place via the
+          server-side upsert. No banner needed. */}
 
       {/* Pipeline violation banner */}
       {hasPipelineErrors && (
@@ -266,31 +398,25 @@ export function AddPhasesForm({
             key={field.id}
             index={i}
             form={form}
-            onRemove={() => remove(i)}
-            showRemove={fields.length > 1}
             isHybrid={plantType.isHybrid}
             availableSources={plantSources}
             existingPipeline={existingPipeline}
             refMonthLabel={refMonthLabel}
+            canPickExpectedMonth={canPickExpectedMonth}
           />
         ))}
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => append({ ...EMPTY_PHASE, sourceType: plantSources[0] })}
-          className="w-full border-dashed"
-        >
-          <Plus className="size-4 mr-2" /> Add Another Phase
-        </Button>
+        {/* "Add Another Phase" was removed — each project has a single
+            commissioning phase (per source, for hybrids) and additional
+            partial commissioning is captured as FTC / TOC / COD events
+            within that phase, not as new phases. */}
 
         <div className="flex gap-3 justify-end pt-2">
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
           </Button>
           <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors || !form.formState.isValid}>
-            {isPending ? 'Saving...' : `Save ${fields.length} Phase${fields.length > 1 ? 's' : ''}`}
+            {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save Phase'}
           </Button>
         </div>
       </form>
@@ -306,15 +432,34 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [] }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = form.watch(prefix) ?? [];
   const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const st = MILESTONE_STYLES[milestone];
 
+  // Cumulative MW limit check for THIS milestone (FTC ≤ Applied, TOC ≤ FTC,
+  // COD ≤ TOC). limitMw can be undefined for FTC's first-time use where
+  // the limit is implicit in the schema.
+  const overLimit  = limitMw != null && total > limitMw + 0.01;
+  const remaining  = limitMw != null ? Math.max(0, limitMw - total) : null;
+
+  // Earliest prior milestone date — used to flag "TOC before any FTC" or
+  // "COD before any TOC" entry mistakes. Empty when no prior events yet.
+  const earliestPriorDate = useMemo(() => {
+    const dated = (priorEvents ?? [])
+      .map((e) => e?.date)
+      .filter(Boolean)
+      .sort();
+    return dated[0] ?? null;
+  }, [priorEvents]);
+  const datesOutOfOrder = watchedEvents.some(
+    (e) => e.date && earliestPriorDate && e.date < earliestPriorDate
+  );
+
   return (
-    <div className={`rounded-lg border p-3 space-y-2.5 ${st.header}`}>
+    <div className={`rounded-lg border p-3 space-y-2.5 ${overLimit ? 'border-red-300 bg-red-50/30' : st.header}`}>
       {/* Section header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
@@ -322,8 +467,13 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
             {milestone}
           </span>
           {total > 0 && (
-            <span className="text-xs font-mono font-semibold text-foreground">
-              {total.toFixed(2)} MW total
+            <span className={`text-xs font-mono font-semibold ${overLimit ? 'text-red-700' : 'text-foreground'}`}>
+              {total.toFixed(2)}{limitMw != null ? ` / ${limitMw.toFixed(2)}` : ''} MW total
+              {limitMw != null && remaining != null && !overLimit && (
+                <span className="text-[10px] text-muted-foreground font-normal ml-1.5">
+                  · {remaining.toFixed(2)} MW headroom
+                </span>
+              )}
             </span>
           )}
           {existingMw > 0 && (
@@ -339,6 +489,18 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
         </div>
         <span className="text-[10px] text-muted-foreground">{fields.length} event{fields.length !== 1 ? 's' : ''}</span>
       </div>
+
+      {/* Real-time guard rails — sum-exceeds-limit + date-out-of-order */}
+      {overLimit && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700">
+          ⚠ Total {milestone} ({total.toFixed(2)} MW) exceeds {limitLabel || 'limit'} ({limitMw.toFixed(2)} MW). Remove or reduce events to fit.
+        </div>
+      )}
+      {datesOutOfOrder && earliestPriorDate && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">
+          ⚠ One or more {milestone} dates is BEFORE the earliest prior-milestone date ({earliestPriorDate}). {milestone} must happen on or after the prerequisite milestone.
+        </div>
+      )}
 
       {/* Event rows */}
       {fields.length > 0 && (
@@ -391,8 +553,27 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
               Add {st.label} Event
             </button>
           </div>
-          <div className="w-44">
-            <label className="text-[10px] font-medium text-foreground block mb-1">{refMonthLabel}</label>
+          <div className="w-56">
+            <label className="text-[10px] font-medium text-foreground block mb-1 flex items-center gap-1">
+              Expected{' '}
+              {canPickExpectedMonth ? (
+                // ADMIN/NLDC: free month dropdown so back-dated entries can
+                // target any month (e.g. recording Apr'26 expected in May).
+                <select
+                  value={form.watch(`phases.${phaseIndex}.expectedMonth`) ?? ''}
+                  onChange={(e) => form.setValue(`phases.${phaseIndex}.expectedMonth`, e.target.value, { shouldValidate: false })}
+                  className="inline-flex h-5 rounded border border-input bg-background px-1 text-[10px] font-medium"
+                >
+                  {MONTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              ) : (
+                // RLDC: locked to the current reference month — show the label only.
+                <span className="font-semibold">
+                  {fmtMonthShort(form.watch(`phases.${phaseIndex}.expectedMonth`)) || refMonthLabel.replace('Exp. ', '').replace(' (MW)', '')}
+                </span>
+              )}
+              <span>(MW)</span>
+            </label>
             <Input
               type="number"
               step="0.01"
@@ -417,7 +598,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
   );
 }
 
-function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSources, existingPipeline, refMonthLabel }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -431,15 +612,22 @@ function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSource
   const tocGated = isHybrid && srcState.ftc === 0 && ftcTotal === 0;
   const codGated = isHybrid && srcState.toc === 0 && tocTotal === 0;
 
+  // Per-milestone limits for the EventList running-total banner.
+  // FTC: bounded by Applied (capacity entered just above). TOC: bounded by
+  // total FTC. COD: bounded by total TOC. All combine batch + existing for
+  // hybrid projects where other phases may already have recorded values.
+  const appliedMw = parseFloat(form.watch(`${prefix}.capacityAppliedMw`) || '0') || 0;
+  const ftcLimit  = appliedMw > 0 ? appliedMw : null;
+  const tocLimit  = ftcTotal + (isHybrid ? srcState.ftc : 0);
+  const codLimit  = tocTotal + (isHybrid ? srcState.toc : 0);
+
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-foreground">Phase {index + 1}</span>
-        {showRemove && (
-          <button type="button" onClick={onRemove} className="text-muted-foreground hover:text-red-600 transition-colors p-1">
-            <Trash2 className="size-4" />
-          </button>
-        )}
+        {/* Per-row Remove button removed — single-phase-per-project rule
+            means deleting must happen via the project detail edit/delete
+            flow, not silently from this form. */}
       </div>
 
       {/* Source + Applied */}
@@ -475,6 +663,9 @@ function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSource
         gated={false}
         existingMw={isHybrid ? srcState.ftc : 0}
         refMonthLabel={refMonthLabel}
+        canPickExpectedMonth={canPickExpectedMonth}
+        limitMw={ftcLimit}
+        limitLabel="Applied capacity"
       />
 
       {/* TOC events */}
@@ -486,6 +677,10 @@ function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSource
         gatedMsg={`Requires ${selectedSource} FTC to be completed first`}
         existingMw={isHybrid ? srcState.toc : 0}
         refMonthLabel={refMonthLabel}
+        canPickExpectedMonth={canPickExpectedMonth}
+        limitMw={tocLimit}
+        limitLabel="Total FTC"
+        priorEvents={watchedFtcEvents}
       />
 
       {/* Under TOC */}
@@ -502,6 +697,10 @@ function PhaseRow({ index, form, onRemove, showRemove, isHybrid, availableSource
         gatedMsg={`Requires ${selectedSource} TOC to be issued first`}
         existingMw={isHybrid ? srcState.cod : 0}
         refMonthLabel={refMonthLabel}
+        canPickExpectedMonth={canPickExpectedMonth}
+        limitMw={codLimit}
+        limitLabel="Total TOC"
+        priorEvents={watchedTocEvents}
       />
 
       {/* Remarks */}

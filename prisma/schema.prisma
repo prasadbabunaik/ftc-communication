@@ -104,6 +104,12 @@ model GenerationProject {
   solarCapacityMw Decimal? @db.Decimal(10, 2)
   bessCapacityMw  Decimal? @db.Decimal(10, 2)
 
+  // Per-component breakdown for hybrid projects. Populated from the
+  // Excel's "Source wise Segregation of hybrid Generation Capacity" sheet
+  // and consumed only by computeHybridBreakdown / Hybrid Breakdown tab.
+  // Non-hybrid projects leave this null.
+  hybridComponentsJson Json?
+
   // Active period — a project is "live" on date D when:
   //     activeFrom <= D AND (activeUntil IS NULL OR activeUntil > D)
   // Soft-delete sets activeUntil = NOW(); reactivation sets it back to NULL.
@@ -130,7 +136,10 @@ model Contd4Application {
   projectId String            @unique
   project   GenerationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  applicationDate DateTime
+  // Nullable because ADMIN/NLDC may onboard a legacy project for which the
+  // original CONTD-4 application date is unknown. New (PENDING/RECEIVED)
+  // applications still receive a date — the action enforces that.
+  applicationDate DateTime?
   proposedFtcDate DateTime?
   // Legacy: kept as a cached sum / "latest declaration" mirror so existing
   // dashboards and exports keep working unchanged. Source of truth is now the
@@ -199,6 +208,12 @@ model CommissioningPhase {
   codDeclaredDate DateTime?
   capacityPendingCodMw Decimal? @db.Decimal(10, 2)
   expectedApr26Mw Decimal?  @db.Decimal(10, 2)
+  // YYYY-MM the expectedApr26Mw value refers to. Lets users (esp. ADMIN/NLDC
+  // entering back-dated data) record an "expected commissioning" against any
+  // month, not just the rolling current month. Null falls back to today's
+  // YYYY-MM at display time for backward compat with rows created before
+  // this column existed.
+  expectedMonth   String?
 
   delayCategory String?
   delayRemarks  String?
@@ -284,9 +299,14 @@ model ProjectNote {
   oldValue  String?
   newValue  String?
   createdAt DateTime           @default(now())
+  // Date the change is *logically* effective on (used by point-in-time replay
+  // such as statusAsOf). For normal edits this equals createdAt; ADMIN/NLDC
+  // may back-date a change by setting effectiveDate earlier than createdAt.
+  effectiveDate DateTime?
 
   @@index([projectId])
   @@index([phaseId])
+  @@index([effectiveDate])
   @@map("project_notes")
 }
 
@@ -302,8 +322,17 @@ model TransmissionAuditLog {
   oldValue    String?
   newValue    String?
   createdAt   DateTime             @default(now())
+  // See ProjectNote.effectiveDate. Used by txStateAsOf to replay TX state at
+  // any past date; when null, falls back to createdAt.
+  effectiveDate DateTime?
+  // Snapshot of the element's full state AFTER this audit event. Lets
+  // txStateAsOf return historical state in O(1) per element/date pair.
+  // Null for legacy rows written before this column existed — replay falls
+  // back to the current element row in that case.
+  stateJson Json?
 
   @@index([elementId])
+  @@index([effectiveDate])
   @@map("transmission_audit_logs")
 }
 

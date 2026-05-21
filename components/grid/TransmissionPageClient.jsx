@@ -56,6 +56,7 @@ export function TransmissionPageClient({ elements, regions, lockedRegionId, user
             <AddTransmissionForm
               regions={regions}
               lockedRegionId={lockedRegionId}
+              userRole={userRole}
               onSuccess={() => { setAddOpen(false); router.refresh(); }}
               onCancel={() => setAddOpen(false)}
             />
@@ -70,6 +71,7 @@ export function TransmissionPageClient({ elements, regions, lockedRegionId, user
         onOpenChange={(o) => { if (!o) setViewElement(null); }}
         canEdit={canCreate}
         regions={regions}
+        userRole={userRole}
       />
     </div>
   );

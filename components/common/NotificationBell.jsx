@@ -9,11 +9,14 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Poll the API at this interval. 30s is a reasonable trade-off between
-// freshness and request volume; the server uses an indexed query so this is
-// cheap. Tab visibility is respected — we pause polling when the tab is
-// hidden to avoid waking the laptop pointlessly.
-const POLL_MS = 30_000;
+// Poll the API at this interval. Set NEXT_PUBLIC_NOTIFICATIONS_DISABLED=1 in
+// .env.local to disable polling entirely (useful during local testing when
+// you don't want the bell hammering the API). Tab visibility is respected —
+// we pause polling when the tab is hidden to avoid waking the laptop
+// pointlessly. We also stop polling permanently on the first 401 so an
+// expired session doesn't keep firing requests in the background.
+const POLL_MS = 60_000;
+const POLLING_DISABLED = process.env.NEXT_PUBLIC_NOTIFICATIONS_DISABLED === '1';
 
 const TYPE_ICON = {
   PROJECT_CREATED:         Zap,
@@ -57,14 +60,23 @@ export function NotificationBell() {
   const [loading, setLoading]         = useState(false);
   const popoverRef                    = useRef(null);
   const lastFetchRef                  = useRef(0);
+  const stoppedRef                    = useRef(false);
 
   const fetchItems = useCallback(async (opts = {}) => {
+    // Once we've hit a 401 (session expired) or an explicit stop signal,
+    // do nothing — polling would otherwise spam the access log with 401s.
+    if (stoppedRef.current) return;
     // Skip if we just fetched (debounce against double-clicks)
     if (!opts.force && Date.now() - lastFetchRef.current < 1_000) return;
     lastFetchRef.current = Date.now();
     setLoading(true);
     try {
       const res = await fetch('/api/notifications?limit=30', { cache: 'no-store' });
+      if (res.status === 401) {
+        // Session is gone — stop polling so we don't keep hitting the API.
+        stoppedRef.current = true;
+        return;
+      }
       if (!res.ok) return;
       const json = await res.json();
       setItems(json.data ?? []);
@@ -76,17 +88,21 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Initial load + polling. Pause when tab is hidden.
+  // Initial load + polling. Pause when tab is hidden. Skipped entirely when
+  // the env-var kill-switch is set.
   useEffect(() => {
+    if (POLLING_DISABLED) return;
     fetchItems({ force: true });
     let timer;
     const tick = () => {
+      if (stoppedRef.current) return;
       if (document.visibilityState === 'visible') fetchItems();
       timer = setTimeout(tick, POLL_MS);
     };
     timer = setTimeout(tick, POLL_MS);
 
     const onVisibility = () => {
+      if (stoppedRef.current) return;
       if (document.visibilityState === 'visible') fetchItems();
     };
     document.addEventListener('visibilitychange', onVisibility);

@@ -31,10 +31,13 @@ function AutoResizeTextarea({ value, onChange, className, ...props }) {
   return <textarea ref={ref} value={value} onChange={onChange} className={className} {...props} />;
 }
 
-export function AddTransmissionForm({ regions, lockedRegionId, element, onSuccess, onCancel }) {
+export function AddTransmissionForm({ regions, lockedRegionId, element, userRole, onSuccess, onCancel }) {
   const isEdit = !!element;
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState(null);
+
+  const canBackdate = isEdit && (userRole === 'ADMIN' || userRole === 'NLDC');
+  const todayISO    = new Date().toISOString().slice(0, 10);
 
   const form = useForm({
     resolver: zodResolver(createTransmissionSchema),
@@ -53,6 +56,7 @@ export function AddTransmissionForm({ regions, lockedRegionId, element, onSucces
       capacityApr26Mva:  element?.capacityApr26Mva != null ? String(element.capacityApr26Mva) : '',
       lineLengthApr26Km: element?.lineLengthApr26Km != null ? String(element.lineLengthApr26Km) : '',
       remarks:           element?.remarks ?? '',
+      effectiveDate:     canBackdate ? todayISO : '',
     },
   });
 
@@ -244,6 +248,21 @@ export function AddTransmissionForm({ regions, lockedRegionId, element, onSucces
               <FormMessage />
             </FormItem>
           )} />
+
+          {canBackdate && (
+            <FormField control={form.control} name="effectiveDate" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Effective Date <span className="text-[10px] text-muted-foreground font-normal">(ADMIN/NLDC only — back-dates the change in history)</span></FormLabel>
+                <FormControl>
+                  <DatePicker value={field.value} onChange={field.onChange} placeholder="Defaults to today" />
+                </FormControl>
+                <p className="text-[11px] text-muted-foreground">
+                  Snapshots from this date forward will be rebuilt to reflect the change.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
         </div>
 
         <div className="flex gap-3 justify-end">

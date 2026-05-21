@@ -27,10 +27,13 @@ function monthLabel(yyyyMm) {
   return `${mon}'${String(y).slice(-2)}`;
 }
 
+// 12 months back + 24 months ahead. Past months are needed because ADMIN/NLDC
+// can record back-dated CONTD-4 declarations for capacity that was committed
+// in a prior month (e.g. seeding April data in May).
 function buildMonthOptions() {
   const options = [];
   const now = new Date();
-  for (let i = 0; i < 24; i++) {
+  for (let i = -12; i < 24; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     options.push({ value, label: monthLabel(value) });
@@ -90,6 +93,9 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
   const [addPsPending, startAddPsTransition] = useTransition();
   const [selectedSources, setSelectedSources] = useState([]);
 
+  const canBackdate = userRole === 'ADMIN' || userRole === 'NLDC';
+  const todayISO    = new Date().toISOString().slice(0, 10);
+
   const form = useForm({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
@@ -111,6 +117,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
         status: 'PENDING',
         remarks: '',
       },
+      effectiveDate: canBackdate ? todayISO : '',
     },
   });
 
@@ -405,21 +412,42 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                 </FormItem>
               )} />
 
-              {/* Status is always PENDING for newly-created CONTD-4 applications.
-                  It can be transitioned later (Edit → Status, or via the
-                  "Mark as Cleared" action on the detail page). */}
+              {/* Status: locked to PENDING for everyone except ADMIN/NLDC, who
+                  may pick any status (typically CLEARED) when onboarding a
+                  project that's already past CONTD-4. Server enforces the
+                  same rule — non-ADMIN/NLDC requests are coerced to PENDING. */}
               <FormField control={form.control} name="contd4.status" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground">Status</FormLabel>
-                  <FormControl>
-                    <input type="hidden" {...field} value="PENDING" />
-                  </FormControl>
-                  <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm text-foreground">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
-                      Pending
-                    </span>
-                    <span className="text-[10px] text-muted-foreground ml-2">— starts as Pending; update later from the project page</span>
-                  </div>
+                  <FormLabel>
+                    Status
+                    {canBackdate && (
+                      <span className="text-[10px] text-muted-foreground font-normal ml-1">
+                        (ADMIN/NLDC — pick CLEARED to onboard an already-approved project)
+                      </span>
+                    )}
+                  </FormLabel>
+                  {canBackdate ? (
+                    <FormControl>
+                      <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                        <option value="PENDING">Pending</option>
+                        <option value="RECEIVED">Received</option>
+                        <option value="CLEARED">Cleared</option>
+                        <option value="REJECTED">Rejected</option>
+                      </select>
+                    </FormControl>
+                  ) : (
+                    <>
+                      <FormControl>
+                        <input type="hidden" {...field} value="PENDING" />
+                      </FormControl>
+                      <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm text-foreground">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
+                          Pending
+                        </span>
+                        <span className="text-[10px] text-muted-foreground ml-2">— starts as Pending; update later from the project page</span>
+                      </div>
+                    </>
+                  )}
                   <FormMessage />
                 </FormItem>
               )} />
@@ -441,6 +469,28 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
             </div>
           )}
         </div>
+
+        {canBackdate && (
+          <div className="rounded-md border border-amber-200 bg-amber-50/40 p-4">
+            <FormField control={form.control} name="effectiveDate" render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Effective Date{' '}
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    (ADMIN/NLDC — back-dates the project so it appears in historical snapshots)
+                  </span>
+                </FormLabel>
+                <FormControl>
+                  <DatePicker value={field.value} onChange={field.onChange} placeholder="Defaults to today" />
+                </FormControl>
+                <p className="text-[11px] text-muted-foreground">
+                  Snapshots from this date forward will be rebuilt to include this project.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end pt-2">
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>

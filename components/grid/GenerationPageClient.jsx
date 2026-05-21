@@ -158,6 +158,7 @@ export function GenerationPageClient({
         open={!!selectedProject}
         onOpenChange={(open) => { if (!open) setSelectedProject(null); }}
         canEdit={canEdit}
+        userRole={userRole}
       />
     </div>
   );

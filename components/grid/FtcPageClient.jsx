@@ -64,7 +64,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
           {canEdit && (
             <Button variant="outline" onClick={() => setPhaseOpen(true)}>
               <Layers className="size-4 mr-2" />
-              Add Phase
+              Add Commissioning Phase
             </Button>
           )}
           <ExportButtons size="sm" />
@@ -116,11 +116,13 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
                 windCapacityMw={selectedProject.windCapacityMw}
                 solarCapacityMw={selectedProject.solarCapacityMw}
                 bessCapacityMw={selectedProject.bessCapacityMw}
+                pspCapacityMw={selectedProject.pspCapacityMw}
                 existingPhases={selectedProject.phases}
                 sourceUsed={selectedProject.phases.reduce((acc, ph) => {
                   acc[ph.sourceType] = (acc[ph.sourceType] ?? 0) + (ph.capacityAppliedMw ?? 0);
                   return acc;
                 }, {})}
+                userRole={userRole}
                 onSuccess={() => { handlePhaseClose(); router.refresh(); }}
                 onCancel={handlePhaseClose}
               />
@@ -139,6 +141,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
         open={!!detailProject}
         onOpenChange={(o) => { if (!o) setDetailProject(null); }}
         canEdit={canEdit}
+        userRole={userRole}
       />
     </div>
   );

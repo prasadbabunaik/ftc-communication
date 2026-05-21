@@ -59,21 +59,78 @@ def safe_str(v):
     s = str(v).strip()
     return s or None
 
-def parse_date(v):
-    if v is None: return None
-    if isinstance(v, datetime): return v.strftime('%Y-%m-%d')
-    s = str(v).strip()
-    if not s or s in ('-','0','None','0.0','NA','N/A','--'): return None
-    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', s)
+def _parse_one_date(s):
+    """Single ISO/DMY date out of a tidy string. Returns 'YYYY-MM-DD' or None."""
+    m = re.search(r'(\d{4})-(\d{2})-(\d{2})', s)
     if m: return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-    m = re.match(r'(\d{1,2})[-./](\d{1,2})[-./](\d{4})', s)
+    m = re.search(r'(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})', s)
     if m:
         d,mo,y=int(m.group(1)),int(m.group(2)),int(m.group(3))
+        if y < 100: y += 2000
         try:
             datetime(y,mo,d)
             return f"{y}-{mo:02d}-{d:02d}"
         except: return None
     return None
+
+def parse_date(v):
+    if v is None: return None
+    if isinstance(v, datetime): return v.strftime('%Y-%m-%d')
+    s = str(v).strip()
+    if not s or s in ('-','0','None','0.0','NA','N/A','--'): return None
+    return _parse_one_date(s)
+
+def parse_events(v, fallback_total_mw):
+    """Parse a per-milestone Excel cell into a list of {mw, date} events.
+
+    The Excel collapses partial commissioning into multi-line cells like:
+        '52: 18-03-2026\n10.4: 28-03-2026'
+        '150MW (30.03.2026), 50MW (01.04.2026)'
+        '100MW on 25-03-2026 / 200MW on 28-03-2026'
+    Falls back to a single event = (fallback_total_mw, that date) when the
+    cell is just a single date (datetime / 'YYYY-MM-DD' / 'DD-MM-YYYY').
+
+    Returns [] if no parseable dates are found.
+    """
+    if v is None: return []
+    # Native datetime → single event with the milestone total.
+    if isinstance(v, datetime):
+        return [{'mw': float(fallback_total_mw or 0), 'date': v.strftime('%Y-%m-%d')}]
+    s = str(v).strip()
+    if not s or s in ('-','0','None','0.0','NA','N/A','--'): return []
+
+    events = []
+    # Split on common multi-event delimiters: newlines, '/', commas, ' and '.
+    # Avoid splitting on '/' or '.' that are part of a date (DD/MM/YYYY or
+    # DD.MM.YYYY) by tokenising on segments that each contain ≥1 date.
+    segments = re.split(r'\n|(?<!\d)\s*/\s*(?!\d{4})|;|,(?!\d)|\sand\s', s)
+    for seg in segments:
+        seg = seg.strip()
+        if not seg: continue
+        date = _parse_one_date(seg)
+        if not date: continue
+        # MW = first number that isn't part of the date itself.
+        seg_no_date = re.sub(r'\d{4}-\d{2}-\d{2}|\d{1,2}[-./]\d{1,2}[-./]\d{2,4}', '', seg)
+        mw_m = re.search(r'(\d+(?:\.\d+)?)', seg_no_date)
+        mw = float(mw_m.group(1)) if mw_m else None
+        events.append({'mw': mw, 'date': date})
+
+    if not events:
+        # Last resort — maybe the whole cell is just a single date.
+        d = _parse_one_date(s)
+        if d: events.append({'mw': float(fallback_total_mw or 0), 'date': d})
+        return events
+
+    # Backfill mw where missing: distribute the milestone total proportionally
+    # to events that DO have an mw, or split evenly if none do.
+    known_total = sum(e['mw'] for e in events if e['mw'] is not None)
+    unknown = [e for e in events if e['mw'] is None]
+    if unknown:
+        remaining = max(0.0, float(fallback_total_mw or 0) - known_total)
+        share = remaining / len(unknown) if unknown else 0
+        for e in unknown: e['mw'] = share
+
+    return events
 
 def parse_cap_month(v):
     if v is None: return None
@@ -106,7 +163,10 @@ def pt_code(label):
     if 'SOLAR'  in l:                                  return 'SOLAR'
     if 'WIND'   in l:                                  return 'WIND'
     if 'BESS'   in l or 'BATTERY' in l:               return 'BESS'
-    if 'PSP'    in l or 'PUMPED'  in l:               return 'PSP'
+    # 'PUMP' covers 'Pump Storage' (the Excel label for PSP plants like
+    # Tehri). 'PUMPED' alone misses this, so any Pump-Storage row falls
+    # through to the SOLAR default and gets misclassified.
+    if 'PSP'    in l or 'PUMP'    in l:               return 'PSP'
     if 'HYDRO'  in l:                                  return 'HYDRO'
     if 'COAL'   in l or 'THERMAL' in l:               return 'COAL'
     return 'SOLAR'
@@ -163,22 +223,39 @@ def extract_ftc(ws, region_code, title_row, end_row=None):
         if not is_sr_num(row[0]): continue
         name=safe_str(row[1])
         if not name: continue
+        ftcMw = safe_dec(row[9])
+        tocMw = safe_dec(row[11])
+        codMw = safe_dec(row[13])
+        ftcEvents = parse_events(row[10], ftcMw)
+        tocEvents = parse_events(row[12], tocMw)
+        codEvents = parse_events(row[14], codMw)
+        # Aggregate date kept for backwards compatibility — points to the
+        # first event so old consumers still work.
+        firstDate = lambda evs: evs[0]['date'] if evs else None
         projects.append({
             'name':name,'region':region_code,
+            'poolingStation':safe_str(row[2]),
             'plantTypeCode':pt_code(safe_str(row[3])),
             'totalCapacityMw':safe_dec(row[5]),
+            # col[6] = "Total Capacity (MW) (For which CONTD4 issued)" — the
+            # capacity that's been cleared through CONTD-4 study and is now
+            # in the FTC pipeline. Surfaced via Contd4Application.capacityApr26Mw.
+            'contd4CapacityMw':safe_dec(row[6]),
             'phases':[{
                 'sourceType':src_type(safe_str(row[8])),
                 'capacityAppliedMw':safe_dec(row[7]),
-                'ftcCompletedMw':safe_dec(row[9]),
-                'ftcCompletedDate':parse_date(row[10]),
+                'ftcCompletedMw':ftcMw,
+                'ftcCompletedDate':firstDate(ftcEvents),
+                'ftcEvents': ftcEvents,
                 'proposedFtcDate':parse_date(row[15]),
                 'capacityUnderFtcMw':safe_dec(row[16]),
-                'tocIssuedMw':safe_dec(row[11]),
-                'tocIssuedDate':parse_date(row[12]),
+                'tocIssuedMw':tocMw,
+                'tocIssuedDate':firstDate(tocEvents),
+                'tocEvents': tocEvents,
                 'capacityUnderTocMw':safe_dec(row[17]),
-                'codDeclaredMw':safe_dec(row[13]),
-                'codDeclaredDate':parse_date(row[14]),
+                'codDeclaredMw':codMw,
+                'codDeclaredDate':firstDate(codEvents),
+                'codEvents': codEvents,
                 'expectedApr26Mw':safe_dec(row[19]),
             }]
         })
@@ -208,6 +285,64 @@ def extract_contd4(ws, region_code, title_row, end_row, col_offset=0):
                     'capacityMonth':cap_month,
                 })
     return records
+
+def extract_hybrid_components(ws, region_code, title_row, end_row):
+    """Read the per-source breakdown of each hybrid project from the
+    'Source wise Segregation of hybrid Generation Capacity Under Process
+    of FTC' section (NR/WR) or the secondary FTC section (SR — same row
+    shape, different heading). Each hybrid project occupies 2-3 rows: one
+    per source component (Solar / Wind / BESS / PSP). The first row of a
+    project carries the project name; continuation rows have name=None
+    but the same hybrid type label.
+
+    Returns a list of records keyed by project name:
+        { 'name', 'region', 'hybridType', 'components': [{...}, ...] }
+    """
+    data_start=None
+    for i in range(title_row+1, title_row+6):
+        if i > end_row: break
+        row=list(ws.iter_rows(min_row=i,max_row=i,values_only=True))[0]
+        if is_sr_num(row[0]): data_start=i; break
+    if data_start is None: return []
+
+    projects={}     # name → record
+    current=None    # most recent project to attach continuation rows to
+    for i in range(data_start, end_row):
+        row=list(ws.iter_rows(min_row=i,max_row=i,values_only=True))[0]
+        sr = row[0]
+        name = safe_str(row[1])
+        hybrid_type = safe_str(row[3])
+        src = src_type(safe_str(row[8]))
+        total_mw = safe_dec(row[5])
+        if total_mw == 0 and not name and not hybrid_type: continue
+        # New project row vs continuation: a new row has a Sr No (numeric).
+        if is_sr_num(sr) and name:
+            current = name
+            if current not in projects:
+                projects[current] = {
+                    'name': current, 'region': region_code,
+                    'hybridType': hybrid_type, 'components': [],
+                }
+        if current is None: continue
+        # Multi-event date parsing for the per-component cells.
+        ftcMw = safe_dec(row[9])
+        tocMw = safe_dec(row[11]) if len(row) > 11 else 0
+        codMw = safe_dec(row[13]) if len(row) > 13 else 0
+        projects[current]['components'].append({
+            'sourceType': src,
+            'totalMw':   total_mw,
+            'contd4Mw':  safe_dec(row[6]),
+            'appliedMw': safe_dec(row[7]),
+            'ftcMw':     ftcMw,
+            'ftcDate':   parse_date(row[10]) if len(row) > 10 else None,
+            'tocMw':     tocMw,
+            'tocDate':   parse_date(row[12]) if len(row) > 12 else None,
+            'codMw':     codMw,
+            'codDate':   parse_date(row[14]) if len(row) > 14 else None,
+            'expectedMw': safe_dec(row[19]) if len(row) > 19 else 0,
+        })
+    return list(projects.values())
+
 
 def extract_tx(ws, region_code, title_row, end_row=None):
     data_start=None
@@ -252,7 +387,7 @@ def extract_tx(ws, region_code, title_row, end_row=None):
     return elements
 
 def extract_workbook(wb):
-    contd4,ftc,tx=[],[],[]
+    contd4,ftc,tx,hybrid_components=[],[],[],[]
     regions={'NR':0,'WR':1,'ER':0,'NER':0,'SR':0}
     for sheet_name,c4_off in regions.items():
         if sheet_name not in wb.sheetnames: continue
@@ -278,7 +413,27 @@ def extract_workbook(wb):
                     if t>tx_title+5: tx_end=t; break
             elif src_wise and src_wise>tx_title: tx_end=src_wise
             tx.extend(extract_tx(ws,sheet_name,tx_title,tx_end))
-    return contd4,ftc,tx
+        # Per-component hybrid breakdown — used by Hybrid Breakdown tab.
+        # NR/WR have a dedicated "Source wise Segregation" heading. SR uses
+        # a second "Generation Capacity Under Process of FTC" heading with
+        # the same row shape (one row per source component).
+        hb_start = src_wise
+        if not hb_start and sheet_name == 'SR' and len(ftc_titles) >= 2:
+            hb_start = ftc_titles[1]
+        if hb_start:
+            # Bound the section to whatever next section header sits after
+            # `hb_start`. Without this, the extractor walks rows up to
+            # ws.max_row and silently attaches unrelated data (e.g. a
+            # straggling Transmission row) to the last-seen hybrid project.
+            candidate_ends = [
+                t for t in [tx_title] + ftc_titles
+                if t and t > hb_start
+            ]
+            hb_end = min(candidate_ends) if candidate_ends else (hb_start + 80)
+            hybrid_components.extend(
+                extract_hybrid_components(ws, sheet_name, hb_start, hb_end)
+            )
+    return contd4, ftc, tx, hybrid_components
 
 # ── Compute summary tables ────────────────────────────────────────────────────
 
@@ -394,7 +549,7 @@ def main():
             continue
         try:
             wb = openpyxl.load_workbook(str(fpath), data_only=True)
-            contd4, ftc, tx = extract_workbook(wb)
+            contd4, ftc, tx, _hybrid_components = extract_workbook(wb)
             t1 = compute_t1(contd4)
             t2 = compute_t2(ftc)
             t3 = compute_t3(tx)

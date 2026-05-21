@@ -49,12 +49,23 @@ export function AuthProvider({ children }) {
     }
   }, [doRefresh]);
 
-  // Define logout before any effect that uses it
+  // Define logout before any effect that uses it.
+  //
+  // Order matters: call /api/auth/logout BEFORE clearing user state.
+  // If we set user=null first, the protected layout's useEffect hard-
+  // redirects to /login immediately, which interrupts the in-flight
+  // fetch — cookies + refresh-token row are never cleared, and the next
+  // /api/auth/me call silently logs the user back in.
   const logout = useCallback(async () => {
     clearInterval(intervalRef.current);
     clearInterval(inactivityRef.current);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Network failure shouldn't trap the user on the page — we still
+      // redirect below so they can re-enter credentials.
+    }
     setUser(null);
-    await fetch('/api/auth/logout', { method: 'POST' });
     window.location.replace('/login');
   }, []);
 

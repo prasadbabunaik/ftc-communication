@@ -109,6 +109,7 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
             canEdit={canEdit}
             userRole={userRole}
             regionCode={project.region.code}
+            notes={project.notes ?? []}
             onClose={() => onOpenChange(false)}
           />
 

@@ -97,6 +97,7 @@ function EventTable({ rows }) {
             <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Cumulative</th>
             <th className="px-3 py-2 text-left font-semibold">Source</th>
             <th className="px-3 py-2 text-left font-semibold">Remarks</th>
+            <th className="px-3 py-2 text-left font-semibold whitespace-nowrap" title="When this event was recorded in the system">Entered</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -120,6 +121,9 @@ function EventTable({ rows }) {
                   ? <span className="line-clamp-2" title={r.remarks}>{r.remarks}</span>
                   : <span className="text-slate-400">—</span>}
               </td>
+              <td className="px-3 py-2 text-[10px] text-slate-500 font-mono whitespace-nowrap" title={r.createdAt ?? ''}>
+                {r.createdAt ? fmtEntryStamp(r.createdAt) : '—'}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -128,15 +132,43 @@ function EventTable({ rows }) {
   );
 }
 
+// Audit-trail timestamp: "21 May 14:32" — short enough to fit the column,
+// detailed enough to disambiguate same-day saves. Full ISO is in the
+// row's title attr.
+function fmtEntryStamp(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
 function CommissioningTimeline({ phases }) {
   const [activeTab, setActiveTab] = useState('ALL');
+
+  // Per-source totals used by the Progress tab. Compute from phases (not
+  // event rows) so we get capacityAppliedMw + capacityUnderXxxMw too.
+  const perSource = {};
+  for (const ph of phases ?? []) {
+    const s = ph.sourceType;
+    if (!perSource[s]) perSource[s] = {
+      applied: 0, ftc: 0, toc: 0, cod: 0,
+      underFtc: 0, underToc: 0,
+    };
+    perSource[s].applied  += Number(ph.capacityAppliedMw  ?? 0);
+    perSource[s].ftc      += (ph.ftcEvents ?? []).reduce((a, e) => a + Number(e.capacityMw ?? 0), 0);
+    perSource[s].toc      += (ph.tocEvents ?? []).reduce((a, e) => a + Number(e.capacityMw ?? 0), 0);
+    perSource[s].cod      += (ph.codEvents ?? []).reduce((a, e) => a + Number(e.capacityMw ?? 0), 0);
+    perSource[s].underFtc += Number(ph.capacityUnderFtcMw ?? 0);
+    perSource[s].underToc += Number(ph.capacityUnderTocMw ?? 0);
+  }
 
   // Build flat list of all events
   const allRows = [];
   for (const ph of phases ?? []) {
-    for (const e of (ph.ftcEvents ?? [])) allRows.push({ kind: 'FTC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'f' + e.id });
-    for (const e of (ph.tocEvents ?? [])) allRows.push({ kind: 'TOC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 't' + e.id });
-    for (const e of (ph.codEvents ?? [])) allRows.push({ kind: 'COD', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'c' + e.id });
+    for (const e of (ph.ftcEvents ?? [])) allRows.push({ kind: 'FTC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'f' + e.id, createdAt: e.createdAt });
+    for (const e of (ph.tocEvents ?? [])) allRows.push({ kind: 'TOC', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 't' + e.id, createdAt: e.createdAt });
+    for (const e of (ph.codEvents ?? [])) allRows.push({ kind: 'COD', date: e.eventDate, mw: e.capacityMw, remarks: e.remarks, source: ph.sourceType, id: 'c' + e.id, createdAt: e.createdAt });
   }
   if (allRows.length === 0) return null;
 
@@ -158,10 +190,13 @@ function CommissioningTimeline({ phases }) {
 
   // Available tabs (only show kind tabs that have data)
   const tabs = [
-    { key: 'ALL', label: 'All', count: allRows.length },
-    { key: 'FTC', label: 'FTC', count: allRows.filter(r => r.kind === 'FTC').length },
-    { key: 'TOC', label: 'TOC', count: allRows.filter(r => r.kind === 'TOC').length },
-    { key: 'COD', label: 'COD', count: allRows.filter(r => r.kind === 'COD').length },
+    { key: 'ALL',      label: 'All',      count: allRows.length },
+    { key: 'FTC',      label: 'FTC',      count: allRows.filter(r => r.kind === 'FTC').length },
+    { key: 'TOC',      label: 'TOC',      count: allRows.filter(r => r.kind === 'TOC').length },
+    { key: 'COD',      label: 'COD',      count: allRows.filter(r => r.kind === 'COD').length },
+    // Progress tab is a separate visualization, not a row filter. Its count
+    // is the number of source rows it'll show.
+    { key: 'PROGRESS', label: 'Progress', count: Object.keys(perSource).length, isViz: true },
   ].filter(t => t.count > 0 || t.key === 'ALL');
 
   // Filter by active tab then reverse for descending display
@@ -186,12 +221,14 @@ function CommissioningTimeline({ phases }) {
                   ? 'border-blue-600 text-blue-700'
                   : t.key === 'TOC'
                   ? 'border-violet-600 text-violet-700'
-                  : 'border-emerald-600 text-emerald-700'
+                  : t.key === 'COD'
+                  ? 'border-emerald-600 text-emerald-700'
+                  : 'border-amber-600 text-amber-700'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             <span className="flex items-center gap-1.5">
-              {t.key !== 'ALL' && (
+              {t.key !== 'ALL' && t.key !== 'PROGRESS' && (
                 <span className={`inline-block size-1.5 rounded-full ${KIND_DOT[t.key]}`} />
               )}
               {t.label}
@@ -216,12 +253,135 @@ function CommissioningTimeline({ phases }) {
         </div>
       </div>
 
-      <EventTable rows={displayRows} />
+      {activeTab === 'PROGRESS'
+        ? <PhaseProgressBars perSource={perSource} />
+        : <EventTable rows={displayRows} />}
     </div>
   );
 }
 
-export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
+// Per-source funnel visualization. Each row shows the project's commissioning
+// pipeline for ONE source: COD (done) → TOC (issued, awaiting COD) → FTC
+// (approved, awaiting TOC) → Applied-but-pending. Segment lengths are
+// proportional to MW so the eye can compare progress at a glance.
+function PhaseProgressBars({ perSource }) {
+  const entries = Object.entries(perSource);
+  if (entries.length === 0) {
+    return <div className="text-sm text-muted-foreground py-6 text-center">No phases recorded yet.</div>;
+  }
+  return (
+    <div className="space-y-4">
+      {entries.map(([source, s]) => {
+        const applied = Math.max(0, s.applied);
+        if (applied === 0) return null;
+        // Compute funnel segments. Sum can't exceed Applied by invariant.
+        const cod        = Math.min(s.cod, applied);
+        const tocPending = Math.max(0, Math.min(s.toc, applied) - cod);
+        const ftcPending = Math.max(0, Math.min(s.ftc, applied) - cod - tocPending);
+        const remaining  = Math.max(0, applied - cod - tocPending - ftcPending);
+        const pct = (v) => `${(v / applied) * 100}%`;
+        return (
+          <div key={source} className="rounded-lg border border-border bg-card p-3 space-y-2">
+            {/* Header: source badge + Applied total */}
+            <div className="flex items-center justify-between text-xs">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${SOURCE_BADGE[source] ?? 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                {source}
+              </span>
+              <span className="font-mono text-slate-600">
+                Applied <span className="font-semibold text-foreground">{applied.toFixed(1)} MW</span>
+              </span>
+            </div>
+
+            {/* Stacked funnel bar */}
+            <div className="h-6 w-full rounded-md overflow-hidden bg-slate-100 flex">
+              {cod > 0 && (
+                <div
+                  className="bg-emerald-500 h-full flex items-center justify-center text-[10px] font-bold text-white"
+                  style={{ width: pct(cod) }}
+                  title={`COD: ${cod.toFixed(1)} MW`}
+                >
+                  {cod / applied >= 0.08 ? cod.toFixed(0) : ''}
+                </div>
+              )}
+              {tocPending > 0 && (
+                <div
+                  className="bg-violet-400 h-full flex items-center justify-center text-[10px] font-bold text-white"
+                  style={{ width: pct(tocPending) }}
+                  title={`TOC pending COD: ${tocPending.toFixed(1)} MW`}
+                >
+                  {tocPending / applied >= 0.08 ? tocPending.toFixed(0) : ''}
+                </div>
+              )}
+              {ftcPending > 0 && (
+                <div
+                  className="bg-blue-400 h-full flex items-center justify-center text-[10px] font-bold text-white"
+                  style={{ width: pct(ftcPending) }}
+                  title={`FTC pending TOC: ${ftcPending.toFixed(1)} MW`}
+                >
+                  {ftcPending / applied >= 0.08 ? ftcPending.toFixed(0) : ''}
+                </div>
+              )}
+              {remaining > 0 && (
+                <div
+                  className="bg-slate-200 h-full flex items-center justify-center text-[10px] font-bold text-slate-600"
+                  style={{ width: pct(remaining) }}
+                  title={`Pending FTC: ${remaining.toFixed(1)} MW`}
+                >
+                  {remaining / applied >= 0.08 ? remaining.toFixed(0) : ''}
+                </div>
+              )}
+            </div>
+
+            {/* Stage table — % + MW for each */}
+            <div className="grid grid-cols-4 gap-2 text-[11px] pt-1">
+              <ProgressStat color="emerald" label="COD done" mw={cod} applied={applied} />
+              <ProgressStat color="violet"  label="TOC issued" mw={s.toc} applied={applied} />
+              <ProgressStat color="blue"    label="FTC approved" mw={s.ftc} applied={applied} />
+              <ProgressStat color="slate"   label="Pending FTC" mw={remaining} applied={applied} />
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 text-[10px] text-muted-foreground pt-1">
+        <span className="inline-flex items-center gap-1"><span className="inline-block size-2 rounded-sm bg-emerald-500" />COD</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block size-2 rounded-sm bg-violet-400" />TOC pending COD</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block size-2 rounded-sm bg-blue-400" />FTC pending TOC</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block size-2 rounded-sm bg-slate-200 border border-slate-300" />Pending FTC</span>
+      </div>
+    </div>
+  );
+}
+
+function ProgressStat({ color, label, mw, applied }) {
+  const pct = applied > 0 ? (mw / applied) * 100 : 0;
+  const COLOR = {
+    emerald: 'text-emerald-700',
+    violet:  'text-violet-700',
+    blue:    'text-blue-700',
+    slate:   'text-slate-600',
+  }[color] ?? 'text-slate-700';
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`font-mono font-semibold ${COLOR}`}>
+        {mw.toFixed(1)} MW <span className="text-[10px] text-muted-foreground font-normal">· {pct.toFixed(0)}%</span>
+      </p>
+    </div>
+  );
+}
+
+const SOURCE_BADGE = {
+  WIND:   'bg-sky-100 text-sky-700 border-sky-200',
+  SOLAR:  'bg-amber-100 text-amber-700 border-amber-200',
+  BESS:   'bg-violet-100 text-violet-700 border-violet-200',
+  COAL:   'bg-stone-100 text-stone-700 border-stone-200',
+  HYDRO:  'bg-blue-100 text-blue-700 border-blue-200',
+  PSP:    'bg-emerald-100 text-emerald-700 border-emerald-200',
+};
+
+export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userRole }) {
   const [view, setView] = useState('detail'); // 'detail' | 'add-phase'
   const router = useRouter();
 
@@ -296,7 +456,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
             {view === 'detail' && canEdit && (
               <Button size="sm" onClick={() => setView('add-phase')}>
                 <Plus className="size-3.5 mr-1.5" />
-                Add Phase
+                Add Commissioning Phase
               </Button>
             )}
             <button
@@ -350,7 +510,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
               )}
 
               {/* CONTD-4 */}
-              <Contd4Card contd4={project.contd4} projectId={project.id} canEdit={canEdit} />
+              <Contd4Card contd4={project.contd4} projectId={project.id} canEdit={canEdit} notes={project.notes ?? []} />
 
               {/* Commissioning Phases */}
               <div>
@@ -417,8 +577,10 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit }) {
               windCapacityMw={project.windCapacityMw}
               solarCapacityMw={project.solarCapacityMw}
               bessCapacityMw={project.bessCapacityMw}
+              pspCapacityMw={project.pspCapacityMw}
               existingPhases={project.phases}
               sourceUsed={sourceUsed}
+              userRole={userRole}
               onSuccess={handlePhaseSuccess}
               onCancel={() => setView('detail')}
             />

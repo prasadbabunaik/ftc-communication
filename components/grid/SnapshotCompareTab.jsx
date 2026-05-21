@@ -2,6 +2,7 @@
 
 import { Fragment, useState, useEffect } from 'react';
 import { ArrowUp, ArrowDown, Minus, RefreshCw } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -234,16 +235,23 @@ export function SnapshotCompareTab() {
   const [error,    setError]      = useState(null);
 
   useEffect(() => {
-    // Only show dates where something actually changed — otherwise the
-    // dropdowns are flooded with identical snapshots from days nobody edited.
+    // Change-point list is informational (the "dates where data changed" chips
+    // below the picker). The pickers themselves accept any date — the API
+    // resolves each picked date to its effective snapshot (latest on or
+    // before the date), so users don't need to know which days actually have
+    // a snapshot row.
     fetch('/api/grid/snapshots?changesOnly=1')
       .then(r => r.json())
       .then(d => {
         const snaps = d.data ?? [];
         setSnapshots(snaps);
+        // Sensible default: most recent change-point as "to", previous one as
+        // "from". User can override either with the date pickers.
         if (snaps.length >= 2) {
           setToDate(snaps[snaps.length - 1].snapshotDate.slice(0, 10));
           setFromDate(snaps[snaps.length - 2].snapshotDate.slice(0, 10));
+        } else if (snaps.length === 1) {
+          setToDate(snaps[0].snapshotDate.slice(0, 10));
         }
       })
       .catch(() => setError('Failed to load snapshots'));
@@ -257,7 +265,15 @@ export function SnapshotCompareTab() {
       const res = await fetch(`/api/grid/snapshots/compare?from=${fromDate}&to=${toDate}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error');
-      setDiff(json.data);
+      // The endpoint now returns 200 with data:null + an error message when
+      // there's no snapshot on or before one of the chosen dates. Surface
+      // that to the user instead of silently rendering an empty diff.
+      if (json.data == null) {
+        setError(json.error ?? 'No snapshot available for the selected dates');
+        setDiff(null);
+      } else {
+        setDiff(json.data);
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -279,45 +295,34 @@ export function SnapshotCompareTab() {
       <div className="bg-white border border-border rounded-lg p-4">
         <h3 className="text-sm font-semibold text-foreground mb-3">Compare Two Dates</h3>
         <div className="flex flex-wrap items-end gap-3">
-          <div>
+          <div className="min-w-[200px]">
             <label className="block text-xs text-muted-foreground mb-1">From Date</label>
-            <select
+            <DatePicker
               value={fromDate}
-              onChange={e => setFromDate(e.target.value)}
-              className="border border-border rounded px-2 py-1.5 text-sm bg-white min-w-[150px]"
-            >
-              <option value="">Select date…</option>
-              {snapshots.map(s => (
-                <option key={s.id} value={s.snapshotDate.slice(0, 10)}>
-                  {fmtDate(s.snapshotDate.slice(0, 10))} {s.label && s.label !== s.snapshotDate.slice(0, 10) ? `— ${s.label}` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={setFromDate}
+              placeholder="Pick a date"
+            />
           </div>
-          <div>
+          <div className="min-w-[200px]">
             <label className="block text-xs text-muted-foreground mb-1">To Date</label>
-            <select
+            <DatePicker
               value={toDate}
-              onChange={e => setToDate(e.target.value)}
-              className="border border-border rounded px-2 py-1.5 text-sm bg-white min-w-[150px]"
-            >
-              <option value="">Select date…</option>
-              {snapshots.map(s => (
-                <option key={s.id} value={s.snapshotDate.slice(0, 10)}>
-                  {fmtDate(s.snapshotDate.slice(0, 10))} {s.label && s.label !== s.snapshotDate.slice(0, 10) ? `— ${s.label}` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={setToDate}
+              placeholder="Pick a date"
+            />
           </div>
           <button
             onClick={loadDiff}
             disabled={loading || !fromDate || !toDate}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 h-10 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Loading…' : 'Compare'}
           </button>
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Pick any two dates — dates without a snapshot resolve to the most recent change before them.
+        </p>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
@@ -339,11 +344,16 @@ export function SnapshotCompareTab() {
       {diff && (
         <div className="space-y-6">
           {/* Summary banner */}
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 flex-wrap">
             <div className="text-sm text-blue-800">
               <span className="font-bold">{fmtDate(diff.from.date)}</span>
               <span className="mx-2 text-blue-400">→</span>
               <span className="font-bold">{fmtDate(diff.to.date)}</span>
+              {(diff.from.effectiveDate !== diff.from.date || diff.to.effectiveDate !== diff.to.date) && (
+                <span className="ml-2 text-[11px] text-blue-600/80">
+                  (resolved to snapshots {fmtDate(diff.from.effectiveDate)} → {fmtDate(diff.to.effectiveDate)})
+                </span>
+              )}
             </div>
             <div className="ml-auto flex gap-3 text-xs">
               <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 font-semibold">{diff.t2.length} FTC changes</span>

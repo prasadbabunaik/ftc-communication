@@ -73,9 +73,12 @@ export default async function Contd4Page({ searchParams }) {
     if (!asOf) return p.contd4?.status ?? null;
     if (!p.contd4) return null;
     const cutoff = asOf.getTime();
+    // Honour back-dated changes: effectiveDate (when ADMIN/NLDC supplied one)
+    // overrides createdAt for point-in-time replay.
+    const eff = (n) => new Date(n.effectiveDate ?? n.createdAt).getTime();
     const statusChange = (p.notes ?? [])
-      .filter((n) => n.field === 'Status' && new Date(n.createdAt).getTime() <= cutoff)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+      .filter((n) => n.field === 'Status' && eff(n) <= cutoff)
+      .sort((a, b) => eff(b) - eff(a))[0];
     return statusChange?.newValue ?? 'PENDING';
   }
 

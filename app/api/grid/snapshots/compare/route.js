@@ -22,20 +22,52 @@ export async function GET(request) {
       return NextResponse.json({ error: 'from and to query params required' }, { status: 400 });
     }
 
+    // Snapshots are written only on change-points, so a picked date with no
+    // snapshot row is semantically equivalent to the most recent snapshot on
+    // or before it. Resolve each side to its effective snapshot.
     const [fromSnap, toSnap] = await Promise.all([
-      prisma.gridSnapshot.findUnique({ where: { snapshotDate: new Date(fromDate + 'T00:00:00Z') } }),
-      prisma.gridSnapshot.findUnique({ where: { snapshotDate: new Date(toDate   + 'T00:00:00Z') } }),
+      prisma.gridSnapshot.findFirst({
+        where: { snapshotDate: { lte: new Date(fromDate + 'T23:59:59.999Z') } },
+        orderBy: { snapshotDate: 'desc' },
+      }),
+      prisma.gridSnapshot.findFirst({
+        where: { snapshotDate: { lte: new Date(toDate + 'T23:59:59.999Z') } },
+        orderBy: { snapshotDate: 'desc' },
+      }),
     ]);
 
-    if (!fromSnap) return NextResponse.json({ error: `No snapshot for ${fromDate}` }, { status: 404 });
-    if (!toSnap)   return NextResponse.json({ error: `No snapshot for ${toDate}`   }, { status: 404 });
+    // "No snapshot for the requested date" is a valid steady-state outcome
+    // (e.g. the system has only ever recorded today's baseline). We respond
+    // 200 with data:null + a `missing` marker so callers can render an
+    // empty-state banner without the browser logging a red 404 in DevTools.
+    if (!fromSnap) {
+      return NextResponse.json({
+        data: null,
+        missing: 'from',
+        error: `No snapshot on or before ${fromDate}`,
+      });
+    }
+    if (!toSnap) {
+      return NextResponse.json({
+        data: null,
+        missing: 'to',
+        error: `No snapshot on or before ${toDate}`,
+      });
+    }
+
+    const effectiveFrom = fromSnap.snapshotDate.toISOString().slice(0, 10);
+    const effectiveTo   = toSnap.snapshotDate.toISOString().slice(0, 10);
+    const sameSnapshot  = fromSnap.id === toSnap.id;
 
     const diff = {
-      from: { date: fromDate, label: fromSnap.label },
-      to:   { date: toDate,   label: toSnap.label   },
-      t2:   filterByRegion(diffT2(fromSnap.t2Json, toSnap.t2Json), regionCode),
-      t1:   filterByRegion(diffT1(fromSnap.t1Json, toSnap.t1Json), regionCode),
-      t3:   filterByRegion(diffT3(fromSnap.t3Json, toSnap.t3Json), regionCode),
+      from: { date: fromDate, effectiveDate: effectiveFrom, label: fromSnap.label },
+      to:   { date: toDate,   effectiveDate: effectiveTo,   label: toSnap.label   },
+      // When both sides resolve to the same snapshot, no data changed between
+      // the picked dates — short-circuit to empty diffs without running the
+      // (unnecessary) field-by-field comparison.
+      t2: sameSnapshot ? [] : filterByRegion(diffT2(fromSnap.t2Json, toSnap.t2Json), regionCode),
+      t1: sameSnapshot ? [] : filterByRegion(diffT1(fromSnap.t1Json, toSnap.t1Json), regionCode),
+      t3: sameSnapshot ? [] : filterByRegion(diffT3(fromSnap.t3Json, toSnap.t3Json), regionCode),
     };
 
     return NextResponse.json({ data: diff });

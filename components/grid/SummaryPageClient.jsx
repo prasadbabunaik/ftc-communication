@@ -510,41 +510,136 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
 
 // ── Table 4 — Hybrid Breakdown ────────────────────────────────────────────────
 
+// Order the All India per-source totals exactly like the Google Sheet's
+// hybrid summary footer: Solar, Wind, BESS, PSP. Other sources fall after
+// these but should never appear in practice for hybrid breakdowns.
+const HYBRID_SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP'];
+
+// Take the matrix from computeHybridBreakdown and produce a flat list of
+// display rows, mirroring the Google Sheet's hybrid summary structure:
+//
+//   <region> × <hybridType> per-component rows
+//   "Total <Region> <Source>" subtotal per source within each region
+//   "Grand Total" per region
+//   "Total <Source>" All India per-source rows
+//   "Grand Total" All India
+//
+// Each emitted row carries a `kind` so the renderer can style it appropriately.
+function buildHybridDisplayRows(rows) {
+  const out = [];
+  const sumFields = (acc, r) => {
+    for (const f of ['totalMw','contd4Mw','appliedMw','ftcMw','tocMw','codMw','expectedMw']) {
+      acc[f] = (acc[f] || 0) + (Number(r[f]) || 0);
+    }
+    return acc;
+  };
+
+  // Group rows by region (keep stable region order from input — assumed sorted).
+  const regions = [];
+  const byRegion = new Map();
+  for (const r of rows) {
+    if (!byRegion.has(r.region)) { byRegion.set(r.region, []); regions.push(r.region); }
+    byRegion.get(r.region).push(r);
+  }
+
+  // Cross-region accumulator for the All India footer.
+  const allIndiaBySrc = {};
+  let allIndiaGrand = {};
+
+  for (const region of regions) {
+    const regionRows = byRegion.get(region);
+
+    // Within a region, sub-group by hybrid type for the per-type rows.
+    const types = [];
+    const byType = new Map();
+    for (const r of regionRows) {
+      if (!byType.has(r.hybridType)) { byType.set(r.hybridType, []); types.push(r.hybridType); }
+      byType.get(r.hybridType).push(r);
+    }
+    for (const ht of types) {
+      for (const r of byType.get(ht)) out.push({ kind: 'data', ...r });
+    }
+
+    // Per-source subtotals within this region.
+    const bySrc = {};
+    for (const r of regionRows) {
+      bySrc[r.sourceType] = sumFields(bySrc[r.sourceType] || {}, r);
+    }
+    const orderedSrcs = HYBRID_SRC_ORDER.filter((s) => bySrc[s])
+      .concat(Object.keys(bySrc).filter((s) => !HYBRID_SRC_ORDER.includes(s)));
+    for (const s of orderedSrcs) {
+      out.push({ kind: 'subtotal', region, sourceType: s, label: `Total ${s.charAt(0) + s.slice(1).toLowerCase()}`, ...bySrc[s] });
+      allIndiaBySrc[s] = sumFields(allIndiaBySrc[s] || {}, bySrc[s]);
+    }
+
+    // Region grand total.
+    const regionGrand = regionRows.reduce(sumFields, {});
+    out.push({ kind: 'regionTotal', region, label: 'Grand Total', ...regionGrand });
+    allIndiaGrand = sumFields(allIndiaGrand, regionGrand);
+  }
+
+  // All India per-source rows + grand total.
+  const allOrderedSrcs = HYBRID_SRC_ORDER.filter((s) => allIndiaBySrc[s])
+    .concat(Object.keys(allIndiaBySrc).filter((s) => !HYBRID_SRC_ORDER.includes(s)));
+  for (const s of allOrderedSrcs) {
+    out.push({ kind: 'allIndiaSource', sourceType: s, label: `Total ${s.charAt(0) + s.slice(1).toLowerCase()}`, ...allIndiaBySrc[s] });
+  }
+  out.push({ kind: 'allIndiaGrand', label: 'Grand Total', ...allIndiaGrand });
+
+  return out;
+}
+
 function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBreakup }) {
   if (!hybridRows?.length) return <Empty />;
 
-  // Pre-compute rowSpans so the Region and Hybrid Type cells merge across
-  // consecutive rows that share the same value (visual clarity, like Excel).
-  // For each row we record:
-  //   regionSpan  — how many consecutive rows (including this one) share the
-  //                 same region; 0 means "skip this cell, it was already
-  //                 merged into an earlier row".
-  //   hybridSpan  — same for (region, hybridType).
-  const spans = hybridRows.map(() => ({ regionSpan: 0, hybridSpan: 0 }));
-  for (let i = 0; i < hybridRows.length; i++) {
-    const row = hybridRows[i];
-    if (i === 0 || hybridRows[i - 1].region !== row.region) {
-      let n = 1;
-      while (i + n < hybridRows.length && hybridRows[i + n].region === row.region) n++;
-      spans[i].regionSpan = n;
+  const display = buildHybridDisplayRows(hybridRows);
+
+  // Compute the rowSpans for Region and Hybrid Type cells across the data
+  // rows + subtotals + region total inside a single region block. Subtotal
+  // and regionTotal rows occupy the region column but skip the hybrid-type
+  // column (we render a label in the source slot instead).
+  const regionSpans = new Map(); // index of first row in region → span
+  const typeSpans   = new Map(); // index of first row in (region,type) → span
+  for (let i = 0; i < display.length; i++) {
+    const r = display[i];
+    if (r.kind === 'allIndiaSource' || r.kind === 'allIndiaGrand') continue;
+    const prev = display[i - 1];
+    if (!prev || prev.region !== r.region || prev.kind === 'allIndiaGrand' || prev.kind === 'allIndiaSource') {
+      let n = 0;
+      for (let j = i; j < display.length; j++) {
+        if (display[j].region === r.region && display[j].kind !== 'allIndiaSource' && display[j].kind !== 'allIndiaGrand') n++;
+        else break;
+      }
+      regionSpans.set(i, n);
     }
-    if (i === 0
-        || hybridRows[i - 1].region !== row.region
-        || hybridRows[i - 1].hybridType !== row.hybridType) {
-      let n = 1;
-      while (i + n < hybridRows.length
-             && hybridRows[i + n].region === row.region
-             && hybridRows[i + n].hybridType === row.hybridType) n++;
-      spans[i].hybridSpan = n;
+    if (r.kind === 'data' && (!prev || prev.region !== r.region || prev.hybridType !== r.hybridType)) {
+      let n = 0;
+      for (let j = i; j < display.length; j++) {
+        if (display[j].kind === 'data' && display[j].region === r.region && display[j].hybridType === r.hybridType) n++;
+        else break;
+      }
+      typeSpans.set(i, n);
     }
   }
+
+  const renderNumCells = (r) => (
+    <>
+      <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(r.totalMw)}</td>
+      <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(r.contd4Mw)}</td>
+      <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(r.appliedMw)}</td>
+      <td className="px-3 py-2 text-right tabular-nums bg-blue-50/30 text-blue-800 border-r border-blue-100">{fmt(r.ftcMw)}</td>
+      <td className="px-3 py-2 text-right tabular-nums bg-violet-50/30 text-violet-800 border-r border-violet-100">{fmt(r.tocMw)}</td>
+      <td className="px-3 py-2 text-right tabular-nums bg-emerald-50/30 text-emerald-800 border-r border-emerald-100">{fmt(r.codMw)}</td>
+      <td className="px-3 py-2 text-right tabular-nums bg-amber-50/30 text-amber-800">{fmt(r.expectedMw)}</td>
+    </>
+  );
 
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Hybrid Capacity Details Under FTC / TOC / COD (MW)</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Hybrid projects split by constituent source components (Wind, Solar, BESS)</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Hybrid projects split by constituent source components (Solar / Wind / BESS / PSP) with per-region subtotals + All India footer.</p>
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
@@ -553,52 +648,85 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
           <thead className="sticky top-0 z-20">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 180 }}>Hybrid Type</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total (MW)</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied (MW)</th>
+              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
+              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source (Type)</th>
+              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Capacity (MW)</th>
+              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total CONTD-4 (MW)</th>
+              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied for FTC</th>
               <th className="px-3 py-2 text-right font-bold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC Approved</th>
               <th className="px-3 py-2 text-right font-bold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC Issued</th>
-              <th className="px-3 py-2 text-right font-bold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD Done</th>
+              <th className="px-3 py-2 text-right font-bold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD Completed</th>
               <th className="px-3 py-2 text-right font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{refMonthLabel}</th>
             </tr>
           </thead>
           <tbody>
-            {hybridRows.map((row, i) => {
-              const { regionSpan, hybridSpan } = spans[i];
-              // Divider between region groups (heavier border on the row that
-              // starts a NEW region — makes the merged blocks visually distinct)
-              const rowBorder = regionSpan > 0 && i > 0
-                ? 'border-t-2 border-slate-300'
-                : 'border-t border-slate-100';
+            {display.map((r, i) => {
+              if (r.kind === 'data') {
+                return (
+                  <tr key={i} className="border-t border-slate-100 bg-white hover:bg-teal-50/20 transition-colors">
+                    {regionSpans.has(i) && (
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top">
+                        <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
+                      </td>
+                    )}
+                    {typeSpans.has(i) && (
+                      <td rowSpan={typeSpans.get(i)} className="px-3 py-2 border-r border-slate-200 text-foreground align-top bg-white">
+                        <span className="font-semibold text-[11px]">{r.hybridType}</span>
+                      </td>
+                    )}
+                    <td className="px-3 py-2 border-r border-gray-100">
+                      <Chip label={r.sourceType} colorCls={SOURCE_BADGE[r.sourceType]} />
+                    </td>
+                    {renderNumCells(r)}
+                  </tr>
+                );
+              }
+              if (r.kind === 'subtotal') {
+                return (
+                  <tr key={i} className="border-t border-slate-200 bg-slate-50/70 font-semibold">
+                    {regionSpans.has(i) && (
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top">
+                        <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
+                      </td>
+                    )}
+                    <td colSpan={2} className="px-3 py-2 border-r border-slate-200 text-right text-slate-700">{r.label}</td>
+                    {renderNumCells(r)}
+                  </tr>
+                );
+              }
+              if (r.kind === 'regionTotal') {
+                return (
+                  <tr key={i} className="border-t border-slate-300 bg-slate-200 font-bold">
+                    {regionSpans.has(i) && (
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top">
+                        <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
+                      </td>
+                    )}
+                    <td colSpan={2} className="px-3 py-2 border-r border-slate-300 text-right text-slate-800 uppercase text-[10px] tracking-wide">{r.label}</td>
+                    {renderNumCells(r)}
+                  </tr>
+                );
+              }
+              if (r.kind === 'allIndiaSource') {
+                const bg = ALL_INDIA_SRC_BG[r.sourceType] ?? 'bg-slate-300';
+                return (
+                  <tr key={i} className={`border-t-2 border-slate-400 ${bg} font-bold text-white`}>
+                    <td className="px-3 py-2 sticky left-0 z-10 align-top">
+                      <span className="text-[10px] uppercase tracking-wide">All India</span>
+                    </td>
+                    <td colSpan={2} className="px-3 py-2 text-right text-[11px]">Total {r.sourceType.charAt(0) + r.sourceType.slice(1).toLowerCase()}</td>
+                    {renderNumCells(r)}
+                  </tr>
+                );
+              }
+              // allIndiaGrand
               return (
-                <tr key={i} className={`${rowBorder} bg-white hover:bg-teal-50/20 transition-colors`}>
-                  {regionSpan > 0 && (
-                    <td
-                      rowSpan={regionSpan}
-                      style={{ top: 34 }}
-                      className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top"
-                    >
-                      <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />
-                    </td>
-                  )}
-                  {hybridSpan > 0 && (
-                    <td
-                      rowSpan={hybridSpan}
-                      className="px-3 py-2 border-r border-slate-200 text-foreground align-top bg-white"
-                    >
-                      <span className="font-semibold text-[11px]">{row.hybridType}</span>
-                    </td>
-                  )}
-                  <td className="px-3 py-2 border-r border-gray-100">
-                    <Chip label={row.sourceType} colorCls={SOURCE_BADGE[row.sourceType]} />
+                <tr key={i} className="border-t-2 border-yellow-500 bg-yellow-400 font-bold text-slate-900">
+                  <td className="px-3 py-2 sticky left-0 z-10 align-top">
+                    <span className="text-[10px] uppercase tracking-wide">All India</span>
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(row.totalMw)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(row.appliedMw)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-blue-50/30 text-blue-800 border-r border-blue-100">{fmt(row.ftcMw)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-violet-50/30 text-violet-800 border-r border-violet-100">{fmt(row.tocMw)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-emerald-50/30 text-emerald-800 border-r border-emerald-100">{fmt(row.codMw)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-amber-50/30 text-amber-800">{fmt(row.expectedMw)}</td>
+                  <td colSpan={2} className="px-3 py-2 text-right text-[11px] uppercase tracking-wide">Grand Total</td>
+                  {renderNumCells(r)}
                 </tr>
               );
             })}
@@ -608,6 +736,15 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
     </div>
   );
 }
+
+// Colour-coding the All India per-source totals like the Google Sheet's
+// blue / orange / green / yellow stripes at the bottom of the hybrid sheet.
+const ALL_INDIA_SRC_BG = {
+  SOLAR: 'bg-orange-500',
+  WIND:  'bg-blue-500',
+  BESS:  'bg-emerald-600',
+  PSP:   'bg-amber-500',
+};
 
 // ── Table 6 — Monthly COD (compact matrix like Excel) ─────────────────────────
 

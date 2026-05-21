@@ -1,0 +1,14 @@
+-- Per-component breakdown for hybrid projects, sourced from the Excel's
+-- "Source wise Segregation" sheet. Stored as JSON since the shape is
+-- variable (different hybrid types have different component sources).
+--
+-- Shape:
+--   [{ "sourceType": "SOLAR" | "WIND" | "BESS" | "PSP",
+--      "totalMw": number, "contd4Mw": number,
+--      "appliedMw": number, "ftcMw": number, "tocMw": number,
+--      "codMw": number, "expectedMw": number,
+--      "ftcDate": "YYYY-MM-DD" | null, "tocDate": ..., "codDate": ... }]
+--
+-- Read by computeHybridBreakdown() to render the Hybrid Breakdown tab in
+-- the same per-component format as the Google Sheet's hybrid summary.
+ALTER TABLE "generation_projects" ADD COLUMN "hybridComponentsJson" JSONB;

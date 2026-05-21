@@ -239,7 +239,7 @@ export function ImportWizard({ regions, plantTypes, poolingStations, lockedRegio
         <div className="rounded-xl border bg-card overflow-hidden">
           <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="bg-muted/30 border-b sticky top-0">
+              <thead className="bg-card border-b sticky top-0 z-20 shadow-sm">
                 <tr>
                   <th className="px-3 py-2 text-left font-semibold text-muted-foreground">#</th>
                   {type === 'generation' ? (

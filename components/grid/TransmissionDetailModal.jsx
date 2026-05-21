@@ -90,7 +90,7 @@ function InfoRow({ label, value }) {
   );
 }
 
-export function TransmissionDetailModal({ element, open, onOpenChange, canEdit, regions }) {
+export function TransmissionDetailModal({ element, open, onOpenChange, canEdit, regions, userRole }) {
   const [editing, setEditing] = useState(false);
   const [tab, setTab]         = useState('details');
   const router = useRouter();
@@ -190,6 +190,7 @@ export function TransmissionDetailModal({ element, open, onOpenChange, canEdit, 
               element={element}
               regions={regions}
               lockedRegionId={null}
+              userRole={userRole}
               onSuccess={handleEditSuccess}
               onCancel={() => setEditing(false)}
             />

@@ -98,10 +98,12 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
                 windCapacityMw={selectedProject.windCapacityMw}
                 solarCapacityMw={selectedProject.solarCapacityMw}
                 bessCapacityMw={selectedProject.bessCapacityMw}
+                pspCapacityMw={selectedProject.pspCapacityMw}
                 sourceUsed={selectedProject.phases.reduce((acc, ph) => {
                   acc[ph.sourceType] = (acc[ph.sourceType] ?? 0) + (ph.capacityAppliedMw ?? 0);
                   return acc;
                 }, {})}
+                userRole={userRole}
                 onSuccess={() => { handleLogClose(); router.refresh(); }}
                 onCancel={handleLogClose}
               />
@@ -117,6 +119,7 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
         open={!!detailProject}
         onOpenChange={(o) => { if (!o) setDetailProject(null); }}
         canEdit={canEdit}
+        userRole={userRole}
       />
     </div>
   );

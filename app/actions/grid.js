@@ -20,6 +20,47 @@ import {
   notifyMilestoneEvent,
   notifyTransmissionUpdated,
 } from '@/lib/notifications';
+import { rebuildSnapshotsFrom } from '@/lib/snapshot-rebuild';
+
+// Returns true for roles authorised to record a back-dated change. All other
+// roles silently get effectiveDate ignored (the change applies as of "now").
+function canBackdate(role) {
+  return role === 'ADMIN' || role === 'NLDC';
+}
+
+// Resolves a user-supplied effective date string against the caller's role.
+// Returns Date|null. Falls back to null (= treat as now) when:
+//   • the user can't back-date,
+//   • no string was supplied,
+//   • the string can't be parsed.
+function resolveEffectiveDate(role, raw) {
+  if (!canBackdate(role)) return null;
+  if (!raw) return null;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Captures the fields needed by computeTransmission so audit-log replay can
+// reconstruct historical state with one query. Decimals are serialised as
+// plain numbers — JSON has no Decimal type and downstream consumers cast back.
+function txStateSnapshot(el) {
+  return {
+    regionId:          el.regionId,
+    agencyOwner:       el.agencyOwner,
+    elementName:       el.elementName,
+    elementType:       el.elementType,
+    isRe:              el.isRe,
+    voltageRatingKv:   el.voltageRatingKv,
+    capacityMva:       el.capacityMva       != null ? Number(el.capacityMva)       : null,
+    lineLengthKm:      el.lineLengthKm      != null ? Number(el.lineLengthKm)      : null,
+    firstEnergyDate:   el.firstEnergyDate,
+    pendingFtc:        el.pendingFtc,
+    proposedFtcDate:   el.proposedFtcDate,
+    capacityApr26Mva:  el.capacityApr26Mva  != null ? Number(el.capacityApr26Mva)  : null,
+    lineLengthApr26Km: el.lineLengthApr26Km != null ? Number(el.lineLengthApr26Km) : null,
+    remarks:           el.remarks,
+  };
+}
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -187,6 +228,18 @@ export async function createGenerationProject(formData) {
     return { error: 'You can only create projects in your assigned region.' };
   }
 
+  // Resolve effective date FIRST so contd4.remarksUpdatedAt and any project
+  // notes carry the right historical timestamp.
+  const effectiveDate = resolveEffectiveDate(user.role, data.effectiveDate);
+  const remarkStamp   = effectiveDate ?? new Date();
+
+  // CONTD-4 status at creation: anyone gets PENDING; ADMIN/NLDC may pick any
+  // status (PENDING / RECEIVED / CLEARED / REJECTED) — this is how a project
+  // that's already past CONTD-4 is onboarded. The client form gates the
+  // dropdown to ADMIN/NLDC; this is the server-side defence.
+  const requestedStatus = data.contd4?.status ?? 'PENDING';
+  const contd4Status = canBackdate(user.role) ? requestedStatus : 'PENDING';
+
   let project;
   try {
     project = await prisma.generationProject.create({
@@ -206,19 +259,22 @@ export async function createGenerationProject(formData) {
           ? {
               contd4: {
                 create: {
-                  applicationDate: new Date(data.contd4.applicationDate),
+                  // applicationDate is now nullable — blank stays as null so
+                  // the UI can honestly render "—" for legacy projects where
+                  // the original date is unknown. The schema already enforces
+                  // that PENDING/RECEIVED submissions supply a date.
+                  applicationDate: data.contd4.applicationDate
+                    ? new Date(data.contd4.applicationDate)
+                    : null,
                   proposedFtcDate: parseDate(data.contd4.proposedFtcDate),
                   capacityApr26Mw: parseDecimal(data.contd4.capacityApr26Mw),
                   capacityMonth:   data.contd4.capacityMonth || null,
-                  // New CONTD-4 applications always start in PENDING regardless
-                  // of what the client posts. Status transitions happen later
-                  // via upsertContd4 / the "Mark as Cleared" flow.
-                  status: 'PENDING',
-                  remarks: data.contd4.remarks || null,
-                  // Time-stamp the remark on creation so the list view shows
-                  // its true "first-entered" date later when more phases are
-                  // added (which would otherwise bump updatedAt).
-                  remarksUpdatedAt: data.contd4.remarks?.trim() ? new Date() : null,
+                  status:          contd4Status,
+                  remarks:         data.contd4.remarks || null,
+                  // Time-stamp the remark on the effective date so the list
+                  // view shows "28 Apr 26" instead of today when ADMIN/NLDC
+                  // back-dated the creation.
+                  remarksUpdatedAt: data.contd4.remarks?.trim() ? remarkStamp : null,
                 },
               },
             }
@@ -230,8 +286,28 @@ export async function createGenerationProject(formData) {
     return { error: 'Failed to save project. Please check your inputs and try again.' };
   }
 
+  // Back-dated creation: log a CREATE note carrying the effectiveDate so the
+  // historical replay (statusAsOf etc.) anchors the project at that date,
+  // then rebuild every snapshot from then to today. (effectiveDate was
+  // resolved at the top of the action so contd4.remarksUpdatedAt also got it.)
+  if (effectiveDate) {
+    await prisma.projectNote.create({
+      data: {
+        projectId: project.id,
+        userId:    user.id,
+        text:      `Project created (back-dated to ${effectiveDate.toISOString().slice(0, 10)}).`,
+        source:    'SYSTEM',
+        field:     null,
+        oldValue:  null,
+        newValue:  null,
+        effectiveDate,
+      },
+    });
+  }
+
   revalidateGridPages(project.id);
-  void takeSnapshot();
+  if (effectiveDate) await rebuildSnapshotsFrom(effectiveDate);
+  else void takeSnapshot();
   void notifyProjectCreated({
     project,
     regionCode: project.region?.code,
@@ -327,6 +403,7 @@ export async function upsertContd4(projectId, formData) {
   if (!parsed.success) return { error: parsed.error.flatten() };
 
   const data = parsed.data;
+  const effectiveDate = resolveEffectiveDate(user.role, data.effectiveDate);
 
   // Fetch existing for change tracking diff
   const existing = await prisma.contd4Application.findUnique({ where: { projectId } });
@@ -349,16 +426,21 @@ export async function upsertContd4(projectId, formData) {
   });
   const newRemarks = phaseCount > 0 ? null : (data.remarks?.trim() || null);
   const remarksChanged = (existing?.remarks ?? null) !== newRemarks;
+  // remarksUpdatedAt drives the date shown beside the remark in the list
+  // view. Two cases bump it:
+  //   1. Remark text changed → stamp to "now" (or effectiveDate if supplied).
+  //   2. Remark text unchanged BUT an effectiveDate was supplied — anchor
+  //      the existing remark to the back-dated date so the list reflects
+  //      the user's intent (without this branch the row keeps showing
+  //      today even though they back-dated to April).
+  const remarkStamp = effectiveDate ?? new Date();
+  const shouldStampRemark = remarksChanged || (!!effectiveDate && !!newRemarks);
   const newValues = {
-    applicationDate: new Date(data.applicationDate),
+    applicationDate: data.applicationDate ? new Date(data.applicationDate) : null,
     proposedFtcDate: parseDate(data.proposedFtcDate),
     status:          existing ? data.status : 'PENDING',
     remarks:         newRemarks,
-    // Stamp remarksUpdatedAt only when remarks actually changed. This date
-    // is what the UI uses to label the app-level remark in the list view;
-    // updatedAt would get bumped by other writes (e.g. cache refresh after
-    // adding a phase) and incorrectly re-date the remark.
-    ...(remarksChanged ? { remarksUpdatedAt: newRemarks ? new Date() : null } : {}),
+    ...(shouldStampRemark ? { remarksUpdatedAt: newRemarks ? remarkStamp : null } : {}),
   };
 
   await prisma.contd4Application.upsert({
@@ -393,6 +475,7 @@ export async function upsertContd4(projectId, formData) {
           field:    t.field,
           oldValue: t.old,
           newValue: t.new,
+          effectiveDate,
         });
       }
     }
@@ -406,6 +489,7 @@ export async function upsertContd4(projectId, formData) {
       field:   null,
       oldValue: null,
       newValue: null,
+      effectiveDate,
     });
   }
 
@@ -414,7 +498,11 @@ export async function upsertContd4(projectId, formData) {
   }
 
   revalidateGridPages(projectId);
-  void takeSnapshot();
+  // Back-dated edits invalidate every snapshot from the effective date to
+  // today — rebuild that range so the Day-wise Changes diff stays accurate.
+  // For "as-of-now" edits, the cheaper takeSnapshot() (today only) is enough.
+  if (effectiveDate) await rebuildSnapshotsFrom(effectiveDate);
+  else void takeSnapshot();
   return { success: true };
 }
 
@@ -515,7 +603,16 @@ export async function addContd4Phase(projectId, formData) {
   });
 
   revalidateGridPages(projectId);
-  void takeSnapshot();
+  // Phase declaredDate IS the effective date for CONTD-4 capacity reporting,
+  // so any phase added with a past declaredDate is implicitly a back-dated
+  // change — rebuild from that date forward. Today-dated declarations fall
+  // through to the cheap "today only" snapshot.
+  const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+  if (declaredDate.getTime() < todayStart.getTime()) {
+    await rebuildSnapshotsFrom(declaredDate);
+  } else {
+    void takeSnapshot();
+  }
   return { success: true, phaseId: phase.id };
 }
 
@@ -695,7 +792,15 @@ export async function addCommissioningEvent(kind, phaseId, formData) {
   });
 
   revalidateGridPages(phase.projectId);
-  void takeSnapshot();
+  // Events with a past eventDate are inherently back-dated — rebuild snapshots
+  // from that date forward so historical aggregates and diffs reflect the new
+  // event. Today-dated events use the cheap single-day takeSnapshot.
+  const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+  if (eventDate.getTime() < todayStart.getTime()) {
+    await rebuildSnapshotsFrom(eventDate);
+  } else {
+    void takeSnapshot();
+  }
   void notifyMilestoneEvent({
     kind: kind === 'ftc' ? 'FTC_EVENT' : kind === 'toc' ? 'TOC_EVENT' : 'COD_EVENT',
     project: phase.project,
@@ -763,7 +868,15 @@ export async function deleteCommissioningEvent(kind, eventId) {
   });
 
   revalidateGridPages(event.phase.projectId);
-  void takeSnapshot();
+  // Same logic as add: deleting a back-dated event mutates history from that
+  // date forward, so rebuild affected snapshots.
+  const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+  const deletedDate = new Date(event.eventDate);
+  if (deletedDate.getTime() < todayStart.getTime()) {
+    await rebuildSnapshotsFrom(deletedDate);
+  } else {
+    void takeSnapshot();
+  }
   return { success: true };
 }
 
@@ -906,6 +1019,7 @@ export async function addCommissioningPhases(projectId, formData) {
           codDeclaredMw:      codTotal > 0 ? codTotal : null,
           codDeclaredDate:    evLatestDate(p.codEvents),
           expectedApr26Mw:    parseDecimal(p.expectedApr26Mw),
+          expectedMonth:      p.expectedMonth || null,
           delayRemarks:       p.delayRemarks || null,
           otherRemarks:       p.otherRemarks || null,
           // Event records — one row per partial FTC / TOC / COD commissioning
@@ -959,6 +1073,173 @@ export async function addCommissioningPhases(projectId, formData) {
   return { success: true };
 }
 
+// Upsert variant of addCommissioningPhases: each input phase may carry an
+// `existingId`. Those rows replace the existing phase in place (update
+// summary fields + nuke and recreate event rows), while rows without an
+// existingId fall through to the standard create path. Used by the
+// "Add Commissioning Phase" modal in edit mode, so that pre-filling the
+// form with existing data and saving doesn't create duplicate phases.
+export async function upsertProjectPhases(projectId, formData) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+
+  const project = await prisma.generationProject.findUniqueOrThrow({
+    where: { id: projectId },
+    include: { phases: true, plantType: true },
+  });
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'Access denied.' };
+  }
+
+  const parsed = createPhasesSchema.safeParse(formData);
+  if (!parsed.success) return { error: parsed.error.flatten() };
+
+  // Per-source capacity cap validation: only counts NEW phases (not the
+  // ones being updated in place) so the cap isn't double-counted.
+  const existingByOwnId = new Map(project.phases.map((p) => [p.id, p]));
+  const newPhases       = parsed.data.phases.filter((p) => !p.existingId);
+  const updatedPhases   = parsed.data.phases.filter((p) =>  p.existingId);
+  if (project.plantType.isHybrid) {
+    try { validateSourceCap(project, newPhases); }
+    catch (e) { return { error: e.message }; }
+  }
+
+  // Pipeline-chain validation excludes the existing phases that this call
+  // is replacing — otherwise they'd be counted twice.
+  const stillExistingPhases = project.phases.filter(
+    (p) => !updatedPhases.some((u) => u.existingId === p.id),
+  );
+  try {
+    validateSourcePipeline(stillExistingPhases, parsed.data.phases);
+  } catch (e) {
+    return { error: e.message };
+  }
+
+  const evSum  = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  const evLatestDate = (evs) => {
+    const dates = (evs ?? []).map((e) => parseDate(e.date)).filter(Boolean);
+    if (!dates.length) return null;
+    return dates.reduce((max, d) => (d > max ? d : max));
+  };
+  const phaseData = (p) => {
+    const ftcTotal = evSum(p.ftcEvents);
+    const tocTotal = evSum(p.tocEvents);
+    const codTotal = evSum(p.codEvents);
+    return {
+      sourceType:         p.sourceType,
+      capacityAppliedMw:  parseFloat(p.capacityAppliedMw),
+      ftcCompletedMw:     ftcTotal > 0 ? ftcTotal : null,
+      ftcCompletedDate:   evLatestDate(p.ftcEvents),
+      proposedFtcDate:    parseDate(p.proposedFtcDate),
+      capacityUnderFtcMw: parseDecimal(p.capacityUnderFtcMw),
+      tocIssuedMw:        tocTotal > 0 ? tocTotal : null,
+      tocIssuedDate:      evLatestDate(p.tocEvents),
+      capacityUnderTocMw: parseDecimal(p.capacityUnderTocMw),
+      codDeclaredMw:      codTotal > 0 ? codTotal : null,
+      codDeclaredDate:    evLatestDate(p.codEvents),
+      expectedApr26Mw:    parseDecimal(p.expectedApr26Mw),
+      expectedMonth:      p.expectedMonth || null,
+      delayRemarks:       p.delayRemarks || null,
+      otherRemarks:       p.otherRemarks || null,
+    };
+  };
+  const eventCreateMany = (evs) => ({
+    createMany: {
+      data: (evs ?? []).map((e) => ({
+        eventDate:  parseDate(e.date),
+        capacityMw: parseFloat(e.mw),
+        remarks:    e.remarks || null,
+      })),
+    },
+  });
+
+  // Per-event upsert helper: events with an `id` are updated in place so
+  // their original createdAt is preserved (audit trail). Events without
+  // an `id` are inserted as new. Events that existed before but aren't in
+  // the form payload are deleted.
+  async function reconcileEvents(tx, model, phaseId, incoming) {
+    const incomingIds = new Set((incoming ?? []).map((e) => e.id).filter(Boolean));
+    // Delete any DB event whose id isn't in the incoming list.
+    await tx[model].deleteMany({
+      where: {
+        phaseId,
+        ...(incomingIds.size > 0 ? { id: { notIn: Array.from(incomingIds) } } : {}),
+      },
+    });
+    // Update existing events; create new ones.
+    for (const e of (incoming ?? [])) {
+      const data = {
+        eventDate:  parseDate(e.date),
+        capacityMw: parseFloat(e.mw),
+        remarks:    e.remarks || null,
+      };
+      if (e.id) {
+        await tx[model].update({ where: { id: e.id }, data });
+      } else {
+        await tx[model].create({ data: { phaseId, ...data } });
+      }
+    }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Update path: refresh the phase row, then reconcile each event
+      // collection individually so original createdAt timestamps survive.
+      for (const p of updatedPhases) {
+        const existing = existingByOwnId.get(p.existingId);
+        if (!existing) continue;
+        await tx.commissioningPhase.update({ where: { id: p.existingId }, data: phaseData(p) });
+        await reconcileEvents(tx, 'ftcEvent', p.existingId, p.ftcEvents);
+        await reconcileEvents(tx, 'tocEvent', p.existingId, p.tocEvents);
+        await reconcileEvents(tx, 'codEvent', p.existingId, p.codEvents);
+      }
+      // Insert path: rows without existingId become brand-new phases.
+      for (const p of newPhases) {
+        await tx.commissioningPhase.create({
+          data: {
+            projectId,
+            ...phaseData(p),
+            ftcEvents: eventCreateMany(p.ftcEvents),
+            tocEvents: eventCreateMany(p.tocEvents),
+            codEvents: eventCreateMany(p.codEvents),
+          },
+        });
+      }
+    });
+  } catch (e) {
+    console.error('upsertProjectPhases error:', e);
+    return { error: 'Failed to save phases. Please try again.' };
+  }
+
+  // Audit log — one entry per affected phase, distinguishing update vs create.
+  await prisma.projectNote.createMany({
+    data: [
+      ...updatedPhases.map((p) => ({
+        projectId,
+        phaseId: p.existingId,
+        userId:  user.id,
+        text:    `Phase updated via Add Phase modal: ${p.sourceType} — ${Number(p.capacityAppliedMw).toFixed(1)} MW applied`,
+        source:  'SYSTEM',
+        field:   null, oldValue: null, newValue: null,
+      })),
+      ...newPhases.map((p) => ({
+        projectId,
+        userId:  user.id,
+        text:    `Phase created: ${p.sourceType} — ${Number(p.capacityAppliedMw).toFixed(1)} MW applied`,
+        source:  'SYSTEM',
+        field:   null, oldValue: null, newValue: null,
+      })),
+    ],
+  });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true };
+}
+
 export async function updateCommissioningPhase(phaseId, formData) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
@@ -986,6 +1267,7 @@ export async function updateCommissioningPhase(phaseId, formData) {
       codDeclaredMw:       parseDecimal(formData.codDeclaredMw),
       codDeclaredDate:     parseDate(formData.codDeclaredDate),
       expectedApr26Mw:     parseDecimal(formData.expectedApr26Mw),
+      expectedMonth:       formData.expectedMonth || null,
       delayCategory:       formData.delayCategory || null,
       delayRemarks:        formData.delayRemarks || null,
       otherRemarks:        formData.otherRemarks || null,
@@ -1095,6 +1377,7 @@ export async function createTransmissionElement(formData) {
       field:       null,
       oldValue:    null,
       newValue:    `${el.elementName} (${el.elementType}, ${el.isRe ? 'RE' : 'Non-RE'})`,
+      stateJson:   txStateSnapshot(el),
     },
   });
 
@@ -1124,7 +1407,9 @@ export async function updateTransmissionElement(elementId, formData) {
   if (!parsed.success) return { error: parsed.error.flatten() };
 
   const data = parsed.data;
-  await prisma.transmissionElement.update({
+  const effectiveDate = resolveEffectiveDate(user.role, data.effectiveDate);
+
+  const updated = await prisma.transmissionElement.update({
     where: { id: elementId },
     data: {
       agencyOwner:       data.agencyOwner,
@@ -1142,6 +1427,7 @@ export async function updateTransmissionElement(elementId, formData) {
       remarks:           data.remarks || null,
     },
   });
+  const postState = txStateSnapshot(updated);
 
   const fmtBool = (v) => (v ? 'Yes' : 'No');
   const fmtKv   = (v) => (v ? `${v} kV` : '—');
@@ -1169,6 +1455,8 @@ export async function updateTransmissionElement(elementId, formData) {
       field:    t.field,
       oldValue: t.old,
       newValue: t.new,
+      effectiveDate,
+      stateJson: postState,
     }));
 
   if (txLogs.length) await prisma.transmissionAuditLog.createMany({
@@ -1176,7 +1464,8 @@ export async function updateTransmissionElement(elementId, formData) {
   });
 
   revalidateTransmissionPages();
-  void takeSnapshot();
+  if (effectiveDate) await rebuildSnapshotsFrom(effectiveDate);
+  else void takeSnapshot();
   return { success: true };
 }
 

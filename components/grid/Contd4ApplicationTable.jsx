@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, FileSpreadsheet, FileText, CalendarClock, X as XIcon } from 'lucide-react';
+import { Search, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, CalendarClock, X as XIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -12,9 +12,6 @@ import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 const STATUS_COLORS = {
   PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
@@ -162,12 +159,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
     });
   }
 
-  // ── Export helpers ──────────────────────────────────────────────────────────
-  // Both Excel and PDF exports use the `filtered` array — so search/region/
-  // type/status filters all apply automatically. With no filter active,
-  // `filtered === projects` and the full list comes through.
   const filtersActive = !!(search || regionFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All' || asOf);
-  const filterSuffix = filtersActive ? `_filtered_${new Date().toISOString().slice(0,10)}` : `_${new Date().toISOString().slice(0,10)}`;
 
   // ── As-of date filter — drives a URL navigation so the server-side query
   //   re-fetches projects active on that date plus their phases up to that
@@ -179,143 +171,6 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
     router.push(url.pathname + url.search);
   }
 
-  function buildExportRows() {
-    return filtered.map((p, i) => {
-      const phases = p.contd4?.phases ?? [];
-      const appRemarkDate = p.contd4?.remarksUpdatedAt
-        || p.contd4?.applicationDate
-        || p.contd4?.createdAt;
-      const appRemarkLine = p.contd4?.remarks?.trim()
-        ? `${appRemarkDate ? new Date(appRemarkDate).toISOString().slice(0,10) : ''}: ${p.contd4.remarks} (application)`
-        : null;
-      const allRemarks = [
-        ...phases.filter(ph => (ph.remarks ?? '').trim())
-                 .map(ph => `${new Date(ph.declaredDate).toISOString().slice(0,10)}: ${ph.remarks}`),
-        ...(appRemarkLine ? [appRemarkLine] : []),
-      ].join('\n');
-      return {
-        'Sr. No':            i + 1,
-        'Name of Developer': p.developerName ?? '—',
-        'Generating Station': p.name,
-        'Region':            p.region.code,
-        'Generation Type':   p.plantType.label,
-        'Declared Cap (MW)': p.contd4?.capacityApr26Mw != null ? Number(p.contd4.capacityApr26Mw).toFixed(1) : '',
-        'Plant Cap (MW)':    Number(p.totalCapacityMw).toFixed(1),
-        'Status':            p.contd4?.status ?? '—',
-        'Application Date':  p.contd4?.applicationDate ? new Date(p.contd4.applicationDate).toISOString().slice(0,10) : '',
-        'Proposed FTC Date': p.contd4?.proposedFtcDate ? new Date(p.contd4.proposedFtcDate).toISOString().slice(0,10) : '',
-        'Phases':            phases.length,
-        'Remarks':           allRemarks || '—',
-      };
-    });
-  }
-
-  function downloadExcel() {
-    const rows = buildExportRows();
-    if (rows.length === 0) { toast.error('No rows to export.'); return; }
-    const ws = XLSX.utils.json_to_sheet(rows);
-    // Column widths tuned for readability
-    ws['!cols'] = [
-      { wch: 6 },  // Sr.
-      { wch: 28 }, // Developer
-      { wch: 36 }, // Station
-      { wch: 8 },  // Region
-      { wch: 24 }, // Type
-      { wch: 12 }, // Declared
-      { wch: 10 }, // Plant cap
-      { wch: 11 }, // Status
-      { wch: 13 }, // App date
-      { wch: 13 }, // Proposed
-      { wch: 7 },  // Phases
-      { wch: 50 }, // Remarks
-    ];
-    // Header row styling — bold + light fill (xlsx writes the styles if any
-    // cell carries a `s` property; we set basic header font weight here)
-    const headerCells = ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1'];
-    for (const ref of headerCells) {
-      if (ws[ref]) {
-        ws[ref].s = {
-          font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Calibri', sz: 11 },
-          fill: { fgColor: { rgb: '1F3A8A' } },
-          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-        };
-      }
-    }
-    // Enable wrap text for the Remarks column on every data row
-    for (let r = 2; r <= rows.length + 1; r++) {
-      const cell = ws[`L${r}`];
-      if (cell) cell.s = { alignment: { wrapText: true, vertical: 'top' }, font: { name: 'Calibri', sz: 10 } };
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'CONTD-4 Applications');
-    XLSX.writeFile(wb, `contd4_applications${filterSuffix}.xlsx`);
-    toast.success(`Excel downloaded — ${rows.length} ${rows.length === 1 ? 'row' : 'rows'}.`);
-  }
-
-  function downloadPdf() {
-    const rows = buildExportRows();
-    if (rows.length === 0) { toast.error('No rows to export.'); return; }
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-    const W = doc.internal.pageSize.getWidth();
-
-    // Title block
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-    doc.text('Generation Capacity Under Process of CONTD-4', 28, 38);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(110);
-    const subtitle = [
-      filtersActive ? 'Filtered view' : 'All regions',
-      regionFilter !== 'All' ? `Region: ${regionFilter}` : null,
-      typeFilter   !== 'All' ? `Type: ${typeFilter}`     : null,
-      statusFilter !== 'All' ? `Status: ${statusFilter}` : null,
-      search ? `Search: "${search}"` : null,
-      `${rows.length} ${rows.length === 1 ? 'project' : 'projects'}`,
-      `Generated ${new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}`,
-    ].filter(Boolean).join('  ·  ');
-    doc.text(subtitle, 28, 54);
-
-    autoTable(doc, {
-      startY: 70,
-      head: [['#', 'Developer', 'Generating Station', 'Region', 'Type', 'Decl. (MW)', 'Cap (MW)', 'Status', 'App Date', 'Remarks (date-wise)']],
-      body: rows.map(r => [
-        r['Sr. No'],
-        r['Name of Developer'],
-        r['Generating Station'],
-        r['Region'],
-        r['Generation Type'],
-        r['Declared Cap (MW)'],
-        r['Plant Cap (MW)'],
-        r['Status'],
-        r['Application Date'],
-        r['Remarks'],
-      ]),
-      theme: 'grid',
-      styles:      { font: 'helvetica', fontSize: 8, cellPadding: 4, valign: 'top', overflow: 'linebreak' },
-      headStyles:  { fillColor: [31, 58, 138], textColor: [255,255,255], fontStyle: 'bold', halign: 'center', fontSize: 9 },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: {
-        0: { halign: 'right',  cellWidth: 22 },                       // #
-        1: { cellWidth: 90 },                                         // Developer
-        2: { cellWidth: 130 },                                        // Station
-        3: { halign: 'center', cellWidth: 36, fontStyle: 'bold' },    // Region
-        4: { cellWidth: 90 },                                         // Type
-        5: { halign: 'right',  cellWidth: 50 },                       // Decl
-        6: { halign: 'right',  cellWidth: 48 },                       // Cap
-        7: { halign: 'center', cellWidth: 52, fontStyle: 'bold' },    // Status
-        8: { halign: 'center', cellWidth: 58 },                       // App date
-        9: { cellWidth: 'auto', fontSize: 7 },                        // Remarks
-      },
-      didDrawPage: () => {
-        const page = doc.getCurrentPageInfo().pageNumber;
-        doc.setFontSize(8); doc.setTextColor(140);
-        doc.text(`Page ${page}`, W - 50, doc.internal.pageSize.getHeight() - 12);
-        doc.text('FTC Communication Portal · Grid Tracker', 28, doc.internal.pageSize.getHeight() - 12);
-      },
-      margin: { left: 28, right: 28 },
-    });
-
-    doc.save(`contd4_applications${filterSuffix}.pdf`);
-    toast.success(`PDF downloaded — ${rows.length} ${rows.length === 1 ? 'row' : 'rows'}.`);
-  }
 
   const sortProps = { sortField, sortDir, onSort: handleSort };
 
@@ -440,7 +295,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
         </div>
 
         {/* Count */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 ml-auto">
           <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
             Results
           </label>
@@ -449,42 +304,12 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
             {filtersActive && <span className="ml-1 text-amber-700">· filtered</span>}
           </span>
         </div>
-        {/* Export — align with the labelled filter inputs above */}
-        <div className="flex flex-col gap-1 ml-auto">
-          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-            Download
-          </label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={downloadExcel}
-              disabled={filtered.length === 0}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title={filtersActive
-                ? `Download the ${filtered.length} filtered rows as Excel`
-                : `Download all ${filtered.length} rows as Excel`}
-            >
-              <FileSpreadsheet className="size-3.5" /> Excel
-            </button>
-            <button
-              type="button"
-              onClick={downloadPdf}
-              disabled={filtered.length === 0}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title={filtersActive
-                ? `Download the ${filtered.length} filtered rows as PDF`
-                : `Download all ${filtered.length} rows as PDF`}
-            >
-              <FileText className="size-3.5" /> PDF
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Table */}
       <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full text-sm">
-          <thead className="bg-muted/30 border-b sticky top-0 z-10">
+          <thead className="bg-card border-b sticky top-0 z-20 shadow-sm">
             <tr>
               <Th label="Sr. No"  className="w-[52px]" />
               <SortableTh label="Name of Developer"  field="developer" className="min-w-[180px]" {...sortProps} />
