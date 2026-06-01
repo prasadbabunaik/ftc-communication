@@ -86,7 +86,9 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
           <DialogHeader>
             <DialogTitle>Add Commissioning Phase</DialogTitle>
             <DialogDescription>
-              Select a cleared project, then record its FTC / TOC / COD milestone data.
+              Pick any project and record its FTC / TOC / COD data. Recording
+              commissioning data enters the project into the FTC pipeline —
+              its CONTD-4 status is independent and can be set separately.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
@@ -100,11 +102,24 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
                 placeholder="— Select a project —"
                 searchPlaceholder="Search by name, region, or capacity…"
                 emptyText="No matching projects."
-                options={allClearedProjects.map((p) => ({
-                  value: p.id,
-                  label: `${p.name} (${p.region.code}) — ${p.totalCapacityMw.toFixed(1)} MW`,
-                }))}
+                options={allClearedProjects.map((p) => {
+                  // Tag projects not yet in the pipeline so the user knows
+                  // selecting one will bring it into FTC.
+                  const inPipeline = p.inFtcPipeline || p.contd4Status === 'CLEARED';
+                  const tag = inPipeline ? '' : '  • new to FTC';
+                  return {
+                    value: p.id,
+                    label: `${p.name} (${p.region.code}) — ${p.totalCapacityMw.toFixed(1)} MW${tag}`,
+                  };
+                })}
               />
+              {selectedProject && !(selectedProject.inFtcPipeline || selectedProject.contd4Status === 'CLEARED') && (
+                <p className="mt-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                  This project isn't in the FTC pipeline yet. Saving its commissioning
+                  data will add it — independent of its CONTD-4 status
+                  ({selectedProject.contd4Status ?? 'no CONTD-4'}).
+                </p>
+              )}
             </div>
 
             {selectedProject && (

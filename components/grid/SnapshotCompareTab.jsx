@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, Minus, RefreshCw } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -227,6 +227,13 @@ function T3DiffTable({ changes }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function SnapshotCompareTab() {
+  // Two complementary views:
+  //   • movement  — milestone-date diff between two dates (how much FTC/TOC/
+  //                 COD moved by milestone date). Event-date based.
+  //   • changelog — entry-time audit feed (who changed what, and when it was
+  //                 recorded). createdAt / effectiveDate based.
+  const [view, setView] = useState('movement');
+
   const [snapshots, setSnapshots] = useState([]);
   const [fromDate, setFromDate]   = useState('');
   const [toDate,   setToDate]     = useState('');
@@ -291,6 +298,28 @@ export function SnapshotCompareTab() {
 
   return (
     <div className="space-y-5">
+      {/* View toggle */}
+      <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-slate-50 p-1">
+        <button
+          onClick={() => setView('movement')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+            view === 'movement' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <GitCompare className="size-3.5" /> Milestone Movement
+        </button>
+        <button
+          onClick={() => setView('changelog')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+            view === 'changelog' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <History className="size-3.5" /> Change Log
+        </button>
+      </div>
+
+      {view === 'changelog' ? <ChangeLog /> : (
+      <>
       {/* Controls */}
       <div className="bg-white border border-border rounded-lg p-4">
         <h3 className="text-sm font-semibold text-foreground mb-3">Compare Two Dates</h3>
@@ -390,6 +419,127 @@ export function SnapshotCompareTab() {
           )}
         </div>
       )}
+      </>
+      )}
+    </div>
+  );
+}
+
+// ── Change Log — entry-time audit feed ────────────────────────────────────────
+// Lists every recorded change (project/phase/event edits + transmission
+// edits) by the time it was ENTERED. Back-dated changes are tagged and
+// positioned by their effective date. This is the "which change was made at
+// what time" view, distinct from the milestone-movement diff above.
+function ChangeLog() {
+  const today     = new Date().toISOString().slice(0, 10);
+  const monthAgo  = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(monthAgo);
+  const [to,   setTo]   = useState(today);
+  const [rows, setRows] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const load = (f = from, t = to) => {
+    setLoading(true); setError(null);
+    fetch(`/api/grid/audit?from=${f}&to=${t}&limit=500`)
+      .then(r => r.json())
+      .then(j => { if (j.error) setError(j.error); else setRows(j.data ?? []); })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const fmtTs = (iso) => new Date(iso).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const fmtDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const KIND_TONE = { PROJECT: 'bg-blue-100 text-blue-700', TRANSMISSION: 'bg-teal-100 text-teal-700' };
+
+  // Group rows by the calendar day they were recorded (effectiveDate ?? createdAt).
+  const grouped = {};
+  for (const r of (rows ?? [])) {
+    const day = new Date(r.effectiveDate ?? r.createdAt).toISOString().slice(0, 10);
+    (grouped[day] ??= []).push(r);
+  }
+  const days = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white border border-border rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Change Log — recorded edits by entry time</h3>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[180px]">
+            <label className="block text-xs text-muted-foreground mb-1">From</label>
+            <DatePicker value={from} onChange={setFrom} placeholder="Pick a date" />
+          </div>
+          <div className="min-w-[180px]">
+            <label className="block text-xs text-muted-foreground mb-1">To</label>
+            <DatePicker value={to} onChange={setTo} placeholder="Pick a date" />
+          </div>
+          <button
+            onClick={() => load()}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-4 h-10 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Each row is recorded when entered. Back-dated edits (ADMIN/NLDC) appear under their effective date with a tag.
+        </p>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      </div>
+
+      {!loading && days.length === 0 && (
+        <div className="flex items-center gap-2 p-6 rounded-lg bg-slate-50 border border-border text-muted-foreground text-sm">
+          <Minus className="size-4" /> No changes recorded in this window. Changes you make in the app will appear here with a timestamp.
+        </div>
+      )}
+
+      {days.map((day) => (
+        <div key={day} className="rounded-lg border border-border bg-white overflow-hidden">
+          <div className="px-4 py-2 bg-slate-50 border-b border-border flex items-center gap-2">
+            <Clock className="size-3.5 text-slate-500" />
+            <span className="text-xs font-semibold text-slate-700">{fmtDate(day)}</span>
+            <span className="text-[10px] text-muted-foreground">{grouped[day].length} change{grouped[day].length === 1 ? '' : 's'}</span>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50/60 text-[10px] text-slate-500 uppercase tracking-wide">
+              <tr>
+                <th className="px-3 py-1.5 text-left">Time</th>
+                <th className="px-3 py-1.5 text-left">Type</th>
+                <th className="px-3 py-1.5 text-left">Entity</th>
+                <th className="px-3 py-1.5 text-left">Field</th>
+                <th className="px-3 py-1.5 text-left">Change</th>
+                <th className="px-3 py-1.5 text-left">By</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {grouped[day].map((r) => (
+                <tr key={r.id} className="hover:bg-slate-50/60">
+                  <td className="px-3 py-1.5 font-mono text-slate-600 whitespace-nowrap">{fmtTs(r.effectiveDate ?? r.createdAt)}</td>
+                  <td className="px-3 py-1.5">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${KIND_TONE[r.kind] ?? 'bg-slate-100 text-slate-700'}`}>
+                      {r.kind === 'TRANSMISSION' ? 'TX' : 'GEN'}
+                    </span>
+                    {r.backDated && <span className="ml-1 text-[9px] px-1 rounded bg-amber-100 text-amber-700 font-semibold">back-dated</span>}
+                  </td>
+                  <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[220px] truncate" title={r.entityName}>
+                    {r.region && <span className="text-[10px] text-slate-400 mr-1">{r.region}</span>}{r.entityName}
+                  </td>
+                  <td className="px-3 py-1.5 text-slate-600">{r.field ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-slate-700">
+                    {r.oldValue != null || r.newValue != null
+                      ? <span><span className="text-rose-600">{r.oldValue ?? '—'}</span> → <span className="text-emerald-700 font-semibold">{r.newValue ?? '—'}</span></span>
+                      : <span className="text-slate-500" title={r.text}>{r.text}</span>}
+                  </td>
+                  <td className="px-3 py-1.5 text-slate-600 whitespace-nowrap">{r.userName}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }

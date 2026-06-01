@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { prisma } from '@/lib/prisma';
 import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
 import {
-  n, REGION_ORDER, SOURCE_ORDER, getProjectSource,
+  n, REGION_ORDER, SOURCE_ORDER, getProjectSource, isInFtcPipeline,
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission,
   computeHybridBreakdown, computeMonthlyCod,
@@ -205,7 +205,7 @@ function buildMonthlyCodSheet(monthlyCod) {
 function buildSourceDetailSheet(source, projects, asOf) {
   const sourceProjects = projects
     .filter(p => {
-      if (p.contd4?.status !== 'CLEARED') return false;
+      if (!isInFtcPipeline(p)) return false;
       return getProjectSource(p) === source;
     })
     .sort((a, b) => REGION_ORDER.indexOf(a.region.code) - REGION_ORDER.indexOf(b.region.code));
@@ -474,7 +474,7 @@ export async function GET(request) {
   // Per-source detail sheets
   for (const source of SOURCE_ORDER) {
     const hasData = projects.some(p =>
-      p.contd4?.status === 'CLEARED' && getProjectSource(p) === source
+      isInFtcPipeline(p) && getProjectSource(p) === source
     );
     if (!hasData) continue;
     const sheetName = source.charAt(0) + source.slice(1).toLowerCase(); // Wind, Solar, etc.

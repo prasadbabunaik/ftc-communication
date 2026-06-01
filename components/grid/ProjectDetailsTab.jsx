@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getProjectSource, SOURCE_ORDER } from '@/lib/grid-computations';
+import { getProjectSource, SOURCE_ORDER, isInFtcPipeline } from '@/lib/grid-computations';
 
 function fmt(v) {
   if (v == null || Number(v) === 0) return '—';
@@ -131,8 +131,8 @@ function ProjectTable({ projects, source }) {
 export function ProjectDetailsTab({ projects, refMonthLabel }) {
   const [activeSource, setActiveSource] = useState(SOURCE_ORDER[0]);
 
-  // Group FTC-cleared projects by source
-  const cleared = (projects ?? []).filter(p => p.contd4?.status === 'CLEARED');
+  // Group FTC-pipeline projects by source (in FTC directly, or CONTD-4 cleared)
+  const cleared = (projects ?? []).filter(isInFtcPipeline);
   const bySource = {};
   for (const src of SOURCE_ORDER) bySource[src] = [];
   for (const p of cleared) {

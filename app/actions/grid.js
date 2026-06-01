@@ -255,6 +255,11 @@ export async function createGenerationProject(formData) {
         solarCapacityMw: parseDecimal(data.solarCapacityMw),
         bessCapacityMw:  parseDecimal(data.bessCapacityMw),
         createdById: user.id,
+        // Legacy onboarding ("Already CONTD-4 cleared") enters the project
+        // straight into the FTC pipeline. A plain new CONTD-4 application
+        // (PENDING) does not — it's only under study until cleared or until
+        // FTC data is recorded.
+        inFtcPipeline: !!(data.createContd4 && contd4Status === 'CLEARED'),
         ...(data.createContd4 && data.contd4
           ? {
               contd4: {
@@ -1068,6 +1073,10 @@ export async function addCommissioningPhases(projectId, formData) {
     })),
   });
 
+  // Recording commissioning data places the project in the FTC pipeline,
+  // independent of its CONTD-4 status.
+  await prisma.generationProject.update({ where: { id: projectId }, data: { inFtcPipeline: true } });
+
   revalidateGridPages(projectId);
   void takeSnapshot();
   return { success: true };
@@ -1234,6 +1243,9 @@ export async function upsertProjectPhases(projectId, formData) {
       })),
     ],
   });
+
+  // Recording commissioning data places the project in the FTC pipeline.
+  await prisma.generationProject.update({ where: { id: projectId }, data: { inFtcPipeline: true } });
 
   revalidateGridPages(projectId);
   void takeSnapshot();

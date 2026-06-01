@@ -11,7 +11,7 @@ import autoTable from 'jspdf-autotable';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
+import { CONTD4_SOURCE_LABEL, isInFtcPipeline } from '@/lib/grid-computations';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -645,7 +645,7 @@ function contd4StudySource(p) {
 // ── Builders: one per tab — return [{ region, source, label, contributors: [...] }] ─
 
 function buildPipelineGroups(projects) {
-  const cleared = projects.filter(p => p.contd4?.status === 'CLEARED');
+  const cleared = projects.filter(isInFtcPipeline);
   const groups = {};
   // Normalise an event row to { mw, date } so the renderer can build the
   // Excel-style "150MW (30.03.2026), 50MW (01.04.2026)" cells without
@@ -804,7 +804,7 @@ function buildContd4Groups(projects) {
 }
 
 function buildHybridGroups(projects) {
-  const hybrids = projects.filter(p => p.plantType?.isHybrid && p.contd4?.status === 'CLEARED');
+  const hybrids = projects.filter(p => p.plantType?.isHybrid && isInFtcPipeline(p));
   const groups = {};
   for (const p of hybrids) {
     const region = p.region.code;
@@ -862,7 +862,7 @@ function buildTransmissionGroups(txElements) {
 }
 
 function buildMonthlyCodGroups(projects, fromMonth, toMonth) {
-  const cleared = projects.filter(p => p.contd4?.status === 'CLEARED');
+  const cleared = projects.filter(isInFtcPipeline);
   const fromD = fromMonth ? new Date(fromMonth + '-01') : null;
   const toD   = toMonth   ? new Date(toMonth + '-01')   : null;
   const groups = {};

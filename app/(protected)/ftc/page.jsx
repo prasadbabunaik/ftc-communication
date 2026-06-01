@@ -28,8 +28,15 @@ export default async function FtcPage({ searchParams }) {
   const projects = await prisma.generationProject.findMany({
     where: {
       ...scope,
-      ...activePeriodFilter(asOf),
-      contd4: { status: 'CLEARED' },
+      // Wrapped in AND because activePeriodFilter(asOf) itself returns an
+      // `OR` key — combining via two literal `OR` keys would clobber one.
+      AND: [
+        activePeriodFilter(asOf),
+        // FTC pipeline membership is independent of CONTD-4: a project shows
+        // here when entered directly into FTC (inFtcPipeline) OR when its
+        // CONTD-4 cleared (the legacy bridge).
+        { OR: [{ inFtcPipeline: true }, { contd4: { status: 'CLEARED' } }] },
+      ],
     },
     include: {
       region:         true,
@@ -68,10 +75,27 @@ export default async function FtcPage({ searchParams }) {
     return comp ? Number(comp.totalMw) : null;
   };
 
+  // Selector list for "Add Commissioning Phase" — ALL active projects in
+  // scope, not just pipeline members. This is what lets a project be entered
+  // directly into FTC: pick any project (even one whose CONTD-4 is still
+  // pending or absent), record its FTC/TOC/COD data, and the action flags it
+  // into the pipeline. Pipeline membership for the TABLE still uses the
+  // scoped `projects` query above.
+  const selectable = await prisma.generationProject.findMany({
+    where: { ...scope, ...activePeriodFilter(asOf) },
+    include: {
+      region: true, plantType: true,
+      contd4: { select: { status: true } },
+      phases: true,
+    },
+    orderBy: { name: 'asc' },
+  });
   const allCleared = serialize(
-    projects.map((p) => ({
+    selectable.map((p) => ({
       id:              p.id,
       name:            p.name,
+      inFtcPipeline:   p.inFtcPipeline,
+      contd4Status:    p.contd4?.status ?? null,
       totalCapacityMw: Number(p.totalCapacityMw),
       windCapacityMw:  componentCap(p, 'WIND'),
       solarCapacityMw: componentCap(p, 'SOLAR'),

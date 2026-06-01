@@ -110,6 +110,14 @@ model GenerationProject {
   // Non-hybrid projects leave this null.
   hybridComponentsJson Json?
 
+  // Whether the project is part of the FTC pipeline. The FTC page and the
+  // CONTD-4 page are independent entry points: a project can be entered
+  // directly into FTC without ever clearing CONTD-4 (and can be issued
+  // CONTD-4 later, or never). Pipeline membership = inFtcPipeline OR a
+  // CLEARED contd4 (the legacy bridge), so existing cleared projects keep
+  // showing without a backfill gap.
+  inFtcPipeline Boolean @default(false)
+
   // Active period — a project is "live" on date D when:
   //     activeFrom <= D AND (activeUntil IS NULL OR activeUntil > D)
   // Soft-delete sets activeUntil = NOW(); reactivation sets it back to NULL.
