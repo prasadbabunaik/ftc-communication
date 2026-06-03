@@ -58,6 +58,14 @@ export default async function Contd4Page({ searchParams }) {
     orderBy: { name: 'asc' },
   });
 
+  // Master generating-station list for the searchable station-name dropdown.
+  // RLDC users only see stations in their region.
+  const stations = await prisma.generatingStation.findMany({
+    where: userRegion ? { regionCode: userRegion.code } : undefined,
+    select: { name: true, poolingStationName: true, regionCode: true },
+    orderBy: { name: 'asc' },
+  });
+
   // ── Snapshot-accurate status (as-of-date) ──────────────────────────────────
   // CONTD-4 applications always start in PENDING. Every subsequent status
   // change (RECEIVED / REJECTED / CLEARED) is logged to `project_notes` with
@@ -113,6 +121,7 @@ export default async function Contd4Page({ searchParams }) {
       regions={serialize(regions)}
       plantTypes={serialize(plantTypes)}
       poolingStations={serialize(poolingStations)}
+      stations={serialize(stations)}
       lockedRegionId={userRegion?.id ?? null}
       userRole={user.role}
       regionLabel={regionLabel}

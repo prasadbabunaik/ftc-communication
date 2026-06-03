@@ -3,13 +3,13 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ListTree, Search, X, ChevronRight, Rows3, Columns3, LayoutGrid, Sheet, FileText } from 'lucide-react';
 // xlsx-js-style is a drop-in replacement for SheetJS that supports cell
-// styling (fills, fonts, borders) — required to mirror the Google Sheet's
-// yellow-headed look in the Excel download.
+// styling (fills, fonts, borders) — used to give the Excel download the same
+// clean navy-header look as the print / PDF summary view.
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogTitle,
 } from '@/components/ui/dialog';
 import { CONTD4_SOURCE_LABEL, isInFtcPipeline } from '@/lib/grid-computations';
 
@@ -156,47 +156,50 @@ function normaliseSections(filteredGroups, layout) {
 }
 
 // ── Excel styling tokens ─────────────────────────────────────────────────────
-// Colour palette mirrors the Google Sheet:
-//   FFFF00 (bright yellow) — title + header bar
-//   C00000 (dark red)      — title + data text
-//   FCE5C8 (light beige)   — data row background
-//   D9D9D9 (light grey)    — per-cluster subtotal background
-//   BFBFBF (mid grey)      — grand-total background
-const THIN_BORDER = { style: 'thin', color: { rgb: '000000' } };
-const ALL_BORDERS = { top: THIN_BORDER, bottom: THIN_BORDER, left: THIN_BORDER, right: THIN_BORDER };
+// Clean navy palette — matches the print/PDF summary view (image 1):
+//   1E3A5F (deep navy)   — section title + column-header bar, white text
+//   FFFFFF / F1F5F9      — data rows (alternating white / slate-50 stripe)
+//   E2E8F0 (slate-200)   — per-cluster subtotal background
+//   1E3A5F (deep navy)   — grand-total background, white text
+//   CBD5E1 (slate-300)   — cell borders
+const NAVY  = '1E3A5F';
+const SLATE_BORDER = { style: 'thin', color: { rgb: 'CBD5E1' } };
+const ALL_BORDERS = { top: SLATE_BORDER, bottom: SLATE_BORDER, left: SLATE_BORDER, right: SLATE_BORDER };
 
 const STYLE_TITLE = {
-  font:      { name: 'Calibri', sz: 14, bold: true, italic: true, color: { rgb: 'C00000' } },
-  fill:      { fgColor: { rgb: 'FFFF00' } },
+  font:      { name: 'Arial', sz: 13, bold: true, color: { rgb: 'FFFFFF' } },
+  fill:      { fgColor: { rgb: NAVY } },
   alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
   border:    ALL_BORDERS,
 };
 const STYLE_HEADER = {
-  font:      { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
-  fill:      { fgColor: { rgb: 'FFFF00' } },
+  font:      { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+  fill:      { fgColor: { rgb: NAVY } },
   alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
   border:    ALL_BORDERS,
 };
-function styleData(isNum) {
+// `stripe` toggles the subtle slate-50 background on alternating data rows so
+// long sections stay readable, just like the striped print view.
+function styleData(isNum, stripe = false) {
   return {
-    font:      { name: 'Calibri', sz: 10, color: { rgb: 'C00000' } },
-    fill:      { fgColor: { rgb: 'FCE5C8' } },
-    alignment: { horizontal: isNum ? 'right' : 'center', vertical: 'center', wrapText: true },
+    font:      { name: 'Arial', sz: 10, color: { rgb: '1A1A2E' } },
+    fill:      { fgColor: { rgb: stripe ? 'F1F5F9' : 'FFFFFF' } },
+    alignment: { horizontal: isNum ? 'right' : 'left', vertical: 'center', wrapText: true },
     border:    ALL_BORDERS,
   };
 }
 function styleSubtotal(isNum) {
   return {
-    font:      { name: 'Calibri', sz: 10, bold: true, color: { rgb: '000000' } },
-    fill:      { fgColor: { rgb: 'D9D9D9' } },
+    font:      { name: 'Arial', sz: 10, bold: true, color: { rgb: '1A1A2E' } },
+    fill:      { fgColor: { rgb: 'E2E8F0' } },
     alignment: { horizontal: isNum ? 'right' : 'left', vertical: 'center', wrapText: true },
     border:    ALL_BORDERS,
   };
 }
 function styleGrandTotal(isNum) {
   return {
-    font:      { name: 'Calibri', sz: 11, bold: true, color: { rgb: '000000' } },
-    fill:      { fgColor: { rgb: 'BFBFBF' } },
+    font:      { name: 'Arial', sz: 11, bold: true, color: { rgb: 'FFFFFF' } },
+    fill:      { fgColor: { rgb: NAVY } },
     alignment: { horizontal: isNum ? 'right' : 'left', vertical: 'center', wrapText: true },
     border:    ALL_BORDERS,
   };
@@ -258,21 +261,33 @@ function appendSectionToAoa(aoa, merges, sec, startRowIdx, colCount, spacerBefor
   const headerRowIdx = rowIdx;
   rowIdx += 1;
   // Data rows clustered by inner key, with a subtotal after each cluster.
+  // The Region column (idx 2) is constant within a cluster, so we vertically
+  // merge it into one cell per cluster (matching the merged-region look of the
+  // summary sheets) and blank the absorbed cells.
   const allRows = [];
   const dataRowIdxs = [];
   const subRowIdxs = [];
+  let stripe = false;
   for (const cl of sec.clusters) {
-    for (const c of cl.rows) {
-      const row = contributorToRow(c, c.region ?? sec.outerLabel);
-      aoa.push(row.map((v, i) => cell(v, styleData(NUMERIC_COL_IDX.has(i)))));
+    const clusterStart = rowIdx;
+    cl.rows.forEach((c, ri) => {
+      const region = c.region ?? sec.outerLabel;
+      const row = contributorToRow(c, region);
+      if (ri > 0) row[2] = '';                       // absorbed by the merge above
+      aoa.push(row.map((v, i) => cell(v, styleData(NUMERIC_COL_IDX.has(i), stripe))));
       allRows.push(c);
       dataRowIdxs.push(rowIdx);
       rowIdx += 1;
+      stripe = !stripe;
+    });
+    if (cl.rows.length > 1) {
+      merges.push({ s: { c: 2, r: clusterStart }, e: { c: 2, r: rowIdx - 1 } });
     }
     const subRow = makeTotalRow(cl.label, cl.rows);
     aoa.push(subRow.map((v, i) => cell(v, styleSubtotal(NUMERIC_COL_IDX.has(i)))));
     subRowIdxs.push(rowIdx);
     rowIdx += 1;
+    stripe = false;                                  // each cluster restarts striping
   }
   // Grand-total row for the whole section.
   const grandRow = makeTotalRow(`Total ${sec.outerLabel}`, allRows);
@@ -287,8 +302,8 @@ function appendSectionToAoa(aoa, merges, sec, startRowIdx, colCount, spacerBefor
 //                             that concatenates every section, matching the
 //                             Google-Sheet workbook tab of the same name.
 //   split layout            → one sheet per source (legacy behaviour).
-// Either way: yellow title + header bar, beige data, grey subtotal /
-// grand-total — the styling matches the Google Sheet exactly.
+// Either way: navy title + header bar, white/striped data, slate subtotal,
+// navy grand-total — matching the print / PDF summary view.
 function downloadBreakupExcel(filteredGroups, layout, selectedSources, selectedRegions = new Set()) {
   if (!filteredGroups.length) return;
   const sections = normaliseSections(filteredGroups, layout);
@@ -370,7 +385,7 @@ function downloadBreakupExcel(filteredGroups, layout, selectedSources, selectedR
 
 // PDF exporter.
 //   region / source layouts → one continuous document — each section flows
-//                             after the previous (with a yellow title bar)
+//                             after the previous (with a navy title bar)
 //                             instead of forcing a page break per section.
 //                             Mirrors the Google Sheet's "Region wise" /
 //                             "Source wise" tab where every section sits in
@@ -425,13 +440,11 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
   };
 
   function drawTitleBar(y, text) {
-    doc.setFillColor(255, 255, 0);
+    doc.setFillColor(30, 58, 95);              // deep navy — matches the print view
     doc.rect(MARGIN, y, W - MARGIN * 2, TITLE_H, 'F');
-    doc.setDrawColor(0); doc.setLineWidth(0.5);
-    doc.rect(MARGIN, y, W - MARGIN * 2, TITLE_H);
-    doc.setTextColor(192, 0, 0);
-    doc.setFont('helvetica', 'bolditalic');
-    doc.setFontSize(15);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
     doc.text(text, W / 2, y + TITLE_H / 2 + 5, { align: 'center' });
   }
 
@@ -459,10 +472,27 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
     const body = [];
     const allRows = [];
     for (const cl of sec.clusters) {
-      for (const c of cl.rows) {
-        body.push(contributorToRow(c, c.region ?? sec.outerLabel));
+      let stripe = false;
+      cl.rows.forEach((c, ri) => {
+        const region = c.region ?? sec.outerLabel;
+        const full = contributorToRow(c, region);
+        let rowCells;
+        if (ri === 0) {
+          // First row of the cluster carries the Region cell, spanning the
+          // whole cluster (vertical merge). rowSpan:1 is a harmless no-op when
+          // the cluster has a single project.
+          rowCells = full.slice();
+          rowCells[2] = { content: region, rowSpan: cl.rows.length, styles: { valign: 'middle', halign: 'center' } };
+        } else {
+          // Absorbed rows drop the Region cell so autoTable slots the rest
+          // under the spanned cell.
+          rowCells = full.slice(0, 2).concat(full.slice(3));
+        }
+        rowCells._stripe = stripe;
+        body.push(rowCells);
         allRows.push(c);
-      }
+        stripe = !stripe;
+      });
       body.push(rowOf(ROW_SUB, makeTotalRow(cl.label, cl.rows)));
     }
     body.push(rowOf(ROW_GRAND, makeTotalRow(`Total ${sec.outerLabel}`, allRows)));
@@ -475,18 +505,18 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
       styles: {
         font: 'helvetica', fontSize: 8, cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
         valign: 'middle', halign: 'center', overflow: 'linebreak',
-        textColor: [192, 0, 0],          // dark-red body text — sheet style
-        lineColor: [0, 0, 0], lineWidth: 0.3,
-        fillColor: [252, 229, 200],      // beige data fill
+        textColor: [26, 26, 46],         // near-black body text
+        lineColor: [203, 213, 225], lineWidth: 0.3,   // slate-300 borders
+        fillColor: [255, 255, 255],      // white data fill (striped via didParseCell)
         minCellHeight: 18,
       },
       headStyles: {
-        fillColor: [255, 255, 0],        // yellow header bar
-        textColor: [0, 0, 0],
-        fontStyle: 'bold', fontSize: 9,
+        fillColor: [30, 58, 95],         // navy header bar
+        textColor: [255, 255, 255],
+        fontStyle: 'bold', fontSize: 8.5,
         halign: 'center', valign: 'middle',
-        lineColor: [0, 0, 0], lineWidth: 0.4,
-        minCellHeight: 36,
+        lineColor: [203, 213, 225], lineWidth: 0.4,
+        minCellHeight: 34,
         cellPadding: { top: 5, right: 4, bottom: 5, left: 4 },
       },
       columnStyles: {
@@ -504,16 +534,19 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
       },
       didParseCell: (data) => {
         if (data.section !== 'body') return;
-        const kind = data.row.raw && data.row.raw._kind;
+        const raw = data.row.raw;
+        const kind = raw && raw._kind;
         if (kind === ROW_SUB) {
-          data.cell.styles.fillColor = [217, 217, 217]; // light grey
+          data.cell.styles.fillColor = [226, 232, 240]; // slate-200 subtotal
           data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.textColor = [0, 0, 0];
+          data.cell.styles.textColor = [26, 26, 46];
         } else if (kind === ROW_GRAND) {
-          data.cell.styles.fillColor = [191, 191, 191]; // mid grey
+          data.cell.styles.fillColor = [30, 58, 95];     // navy grand-total
           data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.textColor = [0, 0, 0];
+          data.cell.styles.textColor = [255, 255, 255];
           data.cell.styles.fontSize = 9;
+        } else if (raw && raw._stripe) {
+          data.cell.styles.fillColor = [241, 245, 249];  // slate-50 stripe
         }
       },
       didDrawPage: () => {
@@ -861,38 +894,47 @@ function buildTransmissionGroups(txElements) {
   );
 }
 
-function buildMonthlyCodGroups(projects, fromMonth, toMonth) {
+// Activity breakup: per-project FTC / TOC / COD milestones whose eventDate
+// falls within [from, to], grouped by Region × Source — mirrors the
+// FTC/TOC/COD Activity tab's matrix. `from`/`to` are YYYY-MM-DD strings.
+function buildActivityGroups(projects, from, to) {
   const cleared = projects.filter(isInFtcPipeline);
-  const fromD = fromMonth ? new Date(fromMonth + '-01') : null;
-  const toD   = toMonth   ? new Date(toMonth + '-01')   : null;
+  const fromT = from ? new Date(from + 'T00:00:00.000Z').getTime() : null;
+  const toT   = to   ? new Date(to   + 'T23:59:59.999Z').getTime() : null;
+  const inRange = (d) => {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (fromT != null && t < fromT) return false;
+    if (toT   != null && t > toT)   return false;
+    return true;
+  };
+  const mapEv = (e) => ({ mw: Number(e.capacityMw ?? e.mw ?? 0), date: e.eventDate ?? e.date ?? null });
+  const sum = (arr) => arr.reduce((s, e) => s + e.mw, 0);
+
   const groups = {};
   for (const p of cleared) {
+    const region = p.region.code;
+    const source = projectSource(p);
+    // Aggregate the in-range events across all of the project's phases.
+    const ftcEvents = [], tocEvents = [], codEvents = [];
     for (const ph of (p.phases ?? [])) {
-      const mw = Number(ph.codDeclaredMw) || 0;
-      if (mw <= 0 || !ph.codDeclaredDate) continue;
-      const d = new Date(ph.codDeclaredDate);
-      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (fromD && d < fromD) continue;
-      if (toD) {
-        const lastOfTo = new Date(toD.getFullYear(), toD.getMonth() + 1, 0);
-        if (d > lastOfTo) continue;
-      }
-      const key = `${ym}|${p.region.code}|${ph.sourceType}`;
-      if (!groups[key]) groups[key] = { region: p.region.code, source: ph.sourceType, month: ym, contributors: [] };
-      groups[key].contributors.push({
-        id: `${p.id}|${ph.sourceType}|${ph.codDeclaredDate}`, name: p.name,
-        region: p.region.code, plantType: p.plantType?.label,
-        month: ym, codDate: ph.codDeclaredDate.slice(0, 10),
-        cod: mw,
-      });
+      for (const e of (ph.ftcEvents ?? [])) if (inRange(e.eventDate)) ftcEvents.push(mapEv(e));
+      for (const e of (ph.tocEvents ?? [])) if (inRange(e.eventDate)) tocEvents.push(mapEv(e));
+      for (const e of (ph.codEvents ?? [])) if (inRange(e.eventDate)) codEvents.push(mapEv(e));
     }
+    if (ftcEvents.length + tocEvents.length + codEvents.length === 0) continue;
+    const key = `${region}|${source}`;
+    if (!groups[key]) groups[key] = { region, source, contributors: [] };
+    groups[key].contributors.push({
+      id: p.id, name: p.name, region, plantType: p.plantType?.label,
+      poolingStation: p.poolingStation?.name ?? null,
+      ftc: sum(ftcEvents), toc: sum(tocEvents), cod: sum(codEvents),
+      ftcEvents, tocEvents, codEvents,
+    });
   }
-  // Re-key so the group label shows month + region + source
-  return Object.values(groups)
-    .map(g => ({ ...g, source: `${g.month} · ${g.source}` }))
-    .sort((a, b) =>
-      (a.month?.localeCompare(b.month) || a.region.localeCompare(b.region) || a.source.localeCompare(b.source)),
-    );
+  return Object.values(groups).sort((a, b) =>
+    (a.region.localeCompare(b.region) || a.source.localeCompare(b.source)),
+  );
 }
 
 // ── Per-tab column definitions ────────────────────────────────────────────────
@@ -953,11 +995,13 @@ const COLUMNS = {
     { key: 'pendLen',  label: 'Pend km',     align: 'right', flex: 'w-24', isNum: true },
     { key: 'pending',  label: 'Pend FTC',    align: 'left',  flex: 'w-16' },
   ],
-  monthlycod: [
-    { key: 'name',     label: 'Project',     align: 'left',  flex: 'flex-1 min-w-[220px]' },
-    { key: 'plantType',label: 'Plant Type',  align: 'left',  flex: 'min-w-[140px]' },
-    { key: 'codDate',  label: 'COD Date',    align: 'left',  flex: 'w-28' },
-    { key: 'cod',      label: 'COD MW',      align: 'right', flex: 'w-24', isNum: true },
+  activity: [
+    { key: 'name',         label: 'Project',     align: 'left',  flex: 'min-w-[200px]' },
+    { key: 'poolingStation', label: 'Pooling Stn', align: 'left', flex: 'min-w-[100px]' },
+    { key: 'plantType',    label: 'Plant Type',  align: 'left',  flex: 'min-w-[130px]' },
+    { key: 'ftc',          label: 'FTC + Dates', align: 'right', flex: 'min-w-[150px]', isNum: true, isEventStack: 'ftc' },
+    { key: 'toc',          label: 'TOC + Dates', align: 'right', flex: 'min-w-[150px]', isNum: true, isEventStack: 'toc' },
+    { key: 'cod',          label: 'COD + Dates', align: 'right', flex: 'min-w-[150px]', isNum: true, isEventStack: 'cod' },
   ],
 };
 
@@ -967,7 +1011,7 @@ const TAB_META = {
   hybrid:       { title: 'Hybrid Breakdown — Contributors', subtitle: 'CLEARED hybrid projects, split by their constituent source components.' },
   sourcewise:   { title: 'Source-wise Pipeline — Contributors', subtitle: 'Same CLEARED projects as FTC Pipeline, grouped by Source × Region.' },
   transmission: { title: 'Transmission — Contributors',     subtitle: 'Transmission elements grouped by Region × Element Type.' },
-  monthlycod:   { title: 'Monthly COD — Contributors',      subtitle: 'Each row is a commissioning phase that declared COD inside the chosen month range.' },
+  activity:     { title: 'FTC / TOC / COD Activity — Contributors', subtitle: 'Each row is a project whose FTC / TOC / COD milestone date falls inside the selected range; cells show the in-range MW with dates.' },
 };
 
 // Layout modes for the pipeline + sourcewise tabs.
@@ -985,7 +1029,11 @@ const LAYOUTS = [
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElements, fromMonth, toMonth }) {
+// `asPage` renders the breakdown inline (no Dialog chrome) for the dedicated
+// Source-wise / Region-wise sidebar pages; the default modal behaviour is
+// unchanged. When asPage, the view is always active (no open gate).
+export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElements, activityFrom, activityTo, asPage = false, titleOverride, subtitleOverride }) {
+  const isActive = asPage || open;
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState({});
   // Multi-select source filter — mirrors the Excel's "Source wise" sheet
@@ -1000,9 +1048,8 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
   const meta   = TAB_META[activeTab] ?? TAB_META.pipeline;
   const baseCols = COLUMNS[tabKey === 'sourcewise' ? 'pipeline' : tabKey] ?? COLUMNS.pipeline;
   const supportsSourceFilter = activeTab === 'pipeline' || activeTab === 'sourcewise';
-  // Region filter is useful on every tab that has a `region` column — which
-  // is all of them except monthlycod (groups by month instead of region).
-  const supportsRegionFilter = activeTab !== 'monthlycod';
+  // Region filter is useful on every tab — all of them group by region.
+  const supportsRegionFilter = true;
   // Layout toggle is only meaningful for the pipeline / sourcewise tabs;
   // the other tabs always use their original split layout.
   const supportsLayoutToggle = activeTab === 'pipeline' || activeTab === 'sourcewise';
@@ -1018,8 +1065,8 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
   // Re-sync the layout whenever the calling tab changes — opening the modal
   // from the "Source-wise" main tab should always start in source layout.
   useEffect(() => {
-    if (open) setLayout(defaultLayout);
-  }, [open, defaultLayout]);
+    if (isActive) setLayout(defaultLayout);
+  }, [isActive, defaultLayout]);
 
   // Active column list — prepend a Source or Region tag column on the
   // consolidated layouts so each row clearly identifies its bucket.
@@ -1031,14 +1078,14 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
   }, [baseCols, layout, supportsLayoutToggle]);
 
   const groups = useMemo(() => {
-    if (!open) return [];
+    if (!isActive) return [];
     if (activeTab === 'pipeline' || activeTab === 'sourcewise') return buildPipelineGroups(projects);
     if (activeTab === 'contd4')       return buildContd4Groups(projects);
     if (activeTab === 'hybrid')       return buildHybridGroups(projects);
     if (activeTab === 'transmission') return buildTransmissionGroups(txElements ?? []);
-    if (activeTab === 'monthlycod')   return buildMonthlyCodGroups(projects, fromMonth, toMonth);
+    if (activeTab === 'activity')     return buildActivityGroups(projects, activityFrom, activityTo);
     return [];
-  }, [open, activeTab, projects, txElements, fromMonth, toMonth]);
+  }, [isActive, activeTab, projects, txElements, activityFrom, activityTo]);
 
   // First-stage filter on the original Region × Source split (so the
   // chip/search semantics stay identical regardless of layout). We
@@ -1159,24 +1206,22 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
     setExpanded(Object.fromEntries(filtered.map(g => [sectionKey(g), false])));
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* Fluid width — uses 95% of the viewport so the wide pipeline table
-          (16 columns including event stacks) fits without horizontal
-          scrolling on standard laptop screens. */}
-      <DialogContent className="!max-w-[95vw] w-[95vw] p-0 overflow-hidden" showClose={false}>
-        <DialogHeader className="px-5 py-3 border-b bg-slate-50">
+  const panel = (
+    <>
+        <div className="px-5 py-3 border-b bg-slate-50">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <DialogTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <ListTree className="size-4 text-slate-500" />
-                {meta.title}
-              </DialogTitle>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{meta.subtitle}</p>
+                {titleOverride ?? meta.title}
+              </h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{subtitleOverride ?? meta.subtitle}</p>
             </div>
-            <button onClick={() => onOpenChange(false)} className="rounded p-1 text-slate-500 hover:text-foreground hover:bg-slate-200 transition-colors" aria-label="Close">
-              <X className="size-4" />
-            </button>
+            {!asPage && (
+              <button onClick={() => onOpenChange(false)} className="rounded p-1 text-slate-500 hover:text-foreground hover:bg-slate-200 transition-colors" aria-label="Close">
+                <X className="size-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 mt-3">
@@ -1226,10 +1271,10 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
           </div>
 
           {/* Layout toggle — pick between the three Excel-style table
-              layouts: Region-wise (NR/WR/… sheets), Source-wise (Source-wise
-              sheet) or the raw Region × Source split. Only shown for the
-              pipeline and sourcewise tabs. */}
-          {supportsLayoutToggle && (
+              layouts. Hidden in page mode: the dedicated Region-wise /
+              Source-wise sidebar pages lock the layout to their own intent,
+              so the toggle would be redundant. */}
+          {supportsLayoutToggle && !asPage && (
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mr-1">Layout:</span>
               {LAYOUTS.map((l) => {
@@ -1338,9 +1383,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
               </span>
             </div>
           )}
-        </DialogHeader>
+        </div>
 
-        <div className="overflow-auto" style={{ maxHeight: '70vh' }}>
+        <div className="overflow-auto" style={{ maxHeight: asPage ? 'calc(100vh - 220px)' : '70vh' }}>
           {filtered.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">No contributors match your search.</div>
           ) : filtered.map((g) => {
@@ -1462,6 +1507,27 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
             );
           })}
         </div>
+    </>
+  );
+
+  // Page mode: render inline (used by the Source-wise / Region-wise sidebar
+  // pages). Modal mode: wrap in the Dialog chrome (the existing behaviour).
+  if (asPage) {
+    return (
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
+        {panel}
+      </div>
+    );
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Fluid width — 95% of the viewport so the wide pipeline table fits
+          without horizontal scrolling on standard laptop screens. */}
+      <DialogContent className="!max-w-[95vw] w-[95vw] p-0 overflow-hidden" showClose={false}>
+        {/* sr-only title satisfies the Dialog a11y requirement; the visible
+            heading is rendered inside `panel`. */}
+        <DialogTitle className="sr-only">{meta.title}</DialogTitle>
+        {panel}
       </DialogContent>
     </Dialog>
   );

@@ -82,13 +82,13 @@ Default seed accounts (passwords in `prisma/seed.js`):
 
 | Role  | Email                  |
 |-------|------------------------|
-| ADMIN | admin@ftc.gov.in       |
-| NLDC  | nldc@ftc.gov.in        |
-| SRLDC | srldc@ftc.gov.in       |
-| NRLDC | nrldc@ftc.gov.in       |
-| WRLDC | wrldc@ftc.gov.in       |
-| ERLDC | erldc@ftc.gov.in       |
-| NERLDC| nerldc@ftc.gov.in      |
+| ADMIN | admin@grid-india.in       |
+| NLDC  | nldc@grid-india.in        |
+| SRLDC | srldc@grid-india.in       |
+| NRLDC | nrldc@grid-india.in       |
+| WRLDC | wrldc@grid-india.in       |
+| ERLDC | erldc@grid-india.in       |
+| NERLDC| nerldc@grid-india.in      |
 
 ## Project Structure
 

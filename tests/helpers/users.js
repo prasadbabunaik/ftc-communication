@@ -2,13 +2,13 @@
 // Change here only if the seed file changes; tests reference this map by role.
 
 export const USERS = {
-  ADMIN:  { email: 'admin@ftc.gov.in',  password: 'Admin@123',  region: null  },
-  NLDC:   { email: 'nldc@ftc.gov.in',   password: 'Nldc@123',   region: null  },
-  SRLDC:  { email: 'srldc@ftc.gov.in',  password: 'Srldc@123',  region: 'SR'  },
-  NRLDC:  { email: 'nrldc@ftc.gov.in',  password: 'Nrldc@123',  region: 'NR'  },
-  ERLDC:  { email: 'erldc@ftc.gov.in',  password: 'Erldc@123',  region: 'ER'  },
-  WRLDC:  { email: 'wrldc@ftc.gov.in',  password: 'Wrldc@123',  region: 'WR'  },
-  NERLDC: { email: 'nerldc@ftc.gov.in', password: 'Nerldc@123', region: 'NER' },
+  ADMIN:  { email: 'admin@grid-india.in',  password: 'Admin@123',  region: null  },
+  NLDC:   { email: 'nldc@grid-india.in',   password: 'Nldc@123',   region: null  },
+  SRLDC:  { email: 'srldc@grid-india.in',  password: 'Srldc@123',  region: 'SR'  },
+  NRLDC:  { email: 'nrldc@grid-india.in',  password: 'Nrldc@123',  region: 'NR'  },
+  ERLDC:  { email: 'erldc@grid-india.in',  password: 'Erldc@123',  region: 'ER'  },
+  WRLDC:  { email: 'wrldc@grid-india.in',  password: 'Wrldc@123',  region: 'WR'  },
+  NERLDC: { email: 'nerldc@grid-india.in', password: 'Nerldc@123', region: 'NER' },
 };
 
 export const ALL_ROLES = Object.keys(USERS);

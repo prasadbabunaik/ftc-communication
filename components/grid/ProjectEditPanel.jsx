@@ -15,7 +15,6 @@ export function ProjectEditPanel({ project, poolingStations }) {
   const isHybrid = project.plantType?.isHybrid;
 
   const [name,      setName]      = useState(project.name ?? '');
-  const [developer, setDeveloper] = useState(project.developerName ?? '');
   const [totalCap,  setTotalCap]  = useState(project.totalCapacityMw != null ? String(Number(project.totalCapacityMw)) : '');
   const [windCap,   setWindCap]   = useState(project.windCapacityMw  != null ? String(Number(project.windCapacityMw))  : '');
   const [solarCap,  setSolarCap]  = useState(project.solarCapacityMw != null ? String(Number(project.solarCapacityMw)) : '');
@@ -26,7 +25,7 @@ export function ProjectEditPanel({ project, poolingStations }) {
     e.preventDefault();
     startTransition(async () => {
       const result = await updateGenerationProject(project.id, {
-        name, developerName: developer, poolingStationId: psId,
+        name, poolingStationId: psId,
         totalCapacityMw: totalCap,
         windCapacityMw: windCap, solarCapacityMw: solarCap, bessCapacityMw: bessCap,
       });
@@ -66,15 +65,6 @@ export function ProjectEditPanel({ project, poolingStations }) {
               required
               value={name}
               onChange={e => setName(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Developer / Owner</label>
-            <input
-              value={developer}
-              onChange={e => setDeveloper(e.target.value)}
-              placeholder="e.g. NTPC Ltd."
               className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>

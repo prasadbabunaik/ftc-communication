@@ -18,6 +18,12 @@ export function Combobox({
   disabled,
   className,
   clearable = true,
+  // When true, the search box doubles as free-text entry: if the typed value
+  // doesn't match any option, an "Add «text»" row lets the user commit it.
+  // onCreate(text) fires with the raw typed string; if omitted, onChange is
+  // called with the text as the value.
+  creatable = false,
+  onCreate,
 }) {
   const [open, setOpen]     = useState(false);
   const [search, setSearch] = useState('');
@@ -28,7 +34,20 @@ export function Combobox({
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, search]);
 
-  const selected = options.find((o) => o.value === value);
+  // For creatable mode, the displayed label falls back to the raw value when
+  // it isn't one of the known options (a free-text entry).
+  const selected = options.find((o) => o.value === value)
+    ?? (creatable && value ? { value, label: value } : undefined);
+
+  const trimmed = search.trim();
+  const exactMatch = options.some((o) => o.label.toLowerCase() === trimmed.toLowerCase());
+  const showCreate = creatable && trimmed.length > 0 && !exactMatch;
+
+  function handleCreate() {
+    if (onCreate) onCreate(trimmed); else onChange(trimmed);
+    setOpen(false);
+    setSearch('');
+  }
 
   function handleSelect(val) {
     onChange(val);
@@ -105,7 +124,7 @@ export function Combobox({
 
           {/* Options list */}
           <div className="max-h-[220px] overflow-y-auto py-1">
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && !showCreate ? (
               <p className="px-3 py-3 text-sm text-muted-foreground text-center">{emptyText}</p>
             ) : (
               filtered.map((o) => (
@@ -127,6 +146,16 @@ export function Combobox({
                   {o.label}
                 </button>
               ))
+            )}
+            {showCreate && (
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors hover:bg-muted border-t"
+              >
+                <span className="inline-flex size-4 items-center justify-center rounded bg-blue-100 text-blue-700 text-xs font-bold shrink-0">+</span>
+                <span>Add <span className="font-semibold">&ldquo;{trimmed}&rdquo;</span> <span className="text-muted-foreground">(not in master list)</span></span>
+              </button>
             )}
           </div>
         </Popover.Content>

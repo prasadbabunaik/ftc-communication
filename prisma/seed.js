@@ -5,13 +5,13 @@ const prisma = new PrismaClient();
 
 async function seedUsers() {
   const users = [
-    { name: 'Admin User',   email: 'admin@ftc.gov.in',   role: 'ADMIN',   password: 'Admin@123' },
-    { name: 'SRLDC User',   email: 'srldc@ftc.gov.in',   role: 'SRLDC',   password: 'Srldc@123' },
-    { name: 'NRLDC User',   email: 'nrldc@ftc.gov.in',   role: 'NRLDC',   password: 'Nrldc@123' },
-    { name: 'ERLDC User',   email: 'erldc@ftc.gov.in',   role: 'ERLDC',   password: 'Erldc@123' },
-    { name: 'WRLDC User',   email: 'wrldc@ftc.gov.in',   role: 'WRLDC',   password: 'Wrldc@123' },
-    { name: 'NERLDC User',  email: 'nerldc@ftc.gov.in',  role: 'NERLDC',  password: 'Nerldc@123' },
-    { name: 'NLDC User',    email: 'nldc@ftc.gov.in',    role: 'NLDC',    password: 'Nldc@123' },
+    { name: 'Admin User',   email: 'admin@grid-india.in',   role: 'ADMIN',   password: 'Admin@123' },
+    { name: 'SRLDC User',   email: 'srldc@grid-india.in',   role: 'SRLDC',   password: 'Srldc@123' },
+    { name: 'NRLDC User',   email: 'nrldc@grid-india.in',   role: 'NRLDC',   password: 'Nrldc@123' },
+    { name: 'ERLDC User',   email: 'erldc@grid-india.in',   role: 'ERLDC',   password: 'Erldc@123' },
+    { name: 'WRLDC User',   email: 'wrldc@grid-india.in',   role: 'WRLDC',   password: 'Wrldc@123' },
+    { name: 'NERLDC User',  email: 'nerldc@grid-india.in',  role: 'NERLDC',  password: 'Nerldc@123' },
+    { name: 'NLDC User',    email: 'nldc@grid-india.in',    role: 'NLDC',    password: 'Nldc@123' },
   ];
 
   for (const user of users) {
@@ -124,7 +124,7 @@ async function seedGridMasterData() {
 
 async function seedSampleProjects() {
   const srRegion   = await prisma.gridRegion.findUnique({ where: { code: 'SR' } });
-  const srldc      = await prisma.user.findUnique({ where: { email: 'srldc@ftc.gov.in' } });
+  const srldc      = await prisma.user.findUnique({ where: { email: 'srldc@grid-india.in' } });
   if (!srRegion || !srldc) { console.log('  Sample projects: skipped (SR region or SRLDC user not found)'); return; }
 
   const pt = {};

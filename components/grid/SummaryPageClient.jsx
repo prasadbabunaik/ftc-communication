@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useSettings } from '@/providers/settings-provider';
 import { SnapshotCompareTab } from '@/components/grid/SnapshotCompareTab';
 import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
 import { TabBreakdown } from '@/components/grid/TabBreakdown';
 import { AsOfDatePicker } from '@/components/grid/AsOfDatePicker';
+import { RegionPicker } from '@/components/grid/RegionPicker';
 import { LastChangesCard } from '@/components/grid/LastChangesCard';
 import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
 
@@ -746,77 +749,130 @@ const ALL_INDIA_SRC_BG = {
   PSP:   'bg-amber-500',
 };
 
-// ── Table 6 — Monthly COD (compact matrix like Excel) ─────────────────────────
+// ── FTC / TOC / COD Activity in a date range ──────────────────────────────────
+// "How much FTC / TOC / COD happened between two dates" — milestone-date based.
+// Rows = Region × Source; grouped columns FTC / TOC / COD (MW). Three stat cards
+// on top show the in-range totals. Date pickers drive the `from` / `to` URL
+// params (server recomputes via computeMilestoneActivity).
 
-function MonthlyCodeTable({ monthlyCod, onViewBreakup }) {
-  const { rows, months } = monthlyCod ?? {};
-  if (!rows?.length || !months?.length) return <Empty />;
+function ActivityDateRange({ from, to }) {
+  const router = useRouter();
+  const sp     = useSearchParams();
 
-  // Build All India totals per month per source
-  const allIndia = (row, month) => REGION_ORDER.reduce((s, r) => s + (row.byRegion?.[r]?.[month] ?? 0), 0);
+  const update = (key, value) => {
+    const params = new URLSearchParams(sp.toString());
+    if (value) params.set(key, value);
+    else       params.delete(key);
+    router.push(`/dashboard?${params.toString()}`);
+  };
 
   return (
-    <div className="space-y-5">
-      {months.map((month, monthIdx) => {
-        const monthTotal = rows.reduce((s, r) => s + allIndia(r, month), 0);
-        return (
-          <div key={month} className="rounded-xl border overflow-hidden shadow-sm">
-            {/* Section header */}
-            <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">
-                COD Declared Capacity (MW) — {fmtMonth(month)}
-              </p>
-              <div className="flex items-center gap-2">
-                {monthTotal > 0
-                  ? <span className="text-[11px] font-bold bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded border border-violet-200">{fmt(monthTotal)} MW All India</span>
-                  : <span className="text-[10px] text-slate-500">No data for this month</span>}
-                {/* Show the View Breakup button only on the first month's card —
-                    it opens a single drawer that lists all month contributors. */}
-                {monthIdx === 0 && <ViewBreakupBtn onClick={onViewBreakup} />}
-              </div>
-            </div>
-            <div className="overflow-auto">
-              <table className="w-full border-collapse text-[11px]">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-                    <th className="sticky left-0 z-20 bg-slate-100 px-4 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 88 }}>Source</th>
-                    {REGION_ORDER.map(r => (
-                      <th key={r} className="px-4 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">{r}</th>
-                    ))}
-                    <th className="px-4 py-2 text-right font-bold whitespace-nowrap bg-violet-50 text-violet-700 border-l border-violet-200">All India</th>
+    <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">From</span>
+        <div className="w-[150px]">
+          <DatePicker value={from ?? ''} onChange={v => update('from', v || null)} className="h-9" />
+        </div>
+      </div>
+      <span className="mb-2 text-muted-foreground text-sm">→</span>
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">To</span>
+        <div className="w-[150px]">
+          <DatePicker value={to ?? ''} onChange={v => update('to', v || null)} className="h-9" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityStat({ label, value, count, color }) {
+  const colors = {
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    amber:   'bg-amber-50 text-amber-700 border-amber-200',
+    violet:  'bg-violet-50 text-violet-700 border-violet-200',
+  };
+  return (
+    <div className={`rounded-lg border px-4 py-3 ${colors[color]}`}>
+      <p className="text-[10px] font-bold uppercase tracking-wide opacity-80">{label} in range</p>
+      <p className="text-2xl font-black leading-tight tabular-nums">{fmt(value)} <span className="text-xs font-semibold opacity-70">MW</span></p>
+      <p className="text-[10px] opacity-70">{count} milestone{count === 1 ? '' : 's'}</p>
+    </div>
+  );
+}
+
+function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
+  const { matrix, totals } = activity ?? {};
+  const entries = Object.values(matrix ?? {});
+
+  // Order rows by region (NR, WR, SR, ER, NER) then source.
+  const SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP'];
+  const srcIdx = (s) => { const i = SRC_ORDER.indexOf(s); return i === -1 ? 99 : i; };
+  const rows = entries
+    .filter(r => r.ftc > 0 || r.toc > 0 || r.cod > 0)
+    .sort((a, b) => (REGION_ORDER.indexOf(a.region) - REGION_ORDER.indexOf(b.region)) || (srcIdx(a.source) - srcIdx(b.source)) || a.source.localeCompare(b.source));
+
+  const fmtRange = (s) => s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '…';
+
+  return (
+    <div className="space-y-3 flex flex-col min-h-0">
+      {/* Controls: date range + stat cards + breakup */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <ActivityDateRange from={from} to={to} />
+        <ViewBreakupBtn onClick={onViewBreakup} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <ActivityStat label="FTC Approved" value={totals?.ftc ?? 0} count={totals?.ftcCount ?? 0} color="emerald" />
+        <ActivityStat label="TOC Issued"   value={totals?.toc ?? 0} count={totals?.tocCount ?? 0} color="amber" />
+        <ActivityStat label="COD Declared" value={totals?.cod ?? 0} count={totals?.codCount ?? 0} color="violet" />
+      </div>
+
+      <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0">
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">
+            Milestone Activity (MW) — {fmtRange(from)} → {fmtRange(to)}
+          </p>
+          <p className="text-[10px] text-slate-500">Capacity whose FTC / TOC / COD milestone date falls within the selected range, by Region × Source.</p>
+        </div>
+        <div className="overflow-auto">
+          {rows.length === 0 ? (
+            <div className="p-10 text-center text-sm text-muted-foreground">No FTC / TOC / COD milestones in this date range.</div>
+          ) : (
+            <table className="w-full border-collapse text-[11px]">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
+                  <th className="sticky left-0 z-20 bg-slate-100 px-4 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Region</th>
+                  <th className="px-4 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source</th>
+                  <th className="px-4 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap bg-emerald-50 text-emerald-700">FTC MW</th>
+                  <th className="px-4 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap bg-amber-50 text-amber-700">TOC MW</th>
+                  <th className="px-4 py-2 text-right font-bold whitespace-nowrap bg-violet-50 text-violet-700">COD MW</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i} className="border-t border-gray-100 bg-white hover:bg-slate-50/60 transition-colors">
+                    <td className="px-4 py-2 sticky left-0 z-10 bg-white border-r border-gray-200 font-semibold text-slate-700">{row.region}</td>
+                    <td className="px-4 py-2 border-r border-gray-100">
+                      <Chip label={row.source} colorCls={SOURCE_BADGE[row.source] ?? 'bg-muted text-foreground'} />
+                    </td>
+                    <td className={`px-4 py-2 text-right tabular-nums border-r border-gray-100 ${row.ftc > 0 ? 'text-emerald-700 font-medium' : 'text-slate-300'}`}>{row.ftc > 0 ? fmt(row.ftc) : '0'}</td>
+                    <td className={`px-4 py-2 text-right tabular-nums border-r border-gray-100 ${row.toc > 0 ? 'text-amber-700 font-medium' : 'text-slate-300'}`}>{row.toc > 0 ? fmt(row.toc) : '0'}</td>
+                    <td className={`px-4 py-2 text-right tabular-nums ${row.cod > 0 ? 'text-violet-700 font-medium' : 'text-slate-300'}`}>{row.cod > 0 ? fmt(row.cod) : '0'}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row, i) => {
-                    const ai = allIndia(row, month);
-                    if (ai === 0 && !row.isTotal) return null;
-                    return (
-                      <tr key={i} className={`border-t border-gray-100 ${row.isTotal ? 'bg-slate-100 font-bold border-t-2 border-slate-300' : 'bg-white hover:bg-violet-50/20 transition-colors'}`}>
-                        <td className={`px-4 py-2 sticky left-0 z-10 border-r border-gray-200 ${row.isTotal ? 'bg-slate-100' : 'bg-white'}`}>
-                          {row.isTotal
-                            ? <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">Total</span>
-                            : <Chip label={row.source} colorCls={SOURCE_BADGE[row.source] ?? 'bg-muted text-foreground'} />}
-                        </td>
-                        {REGION_ORDER.map(r => {
-                          const v = row.byRegion?.[r]?.[month] ?? 0;
-                          return (
-                            <td key={r} className={`px-4 py-2 text-right tabular-nums border-r border-gray-100 ${v > 0 ? 'text-violet-700 font-medium' : 'text-slate-300'}`}>
-                              {v > 0 ? fmt(v) : '0'}
-                            </td>
-                          );
-                        })}
-                        <td className={`px-4 py-2 text-right tabular-nums font-bold ${ai > 0 ? 'text-violet-800 bg-violet-50/30' : 'text-slate-300'}`}>
-                          {ai > 0 ? fmt(ai) : '0'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      })}
+                ))}
+                <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
+                  <td className="px-4 py-2 sticky left-0 z-10 bg-slate-100 border-r border-gray-200" colSpan={2}>
+                    <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">All India Total</span>
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums text-emerald-800 bg-emerald-50/40 border-r border-gray-200">{fmt(totals?.ftc ?? 0)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-amber-800 bg-amber-50/40 border-r border-gray-200">{fmt(totals?.toc ?? 0)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-violet-800 bg-violet-50/40">{fmt(totals?.cod ?? 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -854,12 +910,10 @@ function Empty() {
 //       </div>
 //     );
 //   }
-function FilterBar({ asOf, fromMonth, toMonth }) {
+function FilterBar({ asOf }) {
   const buildExportUrl = () => {
     const params = new URLSearchParams();
-    if (asOf)      params.set('asOf',  asOf);
-    if (fromMonth) params.set('from',  fromMonth);
-    if (toMonth)   params.set('to',    toMonth);
+    if (asOf) params.set('asOf', asOf);
     return `/api/grid/export?${params.toString()}`;
   };
 
@@ -1034,9 +1088,10 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
 // ── Main Client ───────────────────────────────────────────────────────────────
 
 export function SummaryPageClient({
-  regionLabel, asOf, fromMonth, toMonth,
+  regionLabel, asOf, activityFrom, activityTo,
+  regions = [], selectedRegion = null, canFilterRegion = false,
   stats, table2Rows, table5Rows, contd4Study,
-  transmissionRows, hybridRows, monthlyCod, projects, txElements,
+  transmissionRows, hybridRows, activity, projects, txElements,
   availableSnapshots,
 }) {
   const [activeTab, setActiveTab] = useState('pipeline');
@@ -1053,7 +1108,7 @@ export function SummaryPageClient({
     { id: 'hybrid',       label: 'Hybrid Breakdown',  icon: GitBranch    },
     { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3      },
     { id: 'transmission', label: 'Transmission',       icon: Cable        },
-    { id: 'monthlycod',   label: 'Monthly COD',        icon: CalendarDays },
+    { id: 'activity',     label: 'FTC/TOC/COD Activity', icon: CalendarDays },
     { id: 'projects',     label: 'Project Details',   icon: ListTree     },
     { id: 'changes',      label: 'Day-wise Changes',  icon: History      },
   ];
@@ -1075,8 +1130,9 @@ export function SummaryPageClient({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {canFilterRegion && <RegionPicker regions={regions} selectedRegion={selectedRegion} />}
           <AsOfDatePicker currentAsOf={asOf} />
-          <FilterBar asOf={asOf} fromMonth={fromMonth} toMonth={toMonth} />
+          <FilterBar asOf={asOf} />
         </div>
       </div>
 
@@ -1130,8 +1186,8 @@ export function SummaryPageClient({
         activeTab={activeTab}
         projects={projects}
         txElements={txElements}
-        fromMonth={fromMonth}
-        toMonth={toMonth}
+        activityFrom={activityFrom}
+        activityTo={activityTo}
       />
 
       {/* Tab content — flex-grows to fill the remaining viewport height */}
@@ -1170,8 +1226,8 @@ export function SummaryPageClient({
           <TransmissionSummaryTable transmissionRows={transmissionRows} refMonthLabel={refMonthLabel} onViewBreakup={() => setBreakdownOpen(true)} />
         )}
 
-        {activeTab === 'monthlycod' && (
-          <MonthlyCodeTable monthlyCod={monthlyCod} onViewBreakup={() => setBreakdownOpen(true)} />
+        {activeTab === 'activity' && (
+          <MilestoneActivityTable activity={activity} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} />
         )}
 
         {activeTab === 'projects' && (

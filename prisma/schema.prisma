@@ -86,12 +86,26 @@ model PoolingStation {
   @@map("pooling_stations")
 }
 
+// Master list of generating stations (imported from the canonical Station
+// list spreadsheet). Drives the searchable station-name dropdown on the
+// project form: picking one auto-fills + locks its pooling station + region.
+// Names not in this list can still be entered free-text (no auto-fill).
+model GeneratingStation {
+  id                 String   @id @default(cuid())
+  name               String   @unique
+  poolingStationName String?
+  regionCode         String?  // NR / WR / SR / ER / NER
+  createdAt          DateTime @default(now())
+
+  @@index([regionCode])
+  @@map("generating_stations")
+}
+
 // ─── GRID TRACKER: CORE DOMAIN ────────────────────────────────────────────────
 
 model GenerationProject {
   id               String          @id @default(cuid())
   name             String
-  developerName    String?
   regionId         String
   region           GridRegion      @relation(fields: [regionId], references: [id])
   plantTypeId      String

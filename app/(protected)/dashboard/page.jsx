@@ -6,7 +6,7 @@ import {
   n,
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission,
-  computeHybridBreakdown, computeMonthlyCod,
+  computeHybridBreakdown, computeMilestoneActivity,
 } from '@/lib/grid-computations';
 
 // Returns ISO date strings (YYYY-MM-DD, UTC) for every day strictly between
@@ -32,9 +32,17 @@ export default async function DashboardPage({ searchParams }) {
 
   const params    = await searchParams;
   const asOfStr   = params.asOf   ?? null;
-  const fromMonth = params.from   ?? null;
-  const toMonth   = params.to     ?? null;
   const asOf      = asOfStr ? new Date(asOfStr) : null;
+
+  // Milestone-activity date range (FTC/TOC/COD Activity tab). `from`/`to` are
+  // YYYY-MM-DD. Default: current month 1st → today.
+  const now = new Date();
+  const defaultFrom = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  const defaultTo   = now.toISOString().slice(0, 10);
+  const activityFromStr = params.from ?? defaultFrom;
+  const activityToStr   = params.to   ?? defaultTo;
+  const activityFrom = new Date(activityFromStr + 'T00:00:00.000Z');
+  const activityTo   = new Date(activityToStr   + 'T23:59:59.999Z');
   // For point-in-time computation: live view uses today (end of day), historical
   // uses the picked date (end of day). This keeps the live display in sync with
   // today's stored snapshot, and gives a stable snapshot series.
@@ -42,7 +50,22 @@ export default async function DashboardPage({ searchParams }) {
     const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t;
   })());
 
-  const scope = await buildRegionScope(user.role);
+  const baseScope = await buildRegionScope(user.role);
+
+  // Region filter (ADMIN / NLDC only). RLDC users are already locked to their
+  // own region by buildRegionScope, so the ?region param is ignored for them.
+  // ADMIN/NLDC default to All India and can narrow to one region via the
+  // header dropdown.
+  const allRegions    = await prisma.gridRegion.findMany({ orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } });
+  const isRegionLocked = !!baseScope.regionId;
+  const regionParam    = !isRegionLocked ? (params.region ?? null) : null;
+  const selectedRegion = regionParam && allRegions.some(r => r.code === regionParam) ? regionParam : null;
+  const selectedRegionId = selectedRegion ? allRegions.find(r => r.code === selectedRegion).id : null;
+
+  const scope = isRegionLocked
+    ? baseScope
+    : (selectedRegionId ? { regionId: selectedRegionId } : {});
+
   // Restrict to projects/elements that were "live" on the requested date.
   // With no asOf, this becomes `activeUntil IS NULL` — i.e. currently-active.
   const activeFilter = activePeriodFilter(asOf);
@@ -77,7 +100,7 @@ export default async function DashboardPage({ searchParams }) {
   const contd4Study      = computeContd4Study(projects);
   const transmissionRows = computeTransmission(txElements);
   const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
-  const monthlyCod       = computeMonthlyCod(projects, fromMonth, toMonth);
+  const activity         = computeMilestoneActivity(projects, activityFrom, activityTo);
 
   // Stat-card totals reuse the same milestone aggregation as the pipeline
   // matrix — sum across cells so values are consistent with the tables below.
@@ -88,7 +111,11 @@ export default async function DashboardPage({ searchParams }) {
   const contd4Active  = projects.filter(p => p.contd4 && !['CLEARED', 'REJECTED'].includes(p.contd4.status)).length;
   const txPending     = txElements.filter(e => e.pendingFtc).length;
 
-  const regionLabel = scope.regionId ? 'Showing your region' : 'All India view';
+  const regionLabel = isRegionLocked
+    ? 'Showing your region'
+    : (selectedRegion
+        ? `${allRegions.find(r => r.code === selectedRegion).name} (${selectedRegion})`
+        : 'All India view');
 
   // Auto-upsert today's snapshot on every live page load. Also backfill any
   // missing day between the most recent stored snapshot and today, so
@@ -200,15 +227,18 @@ export default async function DashboardPage({ searchParams }) {
     <SummaryPageClient
       regionLabel={regionLabel}
       asOf={asOfStr}
-      fromMonth={fromMonth}
-      toMonth={toMonth}
+      activityFrom={activityFromStr}
+      activityTo={activityToStr}
+      regions={allRegions.map(r => ({ code: r.code, name: r.name }))}
+      selectedRegion={selectedRegion}
+      canFilterRegion={!isRegionLocked}
       stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending }}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}
       contd4Study={JSON.parse(JSON.stringify(contd4Study))}
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
-      monthlyCod={JSON.parse(JSON.stringify(monthlyCod))}
+      activity={JSON.parse(JSON.stringify(activity))}
       projects={JSON.parse(JSON.stringify(projects))}
       txElements={JSON.parse(JSON.stringify(txElements))}
       availableSnapshots={availableSnapshots}

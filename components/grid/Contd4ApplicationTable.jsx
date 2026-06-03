@@ -57,7 +57,6 @@ function sortRows(rows, field, dir) {
   return [...rows].sort((a, b) => {
     let av, bv;
     switch (field) {
-      case 'developer':   av = a.developerName ?? ''; bv = b.developerName ?? ''; break;
       case 'name':        av = a.name;                bv = b.name;               break;
       case 'region':      av = a.region.code;         bv = b.region.code;        break;
       case 'type':        av = a.plantType.label;     bv = b.plantType.label;    break;
@@ -115,7 +114,6 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
       rows = rows.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          (p.developerName?.toLowerCase().includes(q) ?? false) ||
           (p.poolingStation?.name?.toLowerCase().includes(q) ?? false) ||
           p.region.code.toLowerCase().includes(q),
       );
@@ -209,7 +207,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               className="pl-9 h-9"
-              placeholder="Developer, station, pooling station…"
+              placeholder="Station, pooling station, region…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             />
@@ -312,8 +310,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
           <thead className="bg-card border-b sticky top-0 z-20 shadow-sm">
             <tr>
               <Th label="Sr. No"  className="w-[52px]" />
-              <SortableTh label="Name of Developer"  field="developer" className="min-w-[180px]" {...sortProps} />
-              <SortableTh label="Generating Station" field="name"      className="min-w-[180px]" {...sortProps} />
+              <SortableTh label="Generating Station" field="name"      className="min-w-[220px]" {...sortProps} />
               <SortableTh label="Region"             field="region"    className="w-[75px]"      {...sortProps} />
               <SortableTh label="Generation Type"    field="type"      className="min-w-[160px]" {...sortProps} />
               <SortableTh label="Declared Cap (MW)"  field="capacity"  className="w-[120px]"     {...sortProps} />
@@ -325,7 +322,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No CONTD-4 applications found.
                 </td>
               </tr>
@@ -333,8 +330,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
               paginated.map((p, i) => (
                 <tr key={p.id} onClick={() => onView?.(p)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
-                  <td className="px-3 py-3 text-sm font-medium text-foreground">{p.developerName ?? '—'}</td>
-                  <td className="px-3 py-3 text-sm text-foreground">{p.name}</td>
+                  <td className="px-3 py-3 text-sm font-medium text-foreground">{p.name}</td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {p.region.code}

@@ -170,7 +170,6 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       rows = rows.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          (p.developerName?.toLowerCase().includes(q) ?? false) ||
           (p.poolingStation?.name?.toLowerCase().includes(q) ?? false) ||
           p.region.code.toLowerCase().includes(q),
       );

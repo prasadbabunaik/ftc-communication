@@ -3,6 +3,8 @@ import {
   BarChart3,
   Cable,
   FileText,
+  Grid3x3,
+  LayoutGrid,
   Settings,
   Shield,
   Upload,
@@ -35,6 +37,16 @@ export const MENU_SIDEBAR = [
     title: 'Transmission',
     icon: Cable,
     path: '/transmission',
+  },
+  {
+    title: 'Region-wise Breakup',
+    icon: LayoutGrid,
+    path: '/breakup/region-wise',
+  },
+  {
+    title: 'Source-wise Breakup',
+    icon: Grid3x3,
+    path: '/breakup/source-wise',
   },
   {
     title: 'Bulk Import',

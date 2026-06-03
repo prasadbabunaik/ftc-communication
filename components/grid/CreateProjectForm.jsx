@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -81,7 +81,7 @@ function derivePlantType(sources, plantTypes) {
   return pt ? { code, id: pt.id, label: pt.label } : { code, id: null, label: null, error: 'Plant type not found' };
 }
 
-export function CreateProjectForm({ regions, plantTypes, poolingStations: initialPS, lockedRegionId, userRole, onSuccess, onCancel }) {
+export function CreateProjectForm({ regions, plantTypes, poolingStations: initialPS, stations = [], lockedRegionId, userRole, onSuccess, onCancel }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState(null);
@@ -96,14 +96,23 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
   const canBackdate = userRole === 'ADMIN' || userRole === 'NLDC';
   const todayISO    = new Date().toISOString().slice(0, 10);
 
+  // Master-station lookup by name (case-insensitive). Picking one auto-fills
+  // and locks region + pooling station; free-text names leave them editable.
+  const stationByName = useMemo(() => {
+    const m = new Map();
+    for (const s of stations) m.set(s.name.toLowerCase(), s);
+    return m;
+  }, [stations]);
+  const [stationLocked, setStationLocked] = useState(false);
+
   const form = useForm({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: '',
-      developerName: '',
       regionId: lockedRegionId ?? '',
       plantTypeId: '',
       poolingStationId: '',
+      poolingStationName: '',
       totalCapacityMw: '',
       windCapacityMw: '',
       solarCapacityMw: '',
@@ -123,6 +132,31 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
 
   const watchedRegionId = form.watch('regionId');
   const watchedContd4   = form.watch('createContd4');
+  const watchedName     = form.watch('name');
+
+  const regionByCode = useMemo(() => {
+    const m = new Map();
+    for (const r of regions) m.set(r.code, r);
+    return m;
+  }, [regions]);
+
+  // Commit a station-name choice. A master match auto-fills + locks region +
+  // pooling station; a free-text name clears the lock so they're editable.
+  function applyStationName(name) {
+    form.setValue('name', name, { shouldValidate: true });
+    const master = stationByName.get((name ?? '').toLowerCase());
+    if (master) {
+      setStationLocked(true);
+      const region = master.regionCode ? regionByCode.get(master.regionCode) : null;
+      if (region && !lockedRegionId) form.setValue('regionId', region.id, { shouldValidate: true });
+      // Carry the pooling-station name; the server find-or-creates it.
+      form.setValue('poolingStationName', master.poolingStationName ?? '');
+      form.setValue('poolingStationId', '');
+    } else {
+      setStationLocked(false);
+      form.setValue('poolingStationName', '');
+    }
+  }
 
   const derived = derivePlantType(selectedSources, plantTypes);
 
@@ -201,18 +235,26 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
         <div className="rounded-xl border bg-card p-5 space-y-4">
           <h2 className="font-semibold text-sm text-foreground">Project Details</h2>
 
-          <FormField control={form.control} name="developerName" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name of Developer</FormLabel>
-              <FormControl><Input placeholder="e.g. Juniper Green Energy Limited" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
           <FormField control={form.control} name="name" render={({ field }) => (
             <FormItem>
               <FormLabel>Generating Station Name *</FormLabel>
-              <FormControl><Input placeholder="e.g. Ran JGEPL" {...field} /></FormControl>
+              <FormControl>
+                <Combobox
+                  options={stations.map((s) => ({ value: s.name, label: s.name }))}
+                  value={field.value}
+                  onChange={applyStationName}
+                  creatable
+                  onCreate={applyStationName}
+                  placeholder="Search the station master list…"
+                  searchPlaceholder="Type a station name…"
+                  emptyText="No match — type to add a new station."
+                />
+              </FormControl>
+              {stationLocked
+                ? <p className="text-[11px] text-emerald-700">✓ Master station — region &amp; pooling station auto-filled and locked.</p>
+                : (field.value
+                    ? <p className="text-[11px] text-amber-700">Custom station (not in master list) — set region &amp; pooling station manually.</p>
+                    : <p className="text-[11px] text-muted-foreground">Pick from the 412 master stations, or type a new name to add one.</p>)}
               <FormMessage />
             </FormItem>
           )} />
@@ -224,7 +266,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                 <FormControl>
                   <select
                     {...field}
-                    disabled={!!lockedRegionId}
+                    disabled={!!lockedRegionId || stationLocked}
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-60"
                   >
                     <option value="">Select region...</option>
@@ -273,31 +315,41 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField control={form.control} name="poolingStationId" render={({ field }) => (
+            {stationLocked ? (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>Pooling Station</FormLabel>
-                  <button
-                    type="button"
-                    onClick={() => { setAddPsError(null); setAddPsOpen(true); }}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    <Plus className="size-3" /> Add new
-                  </button>
+                <FormLabel>Pooling Station</FormLabel>
+                <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/40 text-sm text-foreground">
+                  {form.watch('poolingStationName') || <span className="text-muted-foreground">— none on master —</span>}
                 </div>
-                <FormControl>
-                  <Combobox
-                    options={ps.map((s) => ({ value: s.id, label: s.name }))}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select pooling station…"
-                    searchPlaceholder="Search stations…"
-                    emptyText="No matching station. Use + Add new."
-                  />
-                </FormControl>
-                <FormMessage />
+                <p className="text-[11px] text-emerald-700">Locked to the master station's pooling station.</p>
               </FormItem>
-            )} />
+            ) : (
+              <FormField control={form.control} name="poolingStationId" render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Pooling Station</FormLabel>
+                    <button
+                      type="button"
+                      onClick={() => { setAddPsError(null); setAddPsOpen(true); }}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <Plus className="size-3" /> Add new
+                    </button>
+                  </div>
+                  <FormControl>
+                    <Combobox
+                      options={ps.map((s) => ({ value: s.id, label: s.name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select pooling station…"
+                      searchPlaceholder="Search stations…"
+                      emptyText="No matching station. Use + Add new."
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
 
             <FormField control={form.control} name="totalCapacityMw" render={({ field }) => (
               <FormItem>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getProjectSource, REGION_ORDER as REGION_ORDER_LIB, SOURCE_ORDER as SOURCE_ORDER_LIB } from '@/lib/grid-computations';
 
 const REGION_ORDER = REGION_ORDER_LIB;
@@ -98,30 +98,58 @@ function SectionTitle({ children, tableNo }) {
 
 // ── FTC Pipeline table ────────────────────────────────────────────────────────
 
-function PipelineTable({ rows, primaryKey, scopeRegionCode }) {
+// Toggleable capacity columns shared by both pipeline tables (Region-wise and
+// Source-wise). The two label columns (primary Region/Source + secondary) are
+// always shown. `key` drives the print-customization checkboxes.
+const PIPE_COLUMNS = [
+  { key: 'total',    label: 'Total Installed Capacity (MW)',         width: 58, get: r => r.totalCapacityMw },
+  { key: 'contd4',   label: 'Total Capacity (MW) (CONTD-4 issued)',  width: 60, get: r => r.contd4CapacityMw },
+  { key: 'applied',  label: 'Applied for FTC (MW)',                  width: 54, get: r => r.appliedMw },
+  { key: 'ftcApp',   label: 'FTC Approved (MW)',                     width: 52, get: r => r.ftcApprovedMw },
+  { key: 'ftcPend',  label: 'FTC Pending (MW)',                      width: 50, get: r => r.ftcPendingMw },
+  { key: 'tocIss',   label: 'TOC Issued (MW)',                       width: 52, get: r => r.tocIssuedMw },
+  { key: 'tocPend',  label: 'TOC Pending (MW)',                      width: 50, get: r => r.tocPendingMw },
+  { key: 'codComp',  label: 'COD Completed (MW)',                    width: 52, get: r => r.codCompletedMw },
+  { key: 'codPend',  label: 'COD Pending (MW)',                      width: 50, get: r => r.codPendingMw },
+  { key: 'expected', label: 'Expected Commissioning (MW)',           width: 54, get: r => r.expectedMw },
+];
+
+function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
   const isRegionPrimary = primaryKey === 'region';
+  const enabled = PIPE_COLUMNS.filter(c => !cols || cols.has(c.key));
   // For RLDC users the data only contains a single region, so the "All India
   // breakdown" rows duplicate the regional subtotal and the Grand Total — drop
   // them and just keep the region rows + final Grand Total.
   const filteredRows = scopeRegionCode
     ? rows.filter(r => !r.isAllIndiaBreakdown)
     : rows;
+
+  // Vertically merge the primary (Region or Source) cell across each run of
+  // rows that share it — region/source groups AND the "All India" per-source
+  // breakdown block. Only the subtotal and grand-total rows keep their own
+  // standalone label and are never absorbed.
+  const mergeable = (r) => !r.isTotal && !r.isSubtotal;
+  const primaryVal = (r) => (r.isAllIndiaBreakdown ? 'All India' : (isRegionPrimary ? r.region : r.source));
+  const span = new Array(filteredRows.length).fill(1);
+  const skip = new Array(filteredRows.length).fill(false);
+  for (let i = 0; i < filteredRows.length; i++) {
+    if (!mergeable(filteredRows[i]) || skip[i]) continue;
+    let j = i + 1;
+    while (j < filteredRows.length && mergeable(filteredRows[j]) && primaryVal(filteredRows[j]) === primaryVal(filteredRows[i])) {
+      skip[j] = true; j++;
+    }
+    span[i] = j - i;
+  }
+
   return (
     <table>
       <thead>
         <tr>
           <th style={{ width: 60, textAlign: 'left' }}>{isRegionPrimary ? 'Region' : 'Source'}</th>
           <th style={{ width: 64, textAlign: 'left' }}>{isRegionPrimary ? 'Source' : 'Region'}</th>
-          <th style={{ width: 58 }}>Total Installed Capacity (MW)</th>
-          <th style={{ width: 60 }}>Total Capacity (MW) (CONTD-4 issued)</th>
-          <th style={{ width: 54 }}>Applied for FTC (MW)</th>
-          <th style={{ width: 52 }}>FTC Approved (MW)</th>
-          <th style={{ width: 50 }}>FTC Pending (MW)</th>
-          <th style={{ width: 52 }}>TOC Issued (MW)</th>
-          <th style={{ width: 50 }}>TOC Pending (MW)</th>
-          <th style={{ width: 52 }}>COD Completed (MW)</th>
-          <th style={{ width: 50 }}>COD Pending (MW)</th>
-          <th style={{ width: 54 }}>Expected Commissioning (MW)</th>
+          {enabled.map(c => (
+            <th key={c.key} style={{ width: c.width }}>{c.label}</th>
+          ))}
         </tr>
       </thead>
       <tbody>
@@ -136,18 +164,18 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode }) {
           const cls = row.isTotal ? 'total-row' : row.isSubtotal ? 'subtotal-row' : row.isAllIndiaBreakdown ? 'subtotal-row' : (i % 2 === 1 ? 'stripe' : '');
           return (
             <tr key={i} className={cls}>
-              <td style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400 }}>{label1}</td>
+              {!skip[i] && (
+                <td
+                  rowSpan={span[i] > 1 ? span[i] : undefined}
+                  style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400, verticalAlign: 'middle', textAlign: span[i] > 1 ? 'center' : 'left' }}
+                >
+                  {label1}
+                </td>
+              )}
               <td>{label2}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.totalCapacityMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.contd4CapacityMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.appliedMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.ftcApprovedMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.ftcPendingMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.tocIssuedMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.tocPendingMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.codCompletedMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.codPendingMw)}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.expectedMw)}</td>
+              {enabled.map(c => (
+                <td key={c.key} style={{ textAlign: 'right' }}>{fmt(c.get(row))}</td>
+              ))}
             </tr>
           );
         })}
@@ -162,6 +190,18 @@ function Contd4Table({ contd4Study, scopeRegionCode }) {
   const { rows, allMonths } = contd4Study;
   // Contd4 doesn't have All-India breakdown rows but the Grand Total label
   // should still reflect the user's region when applicable.
+
+  // Vertically merge the Region cell across each region's run of source rows.
+  const isData = (r) => !r.isTotal && !r.isSubtotal;
+  const span = new Array(rows.length).fill(1);
+  const skip = new Array(rows.length).fill(false);
+  for (let i = 0; i < rows.length; i++) {
+    if (!isData(rows[i]) || skip[i]) continue;
+    let j = i + 1;
+    while (j < rows.length && isData(rows[j]) && rows[j].region === rows[i].region) { skip[j] = true; j++; }
+    span[i] = j - i;
+  }
+
   return (
     <table>
       <thead>
@@ -183,7 +223,14 @@ function Contd4Table({ contd4Study, scopeRegionCode }) {
           const cls = row.isTotal ? 'total-row' : row.isSubtotal ? 'subtotal-row' : '';
           return (
             <tr key={i} className={cls}>
-              <td style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400 }}>{label1}</td>
+              {!skip[i] && (
+                <td
+                  rowSpan={span[i] > 1 ? span[i] : undefined}
+                  style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400, verticalAlign: 'middle', textAlign: span[i] > 1 ? 'center' : 'left' }}
+                >
+                  {label1}
+                </td>
+              )}
               <td>{label2}</td>
               <td style={{ textAlign: 'right' }}>{fmt(row.totalMw)}</td>
               {allMonths.map(m => (
@@ -333,7 +380,7 @@ function SourceProjectTable({ source, projects, scopeRegionCode }) {
 
 // ── Print control toolbar (screen only) ──────────────────────────────────────
 
-function PrintToolbar({ dateLabel }) {
+function PrintToolbar({ dateLabel, panelOpen, onTogglePanel }) {
   return (
     <div className="no-print fixed top-0 left-0 right-0 z-50 bg-slate-800 text-white flex items-center gap-3 px-5 py-2.5 shadow-lg">
       <div className="flex items-center gap-2 mr-auto">
@@ -343,6 +390,15 @@ function PrintToolbar({ dateLabel }) {
         <span className="text-sm font-semibold">Print Summary — As on {dateLabel}</span>
         <span className="text-slate-400 text-xs">· A3 Landscape recommended</span>
       </div>
+      <button
+        onClick={onTogglePanel}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${panelOpen ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-600 hover:bg-slate-500'}`}
+      >
+        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+        Customize
+      </button>
       <button
         onClick={() => window.print()}
         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm font-semibold transition-colors"
@@ -362,13 +418,97 @@ function PrintToolbar({ dateLabel }) {
   );
 }
 
+// ── Customization panel (screen only) ─────────────────────────────────────────
+// Lets the user drop whole tables or individual pipeline columns before
+// printing / saving to PDF. Everything is selected by default.
+
+const PRINT_TABLES = [
+  { id: 'region',       label: 'Region-wise Pipeline' },
+  { id: 'source',       label: 'Source-wise Pipeline' },
+  { id: 'contd4',       label: 'CONTD-4 Study' },
+  { id: 'transmission', label: 'Transmission' },
+  { id: 'sources',      label: 'Per-source Project Details' },
+];
+
+function CheckRow({ checked, onChange, label }) {
+  return (
+    <label className="flex items-center gap-2 py-0.5 cursor-pointer select-none hover:text-slate-900">
+      <input type="checkbox" checked={checked} onChange={onChange} className="size-3.5 accent-blue-600" />
+      <span className="text-[12px] text-slate-700">{label}</span>
+    </label>
+  );
+}
+
+function PrintControls({ tables, setTables, cols, setCols }) {
+  const toggle = (set, setter, id) => {
+    const next = new Set(set);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setter(next);
+  };
+  const allTables = new Set(PRINT_TABLES.map(t => t.id));
+  const allCols   = new Set(PIPE_COLUMNS.map(c => c.key));
+  const sameSet = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+
+  return (
+    <div className="no-print fixed top-[52px] left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-md px-5 py-3">
+      <div className="max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
+        {/* Tables */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Tables</p>
+            <button
+              onClick={() => setTables(sameSet(tables, allTables) ? new Set() : new Set(allTables))}
+              className="text-[11px] text-blue-600 hover:underline"
+            >
+              {sameSet(tables, allTables) ? 'Clear all' : 'Select all'}
+            </button>
+          </div>
+          {PRINT_TABLES.map(t => (
+            <CheckRow key={t.id} label={t.label} checked={tables.has(t.id)} onChange={() => toggle(tables, setTables, t.id)} />
+          ))}
+        </div>
+        {/* Pipeline columns */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Pipeline table columns</p>
+            <button
+              onClick={() => setCols(sameSet(cols, allCols) ? new Set() : new Set(allCols))}
+              className="text-[11px] text-blue-600 hover:underline"
+            >
+              {sameSet(cols, allCols) ? 'Clear all' : 'Select all'}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6">
+            {PIPE_COLUMNS.map(c => (
+              <CheckRow key={c.key} label={c.label.replace(' (MW)', '')} checked={cols.has(c.key)} onChange={() => toggle(cols, setCols, c.key)} />
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1.5">Region &amp; Source label columns are always included. Applies to the two pipeline tables.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, projects }) {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [tables, setTables] = useState(() => new Set(PRINT_TABLES.map(t => t.id)));
+  const [cols, setCols]     = useState(() => new Set(PIPE_COLUMNS.map(c => c.key)));
+  const printTimer = useRef(null);
+
+  // Auto-open the print dialog shortly after load (the common "just print"
+  // path). Opening the Customize panel cancels it so the user can adjust first.
   useEffect(() => {
-    const t = setTimeout(() => window.print(), 1200);
-    return () => clearTimeout(t);
+    printTimer.current = setTimeout(() => window.print(), 1200);
+    return () => clearTimeout(printTimer.current);
   }, []);
+
+  const togglePanel = () => {
+    clearTimeout(printTimer.current);
+    setPanelOpen(o => !o);
+  };
 
   const availableSources = SOURCE_ORDER.filter(src =>
     (projects ?? []).some(p => {
@@ -376,6 +516,10 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
       return getProjectSource(p) === src;
     })
   );
+
+  // Renumber only the visible tables so the badges stay sequential.
+  let tableNo = 0;
+  const nextNo = () => (++tableNo);
 
   return (
     <>
@@ -389,53 +533,65 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
         @media print { body { background: #fff !important; padding-top: 0 !important; } .print-page { width: 100%; box-shadow: none; } .inner { padding: 0; } }
       `}</style>
 
-      <PrintToolbar dateLabel={dateLabel} />
+      <PrintToolbar dateLabel={dateLabel} panelOpen={panelOpen} onTogglePanel={togglePanel} />
+      {panelOpen && <PrintControls tables={tables} setTables={setTables} cols={cols} setCols={setCols} />}
 
       <div className="print-page">
         <div className="inner">
           <DocHeader dateLabel={dateLabel} scopeRegionCode={scopeRegionCode} scopeRegionName={scopeRegionName} />
 
-          {/* ── Table 1: Region-wise Pipeline ── */}
-          <div className="avoid-break mb-6">
-            <SectionTitle tableNo="1">
-              Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
-            </SectionTitle>
-            <PipelineTable rows={table2Rows} primaryKey="region" scopeRegionCode={scopeRegionCode} />
-          </div>
+          {/* ── Region-wise Pipeline ── */}
+          {tables.has('region') && (
+            <div className="avoid-break mb-6">
+              <SectionTitle tableNo={nextNo()}>
+                Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
+              </SectionTitle>
+              <PipelineTable rows={table2Rows} primaryKey="region" scopeRegionCode={scopeRegionCode} cols={cols} />
+            </div>
+          )}
 
-          {/* ── Table 2: Source-wise Pipeline ── */}
-          <div className="avoid-break mb-6 page-break">
-            <SectionTitle tableNo="2">
-              Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
-            </SectionTitle>
-            <PipelineTable rows={table5Rows} primaryKey="source" scopeRegionCode={scopeRegionCode} />
-          </div>
+          {/* ── Source-wise Pipeline ── */}
+          {tables.has('source') && (
+            <div className="avoid-break mb-6 page-break">
+              <SectionTitle tableNo={nextNo()}>
+                Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
+              </SectionTitle>
+              <PipelineTable rows={table5Rows} primaryKey="source" scopeRegionCode={scopeRegionCode} cols={cols} />
+            </div>
+          )}
 
-          {/* ── Table 3: CONTD-4 Study ── */}
-          <div className="avoid-break mb-6">
-            <SectionTitle tableNo="3">
-              Total Capacity Under CONTD-4 Study (MW) — Region &amp; Source-wise
-            </SectionTitle>
-            <Contd4Table contd4Study={contd4Study} scopeRegionCode={scopeRegionCode} />
-          </div>
+          {/* ── CONTD-4 Study ── */}
+          {tables.has('contd4') && (
+            <div className="avoid-break mb-6">
+              <SectionTitle tableNo={nextNo()}>
+                Total Capacity Under CONTD-4 Study (MW) — Region &amp; Source-wise
+              </SectionTitle>
+              <Contd4Table contd4Study={contd4Study} scopeRegionCode={scopeRegionCode} />
+            </div>
+          )}
 
-          {/* ── Table 4: Transmission ── */}
-          <div className="avoid-break mb-6">
-            <SectionTitle tableNo="4">
-              Transmission Elements Under Process of FTC — Region-wise
-            </SectionTitle>
-            <TransmissionTable transmissionRows={transmissionRows} />
-          </div>
+          {/* ── Transmission ── */}
+          {tables.has('transmission') && (
+            <div className="avoid-break mb-6">
+              <SectionTitle tableNo={nextNo()}>
+                Transmission Elements Under Process of FTC — Region-wise
+              </SectionTitle>
+              <TransmissionTable transmissionRows={transmissionRows} />
+            </div>
+          )}
 
           {/* ── Per-source project detail tables ── */}
-          {availableSources.map((src, idx) => (
-            <div key={src} className="mb-6 page-break">
-              <SectionTitle tableNo={`5.${idx + 1}`}>
-                {src} — Project-wise Generation Capacity Details Under FTC / TOC / COD
-              </SectionTitle>
-              <SourceProjectTable source={src} projects={projects} scopeRegionCode={scopeRegionCode} />
-            </div>
-          ))}
+          {tables.has('sources') && (() => {
+            const detailNo = nextNo();
+            return availableSources.map((src, idx) => (
+              <div key={src} className="mb-6 page-break">
+                <SectionTitle tableNo={`${detailNo}.${idx + 1}`}>
+                  {src} — Project-wise Generation Capacity Details Under FTC / TOC / COD
+                </SectionTitle>
+                <SourceProjectTable source={src} projects={projects} scopeRegionCode={scopeRegionCode} />
+              </div>
+            ));
+          })()}
 
           {/* Footer */}
           <div className="mt-8 pt-3 border-t border-slate-200 flex justify-between text-[7pt] text-slate-400">

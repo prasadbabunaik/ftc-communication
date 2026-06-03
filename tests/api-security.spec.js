@@ -136,7 +136,7 @@ test.describe('API security — region scoping (IDOR)', () => {
 test.describe('Security headers', () => {
   test('login response sets HttpOnly auth cookies via Set-Cookie', async ({ request }) => {
     const res = await request.post('/api/auth/login', {
-      data: { email: 'admin@ftc.gov.in', password: 'Admin@123' },
+      data: { email: 'admin@grid-india.in', password: 'Admin@123' },
     });
     expect(res.status()).toBe(200);
     const setCookie = res.headers()['set-cookie'] ?? '';

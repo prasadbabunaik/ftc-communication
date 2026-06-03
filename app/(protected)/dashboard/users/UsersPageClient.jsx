@@ -99,7 +99,7 @@ function UserFormModal({ open, onClose, editing, currentUserId }) {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground block mb-1.5">Email Address *</label>
-              <Input type="email" placeholder="user@ftc.gov.in" value={form.email} onChange={(e) => set('email', e.target.value)} required />
+              <Input type="email" placeholder="user@grid-india.in" value={form.email} onChange={(e) => set('email', e.target.value)} required />
             </div>
             {!editing && (
               <div>

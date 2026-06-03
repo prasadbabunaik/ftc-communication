@@ -150,7 +150,7 @@ async function main() {
     return { ...s, ftc };
   });
 
-  const systemUser = await prisma.user.findUnique({ where: { email: 'admin@ftc.gov.in' } });
+  const systemUser = await prisma.user.findUnique({ where: { email: 'admin@grid-india.in' } });
   if (!systemUser) { console.error('admin user not found'); process.exit(1); }
 
   let created = 0, unmatched = 0;

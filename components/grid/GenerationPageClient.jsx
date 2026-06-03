@@ -36,6 +36,7 @@ export function GenerationPageClient({
   regions,
   plantTypes,
   poolingStations,
+  stations = [],
   lockedRegionId,
   userRole,
   regionLabel,
@@ -142,6 +143,7 @@ export function GenerationPageClient({
               regions={regions}
               plantTypes={plantTypes}
               poolingStations={poolingStations}
+              stations={stations}
               lockedRegionId={lockedRegionId}
               userRole={userRole}
               onSuccess={handleSuccess}

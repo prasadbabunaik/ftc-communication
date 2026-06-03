@@ -17,6 +17,7 @@ export function Contd4PageClient({
   regions,
   plantTypes,
   poolingStations,
+  stations = [],
   lockedRegionId,
   userRole,
   regionLabel,
@@ -79,6 +80,7 @@ export function Contd4PageClient({
               regions={regions}
               plantTypes={plantTypes}
               poolingStations={poolingStations}
+              stations={stations}
               lockedRegionId={lockedRegionId}
               userRole={userRole}
               onSuccess={() => { setAddOpen(false); router.refresh(); }}

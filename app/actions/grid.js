@@ -240,16 +240,27 @@ export async function createGenerationProject(formData) {
   const requestedStatus = data.contd4?.status ?? 'PENDING';
   const contd4Status = canBackdate(user.role) ? requestedStatus : 'PENDING';
 
+  // Resolve pooling station: prefer the explicit id; otherwise, when a master
+  // station auto-filled a pooling-station NAME, find-or-create that
+  // PoolingStation in the project's region (the row may not exist yet).
+  let poolingStationId = data.poolingStationId || null;
+  if (!poolingStationId && data.poolingStationName?.trim()) {
+    const psName = data.poolingStationName.trim();
+    const foundPs = await prisma.poolingStation.findFirst({ where: { name: psName, regionId: data.regionId } });
+    poolingStationId = foundPs
+      ? foundPs.id
+      : (await prisma.poolingStation.create({ data: { name: psName, regionId: data.regionId } })).id;
+  }
+
   let project;
   try {
     project = await prisma.generationProject.create({
       include: { region: { select: { code: true } }, plantType: { select: { label: true } } },
       data: {
         name: data.name,
-        developerName: data.developerName || null,
         regionId: data.regionId,
         plantTypeId: data.plantTypeId,
-        poolingStationId: data.poolingStationId || null,
+        poolingStationId,
         totalCapacityMw: parseFloat(data.totalCapacityMw),
         windCapacityMw:  parseDecimal(data.windCapacityMw),
         solarCapacityMw: parseDecimal(data.solarCapacityMw),
@@ -336,7 +347,6 @@ export async function updateGenerationProject(projectId, formData) {
     where: { id: projectId },
     data: {
       name:             formData.name,
-      developerName:    formData.developerName || null,
       poolingStationId: formData.poolingStationId || null,
       totalCapacityMw:  parseFloat(formData.totalCapacityMw),
       windCapacityMw:   parseDecimal(formData.windCapacityMw),
@@ -347,7 +357,6 @@ export async function updateGenerationProject(projectId, formData) {
 
   const logs = diffFields([
     { field: 'Name',               old: fmtStr(project.name),            new: fmtStr(formData.name) },
-    { field: 'Developer',          old: fmtStr(project.developerName),   new: fmtStr(formData.developerName) },
     { field: 'Total Capacity',     old: fmtMw(project.totalCapacityMw),  new: fmtMw(formData.totalCapacityMw) },
     { field: 'Wind Capacity',      old: fmtMw(project.windCapacityMw),   new: fmtMw(formData.windCapacityMw) },
     { field: 'Solar Capacity',     old: fmtMw(project.solarCapacityMw),  new: fmtMw(formData.solarCapacityMw) },

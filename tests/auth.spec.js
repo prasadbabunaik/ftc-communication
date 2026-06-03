@@ -16,7 +16,7 @@ test.describe('Authentication', () => {
 
   test('login form rejects wrong password with 401 message', async ({ page }) => {
     await page.goto('/login');
-    await page.getByLabel(/email address/i).fill('admin@ftc.gov.in');
+    await page.getByLabel(/email address/i).fill('admin@grid-india.in');
     await page.getByLabel(/^password$/i).fill('definitely-wrong');
     await page.getByRole('button', { name: /^sign in$/i }).click();
     await expect(page.getByText(/invalid email or password/i)).toBeVisible({ timeout: 10_000 });
@@ -104,7 +104,7 @@ test.describe('Authentication', () => {
 
   test('API login: wrong password returns 401', async ({ request }) => {
     const res = await request.post('/api/auth/login', {
-      data: { email: 'admin@ftc.gov.in', password: 'wrong' },
+      data: { email: 'admin@grid-india.in', password: 'wrong' },
     });
     expect(res.status()).toBe(401);
   });

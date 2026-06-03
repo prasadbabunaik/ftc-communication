@@ -30,6 +30,13 @@ export default async function NewGenerationPage() {
     orderBy: { name: 'asc' },
   });
 
+  // Master generating-station list for the searchable dropdown.
+  const stations = await prisma.generatingStation.findMany({
+    where: userRegion ? { regionCode: userRegion.code } : undefined,
+    select: { name: true, poolingStationName: true, regionCode: true },
+    orderBy: { name: 'asc' },
+  });
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
@@ -43,6 +50,7 @@ export default async function NewGenerationPage() {
         regions={regions}
         plantTypes={plantTypes}
         poolingStations={poolingStations}
+        stations={stations}
         lockedRegionId={userRegion?.id ?? null}
         userRole={user.role}
       />
