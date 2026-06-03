@@ -233,7 +233,7 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
       if (result?.error) {
         toast.error(typeof result.error === 'string' ? result.error : 'Validation error.');
       } else {
-        toast.success('Phase updated successfully.');
+        toast.success('Component updated successfully.');
         onOpenChange(false);
         onEditSuccess?.();
       }
@@ -246,7 +246,7 @@ function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="size-4 text-blue-500" />
-            Edit Phase #{index + 1} — {phase.sourceType}
+            Edit {phase.sourceType} Component
           </DialogTitle>
           <DialogDescription>
             {Number(phase.capacityAppliedMw).toFixed(1)} MW applied. All MW fields are optional — leave blank to clear.
@@ -566,7 +566,7 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
       const result = await deleteCommissioningPhase(phase.id);
       setConfirmOpen(false);
       if (result?.error) toast.error(result.error);
-      else toast.success('Phase deleted.');
+      else toast.success('Component deleted.');
     });
   }
 
@@ -581,8 +581,7 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
         className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-muted/20 rounded-lg"
         onClick={() => setExpanded((e) => !e)}
       >
-        <div className="flex items-center gap-2 min-w-[160px]">
-          <span className="text-xs text-muted-foreground font-mono">#{index + 1}</span>
+        <div className="flex items-center gap-2 min-w-[150px]">
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${SOURCE_COLORS[phase.sourceType]}`}>
             {phase.sourceType}
           </span>
@@ -620,7 +619,7 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
             <>
               <button
                 type="button"
-                title="Edit phase"
+                title="Edit component"
                 onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
                 className="text-muted-foreground hover:text-blue-600 transition-colors p-1.5 rounded"
               >
@@ -628,7 +627,7 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
               </button>
               <button
                 type="button"
-                title="Delete phase"
+                title="Delete component"
                 onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
                 className="text-muted-foreground hover:text-red-600 transition-colors p-1.5 rounded"
               >
@@ -654,17 +653,17 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-4" /> Delete Phase
+              <AlertTriangle className="size-4" /> Delete Component
             </DialogTitle>
             <DialogDescription>
-              Permanently delete phase #{index + 1} ({phase.sourceType} — {Number(phase.capacityAppliedMw).toFixed(1)} MW). Cannot be undone.
+              Permanently delete the {phase.sourceType} component ({Number(phase.capacityAppliedMw).toFixed(1)} MW). Cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={() => setConfirmOpen(false)} disabled={isPending}>Cancel</Button>
               <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isPending}>
-                {isPending ? 'Deleting…' : 'Delete Phase'}
+                {isPending ? 'Deleting…' : 'Delete Component'}
               </Button>
             </div>
           </DialogBody>
@@ -677,7 +676,7 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="size-4 text-blue-500" />
-              Phase #{index + 1} — {phase.sourceType} Change History
+              {phase.sourceType} Component — Change History
             </DialogTitle>
             <DialogDescription>
               {Number(phase.capacityAppliedMw).toFixed(1)} MW applied · {phaseNotes.length} event{phaseNotes.length !== 1 ? 's' : ''}
@@ -768,7 +767,7 @@ export function ProjectPhaseTimeline({ phases, projectId, canEdit, onEditSuccess
     return (
       <div className="rounded-xl border border-dashed bg-muted/20 p-8 text-center">
         <CheckCircle2 className="size-8 text-muted-foreground/30 mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">No commissioning phases yet.</p>
+        <p className="text-sm text-muted-foreground">No source components yet.</p>
       </div>
     );
   }

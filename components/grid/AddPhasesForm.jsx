@@ -416,7 +416,7 @@ export function AddPhasesForm({
             Cancel
           </Button>
           <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors || !form.formState.isValid}>
-            {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save Phase'}
+            {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save'}
           </Button>
         </div>
       </form>
@@ -624,10 +624,11 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">Phase {index + 1}</span>
-        {/* Per-row Remove button removed — single-phase-per-project rule
-            means deleting must happen via the project detail edit/delete
-            flow, not silently from this form. */}
+        <span className="text-sm font-semibold text-foreground">
+          {selectedSource ? `${selectedSource} Component` : `Source / Component ${index + 1}`}
+        </span>
+        {/* Per-row Remove button removed — deleting a source/component happens
+            via the project detail edit/delete flow, not silently here. */}
       </div>
 
       {/* Source + Applied */}

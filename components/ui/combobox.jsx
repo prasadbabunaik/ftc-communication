@@ -2,7 +2,7 @@
 
 import * as Popover from '@radix-ui/react-popover';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 // options: [{ value: string, label: string }]
@@ -27,6 +27,12 @@ export function Combobox({
 }) {
   const [open, setOpen]     = useState(false);
   const [search, setSearch] = useState('');
+  // When the combobox lives inside a Radix Dialog, its scroll-lock
+  // (react-remove-scroll) blocks wheel scrolling over content portaled to
+  // <body>. Portal the list into the dialog instead so it sits inside the
+  // scroll-allowed subtree; fall back to <body> when there's no dialog.
+  const triggerRef = useRef(null);
+  const [container, setContainer] = useState(null);
 
   const filtered = useMemo(() => {
     if (!search) return options;
@@ -65,12 +71,14 @@ export function Combobox({
       open={open}
       onOpenChange={(o) => {
         if (disabled) return;
+        if (o) setContainer(triggerRef.current?.closest('[role="dialog"]') ?? null);
         setOpen(o);
         if (!o) setSearch('');
       }}
     >
       <Popover.Trigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           disabled={disabled}
           className={cn(
@@ -101,10 +109,11 @@ export function Combobox({
         </button>
       </Popover.Trigger>
 
-      <Popover.Portal>
+      <Popover.Portal container={container ?? undefined}>
         <Popover.Content
           align="start"
           sideOffset={6}
+          onWheel={(e) => e.stopPropagation()}
           style={{ width: 'var(--radix-popover-trigger-width)' }}
           className="z-50 rounded-xl border border-border bg-popover shadow-xl overflow-hidden
                      data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95

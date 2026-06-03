@@ -244,13 +244,37 @@ export async function createGenerationProject(formData) {
   // station auto-filled a pooling-station NAME, find-or-create that
   // PoolingStation in the project's region (the row may not exist yet).
   let poolingStationId = data.poolingStationId || null;
-  if (!poolingStationId && data.poolingStationName?.trim()) {
-    const psName = data.poolingStationName.trim();
+  // Treat a blank or placeholder ("-", "—") pooling-station name as "none" so
+  // junk rows never get created in the master list.
+  const psNameRaw = (data.poolingStationName ?? '').trim();
+  const psNameValid = psNameRaw && !/^[-–—\s]+$/.test(psNameRaw);
+  if (!poolingStationId && psNameValid) {
+    const psName = psNameRaw;
     const foundPs = await prisma.poolingStation.findFirst({ where: { name: psName, regionId: data.regionId } });
     poolingStationId = foundPs
       ? foundPs.id
       : (await prisma.poolingStation.create({ data: { name: psName, regionId: data.regionId } })).id;
   }
+
+  // Resolve plant type: prefer an explicit master id; otherwise resolve by the
+  // derived source-combination code, find-or-creating the PlantType so novel
+  // valid combinations (e.g. Coal+BESS) work without a manual master entry.
+  let plantTypeId = data.plantTypeId || null;
+  if (!plantTypeId && data.plantTypeCode) {
+    const code = data.plantTypeCode;
+    let pt = await prisma.plantType.findFirst({ where: { code } });
+    if (!pt) {
+      pt = await prisma.plantType.create({
+        data: {
+          code, label: data.plantTypeLabel || code,
+          isHybrid: !!data.plantTypeIsHybrid,
+          category: data.plantTypeCategory || 'RENEWABLE',
+        },
+      });
+    }
+    plantTypeId = pt.id;
+  }
+  if (!plantTypeId) return { error: 'Plant type is required' };
 
   let project;
   try {
@@ -259,7 +283,7 @@ export async function createGenerationProject(formData) {
       data: {
         name: data.name,
         regionId: data.regionId,
-        plantTypeId: data.plantTypeId,
+        plantTypeId,
         poolingStationId,
         totalCapacityMw: parseFloat(data.totalCapacityMw),
         windCapacityMw:  parseDecimal(data.windCapacityMw),
@@ -306,20 +330,20 @@ export async function createGenerationProject(formData) {
   // historical replay (statusAsOf etc.) anchors the project at that date,
   // then rebuild every snapshot from then to today. (effectiveDate was
   // resolved at the top of the action so contd4.remarksUpdatedAt also got it.)
-  if (effectiveDate) {
-    await prisma.projectNote.create({
-      data: {
-        projectId: project.id,
-        userId:    user.id,
-        text:      `Project created (back-dated to ${effectiveDate.toISOString().slice(0, 10)}).`,
-        source:    'SYSTEM',
-        field:     null,
-        oldValue:  null,
-        newValue:  null,
-        effectiveDate,
-      },
-    });
-  }
+  // Always record creation in the audit trail (positioned at createdAt, or the
+  // back-dated effectiveDate for ADMIN/NLDC historical onboarding).
+  await prisma.projectNote.create({
+    data: {
+      projectId:   project.id,
+      projectName: project.name,
+      userId:      user.id,
+      text:        effectiveDate
+        ? `Project created (back-dated to ${effectiveDate.toISOString().slice(0, 10)}).`
+        : 'Project created.',
+      source:      'SYSTEM',
+      effectiveDate: effectiveDate ?? null,
+    },
+  });
 
   revalidateGridPages(project.id);
   if (effectiveDate) await rebuildSnapshotsFrom(effectiveDate);
@@ -385,7 +409,23 @@ export async function deleteGenerationProject(projectId, opts = {}) {
     return { error: 'Access denied.' };
   }
 
-  if (opts.hard && user.role === 'ADMIN') {
+  const isHard = opts.hard && user.role === 'ADMIN';
+  // Log BEFORE the mutation so the audit row is valid; on a hard delete the FK
+  // SetNull then orphans it (projectId → null) while projectName preserves the
+  // label, keeping the audit trail intact.
+  await prisma.projectNote.create({
+    data: {
+      projectId:   project.id,
+      projectName: project.name,
+      userId:      user.id,
+      text:        isHard ? 'Project permanently deleted.'
+        : project.activeUntil ? 'Project reactivated.'
+        : 'Project deactivated (soft-deleted).',
+      source:      'SYSTEM',
+    },
+  });
+
+  if (isHard) {
     await prisma.generationProject.delete({ where: { id: projectId } });
   } else {
     // If already inactive, reactivate; otherwise deactivate as of now.
@@ -1569,7 +1609,7 @@ export async function bulkImportRows(type, rows) {
         if (scope.regionId && scope.regionId !== row.regionId) {
           throw new Error('Region mismatch');
         }
-        await prisma.generationProject.create({
+        const proj = await prisma.generationProject.create({
           data: {
             name:            row.name,
             regionId:        row.regionId,
@@ -1594,6 +1634,9 @@ export async function bulkImportRows(type, rows) {
               : {}),
           },
         });
+        await prisma.projectNote.create({
+          data: { projectId: proj.id, projectName: proj.name, userId: user.id, text: 'Project created via bulk import.', source: 'SYSTEM' },
+        });
         created++;
       } catch (e) {
         failed++;
@@ -1606,7 +1649,7 @@ export async function bulkImportRows(type, rows) {
         if (scope.regionId && scope.regionId !== row.regionId) {
           throw new Error('Region mismatch');
         }
-        await prisma.transmissionElement.create({
+        const el = await prisma.transmissionElement.create({
           data: {
             regionId:        row.regionId,
             agencyOwner:     row.agencyOwner,
@@ -1621,6 +1664,9 @@ export async function bulkImportRows(type, rows) {
             proposedFtcDate: parseDate(row.proposedFtcDate),
             remarks:         row.remarks || null,
           },
+        });
+        await prisma.transmissionAuditLog.create({
+          data: { elementId: el.id, elementName: el.elementName, userId: user.id, action: 'CREATE', newValue: 'imported' },
         });
         created++;
       } catch (e) {

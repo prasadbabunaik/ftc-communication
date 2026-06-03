@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { getProjectSource, REGION_ORDER as REGION_ORDER_LIB, SOURCE_ORDER as SOURCE_ORDER_LIB } from '@/lib/grid-computations';
 
 const REGION_ORDER = REGION_ORDER_LIB;
@@ -40,13 +40,22 @@ const PRINT_STYLES = `
   .page-break { break-before: page; }
   .avoid-break { break-inside: avoid; }
   table { border-collapse: collapse; width: 100%; }
+  /* Let long tables flow across pages: repeat the header on every page and keep
+     each row whole so nothing splits mid-row. */
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  /* Keep a section title attached to the start of its table (no orphan title at
+     the bottom of a page). */
+  .print-sec-title { break-after: avoid; }
   th, td { border: 1px solid #cbd5e1; padding: 3px 5px; }
   thead th { background-color: #1e3a5f !important; color: #fff !important; font-weight: 700; }
   .subtotal-row td { background-color: #e2e8f0 !important; font-weight: 700; }
   .total-row td { background-color: #1e3a5f !important; color: #fff !important; font-weight: 700; }
   .section-title { background-color: #1e3a5f !important; color: #fff !important; font-weight: 700; padding: 5px 8px; font-size: 8.5pt; }
-  .no-print { display: none !important; }
   .print-header { display: block !important; }
+  /* Screen-only controls (toolbar, customize panel) stay visible on screen and
+     are hidden only when printing / saving to PDF. */
+  @media print { .no-print { display: none !important; } }
 `;
 
 // ── Document header ────────────────────────────────────────────────────────────
@@ -85,7 +94,7 @@ function DocHeader({ dateLabel, scopeRegionCode, scopeRegionName }) {
 
 function SectionTitle({ children, tableNo }) {
   return (
-    <div className="flex items-center gap-2 mb-1">
+    <div className="print-sec-title flex items-center gap-2 mb-1">
       {tableNo && (
         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1e3a5f] text-white text-[7pt] font-black shrink-0">
           {tableNo}
@@ -317,7 +326,7 @@ function SourceProjectTable({ source, projects, scopeRegionCode }) {
   }, { total:0, applied:0, ftcOK:0, ftcPend:0, tocOK:0, tocPend:0, codOK:0, codPend:0, exp:0 });
 
   return (
-    <div className="avoid-break">
+    <div>
       <table>
         <thead>
           <tr>
@@ -496,19 +505,10 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
   const [panelOpen, setPanelOpen] = useState(false);
   const [tables, setTables] = useState(() => new Set(PRINT_TABLES.map(t => t.id)));
   const [cols, setCols]     = useState(() => new Set(PIPE_COLUMNS.map(c => c.key)));
-  const printTimer = useRef(null);
 
-  // Auto-open the print dialog shortly after load (the common "just print"
-  // path). Opening the Customize panel cancels it so the user can adjust first.
-  useEffect(() => {
-    printTimer.current = setTimeout(() => window.print(), 1200);
-    return () => clearTimeout(printTimer.current);
-  }, []);
-
-  const togglePanel = () => {
-    clearTimeout(printTimer.current);
-    setPanelOpen(o => !o);
-  };
+  // No auto-print: the user lands on the page so the Customize / Print controls
+  // are visible. They adjust tables & columns, then hit "Print / Save as PDF".
+  const togglePanel = () => setPanelOpen(o => !o);
 
   const availableSources = SOURCE_ORDER.filter(src =>
     (projects ?? []).some(p => {
@@ -542,7 +542,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
 
           {/* ── Region-wise Pipeline ── */}
           {tables.has('region') && (
-            <div className="avoid-break mb-6">
+            <div className="mb-6">
               <SectionTitle tableNo={nextNo()}>
                 Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
               </SectionTitle>
@@ -552,7 +552,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
 
           {/* ── Source-wise Pipeline ── */}
           {tables.has('source') && (
-            <div className="avoid-break mb-6 page-break">
+            <div className="mb-6 page-break">
               <SectionTitle tableNo={nextNo()}>
                 Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
               </SectionTitle>
@@ -562,7 +562,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
 
           {/* ── CONTD-4 Study ── */}
           {tables.has('contd4') && (
-            <div className="avoid-break mb-6">
+            <div className="mb-6">
               <SectionTitle tableNo={nextNo()}>
                 Total Capacity Under CONTD-4 Study (MW) — Region &amp; Source-wise
               </SectionTitle>
@@ -572,7 +572,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
 
           {/* ── Transmission ── */}
           {tables.has('transmission') && (
-            <div className="avoid-break mb-6">
+            <div className="mb-6">
               <SectionTitle tableNo={nextNo()}>
                 Transmission Elements Under Process of FTC — Region-wise
               </SectionTitle>

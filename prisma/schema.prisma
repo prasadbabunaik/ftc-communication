@@ -309,8 +309,12 @@ model CodEvent {
 
 model ProjectNote {
   id        String             @id @default(cuid())
-  projectId String
-  project   GenerationProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Nullable + SetNull so an audit entry survives the project being
+  // hard-deleted (mirrors TransmissionAuditLog.elementId). projectName keeps a
+  // readable label for orphaned audit rows.
+  projectId String?
+  project   GenerationProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectName String?
   phaseId   String?
   phase     CommissioningPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
   userId    String

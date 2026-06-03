@@ -64,7 +64,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
           {canEdit && (
             <Button variant="outline" onClick={() => setPhaseOpen(true)}>
               <Layers className="size-4 mr-2" />
-              Add Commissioning Phase
+              Add Source / Component
             </Button>
           )}
           <ExportButtons size="sm" />
@@ -84,7 +84,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
       <Dialog open={phaseOpen} onOpenChange={(o) => { if (!o) handlePhaseClose(); }}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Add Commissioning Phase</DialogTitle>
+            <DialogTitle>Add Source / Component</DialogTitle>
             <DialogDescription>
               Pick any project and record its FTC / TOC / COD data. Recording
               commissioning data enters the project into the FTC pipeline —

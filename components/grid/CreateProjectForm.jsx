@@ -72,13 +72,29 @@ const SOURCE_TO_CODE = {
   'HYDRO,PSP':        'HYBRID_HP',
 };
 
+// Canonical ordering + labels so derived hybrid codes/labels are stable
+// regardless of click order (Coal+BESS and BESS+Coal → same HYBRID_BC).
+const SRC_ORDER = ['WIND', 'SOLAR', 'BESS', 'COAL', 'HYDRO', 'PSP'];
+const SRC_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS', COAL: 'Coal', HYDRO: 'Hydro', PSP: 'PSP' };
+const SRC_ABBR  = { WIND: 'W', SOLAR: 'S', BESS: 'B', COAL: 'C', HYDRO: 'H', PSP: 'P' };
+
+// Any source combination is valid. Known combos resolve to their existing
+// master PlantType; novel ones (e.g. Coal+BESS) get a derived code + label and
+// the server find-or-creates the PlantType on submit.
 function derivePlantType(sources, plantTypes) {
-  if (sources.length === 0) return { code: null, id: null, label: null };
-  const key = [...sources].sort().join(',');
-  const code = SOURCE_TO_CODE[key] ?? null;
-  if (!code) return { code: null, id: null, label: null, error: 'Unknown source combination' };
+  if (sources.length === 0) return { code: null, id: null, label: null, isHybrid: false };
+  const ordered = SRC_ORDER.filter((s) => sources.includes(s));
+  const isHybrid = ordered.length > 1;
+  const key  = [...sources].sort().join(',');
+  const code = SOURCE_TO_CODE[key]
+    ?? (isHybrid ? 'HYBRID_' + ordered.map((s) => SRC_ABBR[s]).join('') : ordered[0]);
+  const label = isHybrid ? `Hybrid (${ordered.map((s) => SRC_LABEL[s]).join('+')})` : SRC_LABEL[ordered[0]];
+  // Category for a derived (new) type: conventional if it has coal/hydro,
+  // else renewable if it has wind/solar, else storage.
+  const category = ordered.some((s) => ['COAL', 'HYDRO'].includes(s)) ? 'CONVENTIONAL'
+    : ordered.some((s) => ['WIND', 'SOLAR'].includes(s)) ? 'RENEWABLE' : 'STORAGE';
   const pt = plantTypes.find((p) => p.code === code);
-  return pt ? { code, id: pt.id, label: pt.label } : { code, id: null, label: null, error: 'Plant type not found' };
+  return { code, id: pt?.id ?? null, label: pt?.label ?? label, isHybrid, category };
 }
 
 export function CreateProjectForm({ regions, plantTypes, poolingStations: initialPS, stations = [], lockedRegionId, userRole, onSuccess, onCancel }) {
@@ -111,6 +127,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
       name: '',
       regionId: lockedRegionId ?? '',
       plantTypeId: '',
+      plantTypeCode: '',
       poolingStationId: '',
       poolingStationName: '',
       totalCapacityMw: '',
@@ -167,7 +184,8 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
 
   useEffect(() => {
     form.setValue('plantTypeId', derived.id ?? '', { shouldValidate: true });
-  }, [derived.id]);
+    form.setValue('plantTypeCode', derived.code ?? '', { shouldValidate: true });
+  }, [derived.id, derived.code]);
 
   useEffect(() => {
     if (!watchedRegionId || lockedRegionId) return;
@@ -186,7 +204,14 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
   function onSubmit(values) {
     setServerError(null);
     startTransition(async () => {
-      const result = await createGenerationProject(values);
+      // Carry the derived label + hybrid flag so the server can find-or-create
+      // a novel plant type (e.g. Coal+BESS) when no master id exists.
+      const result = await createGenerationProject({
+        ...values,
+        plantTypeLabel: derived.label,
+        plantTypeIsHybrid: derived.isHybrid,
+        plantTypeCategory: derived.category,
+      });
       if (result?.error) {
         if (typeof result.error === 'string') setServerError(result.error);
         else setServerError('Please fix the form errors and try again.');
@@ -278,7 +303,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
             )} />
 
             {/* Plant Type — hidden field for validation, driven by source checkboxes */}
-            <FormField control={form.control} name="plantTypeId" render={() => (
+            <FormField control={form.control} name="plantTypeCode" render={() => (
               <FormItem>
                 <FormLabel>Plant Type *</FormLabel>
                 <div className="space-y-2">
@@ -302,10 +327,8 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                     })}
                   </div>
                   {selectedSources.length > 0 && (
-                    <p className={`text-xs font-medium ${derived.error ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {derived.error
-                        ? `⚠ ${derived.error}`
-                        : `→ ${derived.label}`}
+                    <p className="text-xs font-medium text-muted-foreground">
+                      → {derived.label}{derived.isHybrid && !derived.id ? ' (new hybrid type)' : ''}
                     </p>
                   )}
                 </div>

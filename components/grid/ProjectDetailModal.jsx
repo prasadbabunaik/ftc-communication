@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Zap, X, ArrowLeft, CalendarClock } from 'lucide-react';
+import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { ProjectPhaseTimeline } from '@/components/grid/ProjectPhaseTimeline';
@@ -229,6 +229,7 @@ function fmtEntryStamp(iso) {
 
 function CommissioningTimeline({ phases }) {
   const [activeTab, setActiveTab] = useState('ALL');
+  const [sourceFilter, setSourceFilter] = useState('ALL'); // hybrid timelines can filter to one component
 
   // Per-source totals used by the Progress tab. Compute from phases (not
   // event rows) so we get capacityAppliedMw + capacityUnderXxxMw too.
@@ -256,16 +257,22 @@ function CommissioningTimeline({ phases }) {
   }
   if (allRows.length === 0) return null;
 
+  // Source components present (for the hybrid source filter).
+  const sources = [...new Set(allRows.map(r => r.source))];
+  // Narrow to the chosen component before computing cumulatives so the running
+  // totals are correct for the selected source.
+  const base = sourceFilter === 'ALL' ? allRows : allRows.filter(r => r.source === sourceFilter);
+
   // Sort ascending to compute running cumulative correctly
   const ORDER = { FTC: 0, TOC: 1, COD: 2 };
-  allRows.sort((a, b) => {
+  base.sort((a, b) => {
     const d = new Date(a.date) - new Date(b.date);
     return d !== 0 ? d : ORDER[a.kind] - ORDER[b.kind];
   });
 
   // Attach cumulative to each row (ascending pass)
   const cumAcc = { FTC: 0, TOC: 0, COD: 0 };
-  for (const r of allRows) {
+  for (const r of base) {
     cumAcc[r.kind] += Number(r.mw || 0);
     r.cumulative = cumAcc[r.kind];
   }
@@ -274,17 +281,17 @@ function CommissioningTimeline({ phases }) {
 
   // Available tabs (only show kind tabs that have data)
   const tabs = [
-    { key: 'ALL',      label: 'All',      count: allRows.length },
-    { key: 'FTC',      label: 'FTC',      count: allRows.filter(r => r.kind === 'FTC').length },
-    { key: 'TOC',      label: 'TOC',      count: allRows.filter(r => r.kind === 'TOC').length },
-    { key: 'COD',      label: 'COD',      count: allRows.filter(r => r.kind === 'COD').length },
+    { key: 'ALL',      label: 'All',      count: base.length },
+    { key: 'FTC',      label: 'FTC',      count: base.filter(r => r.kind === 'FTC').length },
+    { key: 'TOC',      label: 'TOC',      count: base.filter(r => r.kind === 'TOC').length },
+    { key: 'COD',      label: 'COD',      count: base.filter(r => r.kind === 'COD').length },
     // Progress tab is a separate visualization, not a row filter. Its count
     // is the number of source rows it'll show.
     { key: 'PROGRESS', label: 'Progress', count: Object.keys(perSource).length, isViz: true },
   ].filter(t => t.count > 0 || t.key === 'ALL');
 
   // Filter by active tab then reverse for descending display
-  const displayRows = allRows
+  const displayRows = base
     .filter(r => activeTab === 'ALL' || r.kind === activeTab)
     .slice()
     .reverse();
@@ -337,6 +344,28 @@ function CommissioningTimeline({ phases }) {
         </div>
       </div>
 
+      {/* Source filter — only meaningful for multi-component (hybrid) projects
+          and only when viewing the event list (not the Progress funnel). */}
+      {sources.length > 1 && activeTab !== 'PROGRESS' && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-0.5">Source:</span>
+          {['ALL', ...sources].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSourceFilter(s)}
+              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border transition-colors ${
+                sourceFilter === s
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {s === 'ALL' ? 'All' : s}
+            </button>
+          ))}
+        </div>
+      )}
+
       {activeTab === 'PROGRESS'
         ? <PhaseProgressBars perSource={perSource} />
         : <EventTable rows={displayRows} />}
@@ -351,7 +380,7 @@ function CommissioningTimeline({ phases }) {
 function PhaseProgressBars({ perSource }) {
   const entries = Object.entries(perSource);
   if (entries.length === 0) {
-    return <div className="text-sm text-muted-foreground py-6 text-center">No phases recorded yet.</div>;
+    return <div className="text-sm text-muted-foreground py-6 text-center">No source data yet.</div>;
   }
   return (
     <div className="space-y-4">
@@ -467,6 +496,9 @@ const SOURCE_BADGE = {
 
 export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userRole }) {
   const [view, setView] = useState('detail'); // 'detail' | 'add-phase'
+  // Commissioning data has two axes: 'source' = per-component lanes (what), and
+  // 'timeline' = dated FTC/TOC/COD milestones (when).
+  const [detailView, setDetailView] = useState('source'); // 'source' | 'timeline'
   const router = useRouter();
 
   if (!project) return null;
@@ -510,7 +542,9 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold text-foreground leading-tight">
-                  {view === 'add-phase' ? 'Add Commissioning Phase' : project.name}
+                  {view === 'add-phase'
+                    ? (project.phases.length > 0 ? 'Edit Sources / Components' : 'Add Source / Component')
+                    : project.name}
                 </DialogTitle>
                 {view === 'detail' ? (
                   <div className="flex flex-wrap items-center gap-2 mt-1.5">
@@ -540,7 +574,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
             {view === 'detail' && canEdit && (
               <Button size="sm" onClick={() => setView('add-phase')}>
                 <Plus className="size-3.5 mr-1.5" />
-                Add Commissioning Phase
+                Add Source / Component
               </Button>
             )}
             <button
@@ -604,44 +638,67 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
               {/* CONTD-4 */}
               <Contd4Card contd4={project.contd4} projectId={project.id} canEdit={canEdit} notes={project.notes ?? []} />
 
-              {/* Commissioning Phases */}
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Commissioning Phases</h3>
-                {project.phases.length === 0 ? (
-                  <div className="rounded-xl border border-dashed bg-muted/10 p-8 text-center">
-                    <Zap className="size-7 text-muted-foreground/40 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No commissioning phases yet.</p>
-                    {canEdit && (
-                      <Button size="sm" className="mt-3" onClick={() => setView('add-phase')}>
-                        Add First Phase
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <ProjectPhaseTimeline
-                    phases={project.phases}
-                    projectId={project.id}
-                    canEdit={canEdit}
-                    onEditSuccess={handleClose}
-                  />
-                )}
-              </div>
-
-              {/* Phased Commissioning Timeline */}
+              {/* Commissioning — two explicit views:
+                  • By Source   = per-component lanes (Solar / Wind / BESS), each
+                                  with its own Applied → FTC → TOC → COD funnel.
+                  • By Timeline = every dated FTC/TOC/COD milestone in order. */}
               {(() => {
                 const totalEvents = (project.phases ?? []).reduce((s, ph) =>
                   s + (ph.ftcEvents?.length ?? 0) + (ph.tocEvents?.length ?? 0) + (ph.codEvents?.length ?? 0), 0);
-                if (totalEvents === 0) return null;
                 return (
                   <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <CalendarClock className="size-4 text-blue-600" />
-                      <h3 className="text-sm font-semibold text-foreground">Phased Commissioning History</h3>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-semibold">
-                        {totalEvents} events
-                      </span>
+                    <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+                      <h3 className="text-sm font-semibold text-foreground">Capacity Commissioning</h3>
+                      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setDetailView('source')}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-colors ${detailView === 'source' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          <Layers className="size-3.5" /> By Source
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDetailView('timeline')}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-colors ${detailView === 'timeline' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          <CalendarClock className="size-3.5" /> By Timeline
+                          {totalEvents > 0 && (
+                            <span className="inline-flex items-center px-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-semibold">{totalEvents}</span>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <CommissioningTimeline phases={project.phases} />
+
+                    {detailView === 'source' ? (
+                      project.phases.length === 0 ? (
+                        <div className="rounded-xl border border-dashed bg-muted/10 p-8 text-center">
+                          <Zap className="size-7 text-muted-foreground/40 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No source components yet.</p>
+                          {canEdit && (
+                            <Button size="sm" className="mt-3" onClick={() => setView('add-phase')}>
+                              Add First Source
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <ProjectPhaseTimeline
+                          phases={project.phases}
+                          projectId={project.id}
+                          canEdit={canEdit}
+                          onEditSuccess={handleClose}
+                        />
+                      )
+                    ) : (
+                      totalEvents === 0 ? (
+                        <div className="rounded-xl border border-dashed bg-muted/10 p-8 text-center">
+                          <CalendarClock className="size-7 text-muted-foreground/40 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No dated milestones recorded yet.</p>
+                        </div>
+                      ) : (
+                        <CommissioningTimeline phases={project.phases} />
+                      )
+                    )}
                   </div>
                 );
               })()}

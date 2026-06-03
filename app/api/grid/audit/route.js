@@ -36,7 +36,7 @@ export async function GET(request) {
         where: regionCode ? { project: { region: { code: regionCode } } } : undefined,
         select: {
           id: true, field: true, oldValue: true, newValue: true, text: true,
-          createdAt: true, effectiveDate: true, source: true,
+          createdAt: true, effectiveDate: true, source: true, projectName: true,
           project: { select: { name: true, region: { select: { code: true } } } },
           user:    { select: { name: true } },
         },
@@ -68,7 +68,7 @@ export async function GET(request) {
       ...notes.filter(inWindow).map((n) => ({
         id:           'n' + n.id,
         kind:         'PROJECT',
-        entityName:   n.project?.name ?? '—',
+        entityName:   n.project?.name ?? n.projectName ?? '—',
         region:       n.project?.region?.code ?? null,
         field:        n.field,
         oldValue:     n.oldValue,
