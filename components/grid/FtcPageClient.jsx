@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Layers, Zap } from 'lucide-react';
+import { Layers, Zap, Plus, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { FtcTable } from '@/components/grid/FtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
+import { CreateProjectForm } from '@/components/grid/CreateProjectForm';
 import { ExportButtons } from '@/components/grid/ExportButtons';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
@@ -24,9 +25,13 @@ function fmtRefMonth(ym) {
   } catch { return 'Expected'; }
 }
 
-export function FtcPageClient({ projects, allClearedProjects = [], userRole, regionLabel }) {
+export function FtcPageClient({
+  projects, allClearedProjects = [], userRole, regionLabel,
+  regions = [], plantTypes = [], poolingStations = [], stations = [], lockedRegionId = null,
+}) {
   const [phaseOpen, setPhaseOpen]                 = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [mode, setMode]                           = useState('pick'); // 'pick' | 'create'
   const [detailProject, setDetailProject]         = useState(null);
   const router = useRouter();
   const { settings } = useSettings();
@@ -42,6 +47,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
   function handlePhaseClose() {
     setPhaseOpen(false);
     setSelectedProjectId('');
+    setMode('pick');
   }
 
   return (
@@ -84,17 +90,41 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
       <Dialog open={phaseOpen} onOpenChange={(o) => { if (!o) handlePhaseClose(); }}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Add Source / Component</DialogTitle>
-            {!selectedProject && (
+            <DialogTitle>
+              {mode === 'create' ? 'Create New Generating Station' : 'Add Source / Component'}
+            </DialogTitle>
+            {mode === 'pick' && !selectedProject && (
               <DialogDescription>
-                Pick any project and record its FTC / TOC / COD data. Recording
-                commissioning data enters the project into the FTC pipeline —
-                its CONTD-4 status is independent and can be set separately.
+                Pick a project and record its FTC / TOC / COD data — or create a
+                new generating station. Recording commissioning data enters the
+                project into the FTC pipeline; its CONTD-4 status is independent.
               </DialogDescription>
             )}
           </DialogHeader>
           <DialogBody>
-            {!selectedProject ? (
+            {mode === 'create' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMode('pick')}
+                  className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="size-3.5" /> Back to picking a project
+                </button>
+                <CreateProjectForm
+                  regions={regions}
+                  plantTypes={plantTypes}
+                  poolingStations={poolingStations}
+                  stations={stations}
+                  lockedRegionId={lockedRegionId}
+                  userRole={userRole}
+                  onSuccess={(id) => { setSelectedProjectId(id); setMode('pick'); router.refresh(); }}
+                  onCancel={() => setMode('pick')}
+                />
+              </>
+            ) : selectedProjectId && !selectedProject ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">Loading new project…</div>
+            ) : !selectedProject ? (
               <div className="mb-2">
                 <label className="block text-sm font-medium text-foreground mb-1.5">
                   Generating Station
@@ -116,6 +146,15 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
                     };
                   })}
                 />
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setMode('create')}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus className="size-3.5" /> Not in the list? Create a new generating station
+                  </button>
+                )}
               </div>
             ) : (
               // Collapse the picker into a compact bar so the form is in view
@@ -134,7 +173,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
               </div>
             )}
 
-            {selectedProject && !(selectedProject.inFtcPipeline || selectedProject.contd4Status === 'CLEARED') && (
+            {mode === 'pick' && selectedProject && !(selectedProject.inFtcPipeline || selectedProject.contd4Status === 'CLEARED') && (
               <p className="mb-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                 This project isn't in the FTC pipeline yet. Saving its commissioning
                 data will add it — independent of its CONTD-4 status
@@ -142,7 +181,7 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
               </p>
             )}
 
-            {selectedProject && (
+            {mode === 'pick' && selectedProject && (
               <AddPhasesForm
                 projectId={selectedProject.id}
                 totalCapacityMw={selectedProject.totalCapacityMw}

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope, activePeriodFilter } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, activePeriodFilter, getUserRegion } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { serialize } from '@/lib/serialize';
 import { FtcPageClient } from '@/components/grid/FtcPageClient';
@@ -162,6 +162,20 @@ export default async function FtcPage({ searchParams }) {
     ? 'Showing projects for your region'
     : 'Showing all regions (NLDC/Admin view)';
 
+  // Data for the inline "Create new generating station" path in the Add
+  // Source/Component modal (mirrors /generation/new).
+  const userRegion = await getUserRegion(user.role);
+  const [regions, plantTypes, poolingStations, stations] = await Promise.all([
+    prisma.gridRegion.findMany({ orderBy: { code: 'asc' } }),
+    prisma.plantType.findMany({ orderBy: { label: 'asc' } }),
+    prisma.poolingStation.findMany({ where: userRegion ? { regionId: userRegion.id } : undefined, orderBy: { name: 'asc' } }),
+    prisma.generatingStation.findMany({
+      where: userRegion ? { regionCode: userRegion.code } : undefined,
+      select: { name: true, poolingStationName: true, regionCode: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
+
   return (
     <FtcPageClient
       projects={enriched}
@@ -169,6 +183,11 @@ export default async function FtcPage({ searchParams }) {
       userRole={user.role}
       regionLabel={regionLabel}
       asOf={asOfStr}
+      regions={serialize(regions)}
+      plantTypes={serialize(plantTypes)}
+      poolingStations={serialize(poolingStations)}
+      stations={serialize(stations)}
+      lockedRegionId={userRegion?.id ?? null}
     />
   );
 }
