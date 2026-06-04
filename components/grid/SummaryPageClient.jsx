@@ -785,88 +785,163 @@ function ActivityDateRange({ from, to }) {
   );
 }
 
-function ActivityStat({ label, value, count, color }) {
+// Milestone metadata — drives the selector cards and the pivot's accent colour.
+const MILESTONES = [
+  { key: 'ftc', label: 'FTC Approved', short: 'FTC', color: 'emerald' },
+  { key: 'toc', label: 'TOC Issued',   short: 'TOC', color: 'amber'   },
+  { key: 'cod', label: 'COD Declared', short: 'COD', color: 'violet'  },
+];
+const MILE_ACCENT = {
+  emerald: { head: 'bg-emerald-100 text-emerald-800', cell: 'text-emerald-700', total: 'text-emerald-900 bg-emerald-50/60', ring: 'ring-emerald-400 bg-emerald-50' },
+  amber:   { head: 'bg-amber-100 text-amber-800',     cell: 'text-amber-700',   total: 'text-amber-900 bg-amber-50/60',     ring: 'ring-amber-400 bg-amber-50'   },
+  violet:  { head: 'bg-violet-100 text-violet-800',   cell: 'text-violet-700',  total: 'text-violet-900 bg-violet-50/60',   ring: 'ring-violet-400 bg-violet-50'  },
+};
+// Title-case source labels matching the Source-wise sheet.
+const SOURCE_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS', HYBRID: 'Hybrid', COAL: 'Coal', HYDRO: 'Hydro', PSP: 'PSP' };
+const COMP_LABEL   = { ...SOURCE_LABEL, PSP: 'PSP' };
+// Component order inside a hybrid cell (largest families first, stable).
+const COMP_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP', 'COAL', 'HYDRO'];
+
+function ActivityStat({ label, value, count, color, active, onClick }) {
   const colors = {
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    amber:   'bg-amber-50 text-amber-700 border-amber-200',
-    violet:  'bg-violet-50 text-violet-700 border-violet-200',
+    emerald: 'border-emerald-200 text-emerald-700',
+    amber:   'border-amber-200 text-amber-700',
+    violet:  'border-violet-200 text-violet-700',
   };
+  const accent = MILE_ACCENT[color];
   return (
-    <div className={`rounded-lg border px-4 py-3 ${colors[color]}`}>
-      <p className="text-[10px] font-bold uppercase tracking-wide opacity-80">{label} in range</p>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`text-left rounded-lg border px-4 py-3 transition-all ${colors[color]} ${active ? `ring-2 ${accent.ring} shadow-sm` : 'bg-white hover:bg-slate-50'}`}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wide opacity-80 flex items-center gap-1">
+        {label} in range
+        {active && <span className="text-[8px] font-black px-1 py-px rounded bg-current/10">SHOWN</span>}
+      </p>
       <p className="text-2xl font-black leading-tight tabular-nums">{fmt(value)} <span className="text-xs font-semibold opacity-70">MW</span></p>
       <p className="text-[10px] opacity-70">{count} milestone{count === 1 ? '' : 's'}</p>
-    </div>
+    </button>
   );
 }
 
+// Pivot view matching the "Inter-State <Milestone> Capacity (MW)" sheet:
+// Source rows × Region columns (+ All India), a Total row, and the Hybrid row
+// showing its per-component split inside each cell. A milestone selector
+// (the three cards) switches which of FTC / TOC / COD the grid shows.
 function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
   const { matrix, totals } = activity ?? {};
-  const entries = Object.values(matrix ?? {});
-
-  // Order rows by region (NR, WR, SR, ER, NER) then source.
-  const SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP'];
-  const srcIdx = (s) => { const i = SRC_ORDER.indexOf(s); return i === -1 ? 99 : i; };
-  const rows = entries
-    .filter(r => r.ftc > 0 || r.toc > 0 || r.cod > 0)
-    .sort((a, b) => (REGION_ORDER.indexOf(a.region) - REGION_ORDER.indexOf(b.region)) || (srcIdx(a.source) - srcIdx(b.source)) || a.source.localeCompare(b.source));
+  const [milestone, setMilestone] = useState('cod'); // default COD (matches the sheet)
+  const meta   = MILESTONES.find(m => m.key === milestone);
+  const accent = MILE_ACCENT[meta.color];
 
   const fmtRange = (s) => s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '…';
 
+  // Cell value + hybrid component split, read straight from the region|source matrix.
+  const cell  = (source, region) => matrix?.[`${region}|${source}`]?.[milestone] ?? 0;
+  const comps = (region) => {
+    const c = matrix?.[`${region}|HYBRID`]?.components?.[milestone] ?? {};
+    return Object.entries(c)
+      .filter(([, mw]) => mw > 0)
+      .sort((a, b) => (COMP_ORDER.indexOf(a[0]) - COMP_ORDER.indexOf(b[0])));
+  };
+
+  // Only show source rows that have any activity (in the selected milestone)
+  // across the regions — keeps the grid focused while preserving sheet order.
+  const activeSources = SOURCE_ORDER.filter(src =>
+    REGION_ORDER.some(reg => cell(src, reg) > 0));
+  const sources = activeSources.length ? activeSources : SOURCE_ORDER;
+
+  const rowTotal = (source) => REGION_ORDER.reduce((s, reg) => s + cell(source, reg), 0);
+  const colTotal = (region) => sources.reduce((s, src) => s + cell(src, region), 0);
+  const grand    = totals?.[milestone] ?? 0;
+
+  const hasAny = grand > 0 || (totals?.ftc ?? 0) > 0 || (totals?.toc ?? 0) > 0 || (totals?.cod ?? 0) > 0;
+
   return (
     <div className="space-y-3 flex flex-col min-h-0">
-      {/* Controls: date range + stat cards + breakup */}
+      {/* Controls: date range + breakup */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <ActivityDateRange from={from} to={to} />
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
 
+      {/* Three totals double as the milestone selector */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <ActivityStat label="FTC Approved" value={totals?.ftc ?? 0} count={totals?.ftcCount ?? 0} color="emerald" />
-        <ActivityStat label="TOC Issued"   value={totals?.toc ?? 0} count={totals?.tocCount ?? 0} color="amber" />
-        <ActivityStat label="COD Declared" value={totals?.cod ?? 0} count={totals?.codCount ?? 0} color="violet" />
+        {MILESTONES.map(m => (
+          <ActivityStat
+            key={m.key}
+            label={m.label}
+            value={totals?.[m.key] ?? 0}
+            count={totals?.[`${m.key}Count`] ?? 0}
+            color={m.color}
+            active={milestone === m.key}
+            onClick={() => setMilestone(m.key)}
+          />
+        ))}
       </div>
 
       <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0">
-        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">
-            Milestone Activity (MW) — {fmtRange(from)} → {fmtRange(to)}
-          </p>
-          <p className="text-[10px] text-slate-500">Capacity whose FTC / TOC / COD milestone date falls within the selected range, by Region × Source.</p>
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">
+              Inter-State {meta.label} Capacity (MW) — {fmtRange(from)} → {fmtRange(to)}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              Source × Region. Capacity whose <span className="font-semibold">{meta.short}</span> milestone date falls in the range — click a card above to switch milestone.
+            </p>
+          </div>
         </div>
         <div className="overflow-auto">
-          {rows.length === 0 ? (
+          {!hasAny ? (
             <div className="p-10 text-center text-sm text-muted-foreground">No FTC / TOC / COD milestones in this date range.</div>
           ) : (
             <table className="w-full border-collapse text-[11px]">
               <thead className="sticky top-0 z-10">
-                <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-                  <th className="sticky left-0 z-20 bg-slate-100 px-4 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Region</th>
-                  <th className="px-4 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source</th>
-                  <th className="px-4 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap bg-emerald-50 text-emerald-700">FTC MW</th>
-                  <th className="px-4 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap bg-amber-50 text-amber-700">TOC MW</th>
-                  <th className="px-4 py-2 text-right font-bold whitespace-nowrap bg-violet-50 text-violet-700">COD MW</th>
+                <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
+                  <th className="sticky left-0 z-20 px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
+                  {REGION_ORDER.map(reg => (
+                    <th key={reg} className="px-4 py-2 text-center font-bold border-r border-slate-300/60 whitespace-nowrap">{reg}</th>
+                  ))}
+                  <th className="px-4 py-2 text-center font-black whitespace-nowrap">All India</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
-                  <tr key={i} className="border-t border-gray-100 bg-white hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-2 sticky left-0 z-10 bg-white border-r border-gray-200 font-semibold text-slate-700">{row.region}</td>
-                    <td className="px-4 py-2 border-r border-gray-100">
-                      <Chip label={row.source} colorCls={SOURCE_BADGE[row.source] ?? 'bg-muted text-foreground'} />
-                    </td>
-                    <td className={`px-4 py-2 text-right tabular-nums border-r border-gray-100 ${row.ftc > 0 ? 'text-emerald-700 font-medium' : 'text-slate-300'}`}>{row.ftc > 0 ? fmt(row.ftc) : '0'}</td>
-                    <td className={`px-4 py-2 text-right tabular-nums border-r border-gray-100 ${row.toc > 0 ? 'text-amber-700 font-medium' : 'text-slate-300'}`}>{row.toc > 0 ? fmt(row.toc) : '0'}</td>
-                    <td className={`px-4 py-2 text-right tabular-nums ${row.cod > 0 ? 'text-violet-700 font-medium' : 'text-slate-300'}`}>{row.cod > 0 ? fmt(row.cod) : '0'}</td>
-                  </tr>
-                ))}
+                {sources.map((src) => {
+                  const isHybrid = src === 'HYBRID';
+                  return (
+                    <tr key={src} className="border-t border-gray-100 bg-white hover:bg-slate-50/60 transition-colors align-top">
+                      <td className="px-4 py-2 sticky left-0 z-10 bg-white border-r border-gray-200">
+                        <Chip label={SOURCE_LABEL[src] ?? src} colorCls={SOURCE_BADGE[src] ?? 'bg-muted text-foreground'} />
+                      </td>
+                      {REGION_ORDER.map(reg => {
+                        const v = cell(src, reg);
+                        const breakdown = isHybrid ? comps(reg) : [];
+                        return (
+                          <td key={reg} className={`px-4 py-2 text-center tabular-nums border-r border-gray-100 ${v > 0 ? `${accent.cell} font-medium` : 'text-slate-300'}`}>
+                            {breakdown.length > 0 ? (
+                              <div className="flex flex-col items-center gap-0.5 leading-tight">
+                                {breakdown.map(([c, mw]) => (
+                                  <span key={c} className="whitespace-nowrap text-[10px]">{fmt(mw)} <span className="text-slate-400">–</span> {COMP_LABEL[c] ?? c}</span>
+                                ))}
+                              </div>
+                            ) : (v > 0 ? fmt(v) : '0')}
+                          </td>
+                        );
+                      })}
+                      <td className={`px-4 py-2 text-center tabular-nums font-bold ${rowTotal(src) > 0 ? accent.cell : 'text-slate-300'}`}>{fmt(rowTotal(src))}</td>
+                    </tr>
+                  );
+                })}
                 <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
-                  <td className="px-4 py-2 sticky left-0 z-10 bg-slate-100 border-r border-gray-200" colSpan={2}>
-                    <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">All India Total</span>
+                  <td className="px-4 py-2 sticky left-0 z-10 bg-slate-100 border-r border-gray-200">
+                    <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">Total</span>
                   </td>
-                  <td className="px-4 py-2 text-right tabular-nums text-emerald-800 bg-emerald-50/40 border-r border-gray-200">{fmt(totals?.ftc ?? 0)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-amber-800 bg-amber-50/40 border-r border-gray-200">{fmt(totals?.toc ?? 0)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-violet-800 bg-violet-50/40">{fmt(totals?.cod ?? 0)}</td>
+                  {REGION_ORDER.map(reg => (
+                    <td key={reg} className={`px-4 py-2 text-center tabular-nums border-r border-gray-200 ${accent.total}`}>{fmt(colTotal(reg))}</td>
+                  ))}
+                  <td className={`px-4 py-2 text-center tabular-nums font-black ${accent.total}`}>{fmt(grand)}</td>
                 </tr>
               </tbody>
             </table>
