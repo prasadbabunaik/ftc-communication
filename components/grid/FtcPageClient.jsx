@@ -85,42 +85,62 @@ export function FtcPageClient({ projects, allClearedProjects = [], userRole, reg
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Add Source / Component</DialogTitle>
-            <DialogDescription>
-              Pick any project and record its FTC / TOC / COD data. Recording
-              commissioning data enters the project into the FTC pipeline —
-              its CONTD-4 status is independent and can be set separately.
-            </DialogDescription>
+            {!selectedProject && (
+              <DialogDescription>
+                Pick any project and record its FTC / TOC / COD data. Recording
+                commissioning data enters the project into the FTC pipeline —
+                its CONTD-4 status is independent and can be set separately.
+              </DialogDescription>
+            )}
           </DialogHeader>
           <DialogBody>
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Generating Station
-              </label>
-              <Combobox
-                value={selectedProjectId}
-                onChange={setSelectedProjectId}
-                placeholder="— Select a project —"
-                searchPlaceholder="Search by name, region, or capacity…"
-                emptyText="No matching projects."
-                options={allClearedProjects.map((p) => {
-                  // Tag projects not yet in the pipeline so the user knows
-                  // selecting one will bring it into FTC.
-                  const inPipeline = p.inFtcPipeline || p.contd4Status === 'CLEARED';
-                  const tag = inPipeline ? '' : '  • new to FTC';
-                  return {
-                    value: p.id,
-                    label: `${p.name} (${p.region.code}) — ${p.totalCapacityMw.toFixed(1)} MW${tag}`,
-                  };
-                })}
-              />
-              {selectedProject && !(selectedProject.inFtcPipeline || selectedProject.contd4Status === 'CLEARED') && (
-                <p className="mt-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-                  This project isn't in the FTC pipeline yet. Saving its commissioning
-                  data will add it — independent of its CONTD-4 status
-                  ({selectedProject.contd4Status ?? 'no CONTD-4'}).
-                </p>
-              )}
-            </div>
+            {!selectedProject ? (
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Generating Station
+                </label>
+                <Combobox
+                  value={selectedProjectId}
+                  onChange={setSelectedProjectId}
+                  placeholder="— Select a project —"
+                  searchPlaceholder="Search by name, region, or capacity…"
+                  emptyText="No matching projects."
+                  options={allClearedProjects.map((p) => {
+                    // Tag projects not yet in the pipeline so the user knows
+                    // selecting one will bring it into FTC.
+                    const inPipeline = p.inFtcPipeline || p.contd4Status === 'CLEARED';
+                    const tag = inPipeline ? '' : '  • new to FTC';
+                    return {
+                      value: p.id,
+                      label: `${p.name} (${p.region.code}) — ${p.totalCapacityMw.toFixed(1)} MW${tag}`,
+                    };
+                  })}
+                />
+              </div>
+            ) : (
+              // Collapse the picker into a compact bar so the form is in view
+              // immediately (no scrolling up to re-reach the dropdown).
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Project</p>
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {selectedProject.name}
+                    <span className="font-normal text-muted-foreground"> · {selectedProject.region.code} · {selectedProject.totalCapacityMw.toFixed(1)} MW</span>
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => setSelectedProjectId('')}>
+                  Change
+                </Button>
+              </div>
+            )}
+
+            {selectedProject && !(selectedProject.inFtcPipeline || selectedProject.contd4Status === 'CLEARED') && (
+              <p className="mb-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                This project isn't in the FTC pipeline yet. Saving its commissioning
+                data will add it — independent of its CONTD-4 status
+                ({selectedProject.contd4Status ?? 'no CONTD-4'}).
+              </p>
+            )}
 
             {selectedProject && (
               <AddPhasesForm
