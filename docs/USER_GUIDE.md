@@ -121,6 +121,33 @@ lane, individual **milestones are recorded by date** ("150 MW on 30-Mar,
 > cleared to record FTC). Projects not yet in the pipeline are tagged
 > **"• new to FTC"** in the picker.
 
+**Capacity is usually commissioned in parts — record every dated lot.** A
+milestone is rarely one big number; it comes in stages. Under each of FTC / TOC /
+COD you can add **multiple dated events**, e.g.:
+
+| MW | Date |
+|--:|---|
+| 51.975 | 17-Jul-2025 |
+| 31.185 | 17-Oct-2025 |
+| 13.86  | 18-Mar-2026 |
+| … | … |
+
+The lane's total is just the **sum** of its events. Because each lot carries its
+own date, the dashboard shows the **right number for any "As on" date** — a lot
+dated in the future only starts counting once that date arrives.
+
+### B2. Edit an existing project's data (change quantum / date) — *yes, this works*
+You can change any value at any time and it flows straight to the dashboard:
+1. Open the project (click it in any table) → **By Source** → expand a lane.
+2. Each FTC/TOC/COD **event has ✎ edit and 🗑 delete** controls; **Add … Event**
+   adds another dated lot.
+3. Change the **MW** or **Date**, or add/remove a lot, and **Save**.
+4. The portal recomputes the lane totals and **the dashboard, breakups, and
+   exports update immediately** — no extra step.
+
+> So: **the quantums and dates are fully editable, and every change is reflected
+> in the dashboard right away** (and recorded in the audit trail — task F).
+
 ### C. Add a brand-new generating station (from the same screen)
 **Example: a new station that isn't in the list yet.**
 1. **FTC Tracker → Add Source / Component**.
@@ -150,6 +177,17 @@ lane, individual **milestones are recorded by date** ("150 MW on 30-Mar,
    *expected to complete this month*.
 3. When connectivity is granted, the project is **CLEARED** and flows into the
    FTC pipeline.
+
+### E2. Transmission elements
+The portal tracks transmission too — lines, ICTs, GTs and STs under FTC.
+1. Open **Transmission** in the sidebar. Each element shows its **agency/owner**,
+   **type** (Line / ICT / GT / ST), **RE / Non-RE**, **voltage (kV)**,
+   **capacity (MVA)** / **line length (ckt km)**, first-energisation date, and
+   whether it's still **Pending for FTC**.
+2. To add or edit, use **Transmission → Add / Edit** (region-locked for RLDCs),
+   or **Bulk Import** for many at once.
+3. The Dashboard's **Transmission tab** rolls these up by Region × Element Type
+   (FTC done vs pending, in count and MVA / ckt km).
 
 ### F. See what changed, and when (audit trail)
 1. **Dashboard → Day-wise Changes tab → Change Log.**

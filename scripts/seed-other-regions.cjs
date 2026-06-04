@@ -48,6 +48,43 @@ function parseDateCell(v) {
   return found[found.length - 1];  // latest
 }
 
+// Parse a milestone date cell into ALL dated partial events. Handles the
+// sheet's "DD-MM-YYYY (51.975MW)" / "DD-MM-YYYY (U1 240MW)" / "150MW (30.03.2026)"
+// formats, one event per line. Returns [{ mw, date }] (date = ISO).
+function parseEvents(v) {
+  if (v == null) return [];
+  if (typeof v === 'number') { const d = v > 40000 && v < 60000 ? serialToISO(v) : null; return d ? [{ mw: null, date: d }] : []; }
+  const s = String(v);
+  if (!s.trim() || /^[-\s]*$/.test(s)) return [];
+  const months = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
+  const out = [];
+  for (const ch of s.split(/[\n;]+/)) {
+    if (!ch.trim()) continue;
+    let date = null;
+    let m = ch.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})/);
+    if (m) { let y = m[3].length === 2 ? '20' + m[3] : m[3]; date = `${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`; }
+    else { m = ch.match(/(\d{1,2})\s*[-]?\s*([A-Za-z]{3,})\s*[-]?\s*(\d{2,4})/); if (m && months[m[2].slice(0,3).toLowerCase()]) { let y = m[3].length === 2 ? '20' + m[3] : m[3]; date = `${y}-${months[m[2].slice(0,3).toLowerCase()]}-${String(m[1]).padStart(2,'0')}`; } }
+    if (!date) continue;
+    const mw = ch.match(/(\d+(?:\.\d+)?)\s*MW/i);  // number directly before "MW" (e.g. "U1 240MW" → 240)
+    out.push({ mw: mw ? parseFloat(mw[1]) : null, date });
+  }
+  return out;
+}
+const sumEv = (evs) => Math.round(evs.reduce((a, e) => a + (e.mw || 0), 0) * 1000) / 1000;
+// Turn parsed events into final {mw,date} list: dateless-MW events absorb the
+// leftover toward the milestone total; drop zero/empty.
+function resolveEvents(events, total) {
+  if (!events || !events.length) return [];
+  const known = events.filter(e => e.mw != null);
+  const unknown = events.filter(e => e.mw == null);
+  if (unknown.length) {
+    const rem = Math.max(0, (total || 0) - known.reduce((a, e) => a + e.mw, 0));
+    const per = Math.round((rem / unknown.length) * 1000) / 1000;
+    unknown.forEach(e => { e.mw = per; });
+  }
+  return events.filter(e => e.mw > 0).map(e => ({ mw: e.mw, date: e.date }));
+}
+
 // Classify a plant-type / source string into { code, source, isHybrid, category, comps }
 const ABBR = { WIND:'W', SOLAR:'S', BESS:'B', COAL:'C', HYDRO:'H', PSP:'P' };
 const ORDER = ['WIND','SOLAR','BESS','COAL','HYDRO','PSP'];
@@ -89,8 +126,10 @@ function extractMain(region) {
     out.push({
       name: station, pooling: String(r[2] || '').trim(), plantStr: String(r[3] || ''),
       total: num(r[5]), contd4: num(r[6]), applied: num(r[7]), srcStr: String(r[8] || ''),
-      ftc: num(r[9]), ftcDate: parseDateCell(r[10]), toc: num(r[11]), tocDate: parseDateCell(r[12]),
-      cod: num(r[13]), codDate: parseDateCell(r[14]), expected: num(r[19]),
+      ftc: num(r[9]), ftcDate: parseDateCell(r[10]), ftcEvents: parseEvents(r[10]),
+      toc: num(r[11]), tocDate: parseDateCell(r[12]), tocEvents: parseEvents(r[12]),
+      cod: num(r[13]), codDate: parseDateCell(r[14]), codEvents: parseEvents(r[14]),
+      expected: num(r[19]),
       issues: String(r[20] || '').trim() || null, other: String(r[21] || '').trim() || null,
     });
   }
@@ -153,6 +192,43 @@ function extractContd4(region) {
   return out.filter(p => p.cap > 0 || p.jun > 0);
 }
 
+// Transmission elements table per region.
+function extractTransmission(region) {
+  const rows = sheetRows(region);
+  const ti = rows.findIndex(r => /Transmission Elements Under Process of FTC/i.test(r.map(String).join(' ')));
+  const hi = rows.findIndex((r, i) => i > ti && /Agency.?Owner|Name of Line/i.test(r.map(String).join(' ')));
+  if (hi < 0) return [];
+  const out = [];
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i];
+    // Stop at the next section — the FTC/segregation table header or title, or a
+    // row whose Type column is a generation source (we've left the TX table).
+    if (isFtcHdr(r)) break;
+    const joined = r.map(String).join(' ');
+    if (/Generation Capacity Under Process|Segregation of hybrid|Generating Station/i.test(joined)) break;
+    const agency = String(r[1] || '').trim(), name = String(r[2] || '').trim();
+    if (!agency && !name) { if (out.length) break; else continue; }
+    if (/^total/i.test(agency) || /^total/i.test(name)) break;
+    const ty = String(r[3] || '').toUpperCase();
+    if (/SOLAR|WIND|HYBRID|BESS|COAL|HYDRO|PSP|PUMP/.test(ty)) break;   // entered a generation table
+    const elementType = /ICT/.test(ty) ? 'ICT' : /GT/.test(ty) ? 'GT' : /ST/.test(ty) ? 'ST' : 'LINE';
+    out.push({
+      agencyOwner: agency || name, elementName: name || agency, elementType,
+      isRe: /RE/i.test(String(r[4])) && !/NON/i.test(String(r[4])),
+      voltageRatingKv: isNumeric(r[5]) ? Math.round(num(r[5])) : null,
+      capacityMva: isNumeric(r[6]) ? num(r[6]) : null,
+      lineLengthKm: isNumeric(r[7]) ? num(r[7]) : null,
+      firstEnergyDate: parseDateCell(r[8]),
+      pendingFtc: /yes/i.test(String(r[9])),
+      proposedFtcDate: parseDateCell(r[10]),
+      capacityApr26Mva: isNumeric(r[11]) ? num(r[11]) : null,
+      lineLengthApr26Km: isNumeric(r[12]) ? num(r[12]) : null,
+      remarks: String(r[13] || '').trim() || null,
+    });
+  }
+  return out;
+}
+
 // ── Build seed model per region ──────────────────────────────────────────────
 function buildRegion(region) {
   const main = extractMain(region);
@@ -169,7 +245,12 @@ function buildRegion(region) {
     projects.push({
       name: p.name, pooling: p.pooling, plantCode: cls.code, isHybrid: cls.isHybrid, category: cls.category,
       total: p.total, contd4: p.contd4, expected: p.expected, issues: p.issues, other: p.other,
-      components: [{ src: cls.source, total: p.total, applied: p.applied, ftc: p.ftc, ftcDate: p.ftcDate, toc: p.toc, tocDate: p.tocDate, cod: p.cod, codDate: p.codDate }],
+      components: [{
+        src: cls.source, total: p.total, applied: p.applied,
+        ftc: p.ftc, ftcDate: p.ftcDate, ftcEvents: p.ftcEvents,
+        toc: p.toc, tocDate: p.tocDate, tocEvents: p.tocEvents,
+        cod: p.cod, codDate: p.codDate, codEvents: p.codEvents,
+      }],
       hybridComps: segComps,
     });
   }
@@ -261,9 +342,11 @@ function computeMatrix(byRegion) {
   await prisma.contd4Phase.deleteMany({ where: { contd4: { projectId: { in: projIds } } } });
   await prisma.contd4Application.deleteMany({ where: { projectId: { in: projIds } } });
   await prisma.generationProject.deleteMany({ where: { id: { in: projIds } } });
-  await prisma.transmissionElement.deleteMany({ where: { regionId: { in: targetRegionIds } } });
+  // Transmission was wiped by earlier seeds — reseed ALL regions (NR included).
+  await prisma.transmissionAuditLog.deleteMany({});
+  await prisma.transmissionElement.deleteMany({});
 
-  const D = (s) => s ? new Date(s + 'T00:00:00.000Z') : null;
+  const D = (s) => { if (!s) return null; const d = new Date(s + 'T00:00:00.000Z'); return isNaN(d.getTime()) ? null : d; };
   const r3 = (v) => Math.max(0, Math.round(v * 1000) / 1000);
   const psCache = {};
   async function poolingStation(name, rid) {
@@ -276,7 +359,7 @@ function computeMatrix(byRegion) {
     psCache[key] = ps.id; return ps.id;
   }
 
-  let ftcCount = 0, c4Count = 0;
+  let ftcCount = 0, c4Count = 0, ftcEvCount = 0, txCount = 0;
   for (const rg of REGIONS) {
     const rid = regionId[rg];
     for (const p of byRegion[rg].projects) {
@@ -294,20 +377,26 @@ function computeMatrix(byRegion) {
         },
       });
       for (const c of p.components) {
+        // Resolve granular dated events; distribute any leftover MW to dateless
+        // events, and fall back to a single cached total when nothing parsed.
+        const F = resolveEvents(c.ftcEvents, c.ftc), T = resolveEvents(c.tocEvents, c.toc), Cc = resolveEvents(c.codEvents, c.cod);
+        const ftcMw = F.length ? sumEv(F) : c.ftc, tocMw = T.length ? sumEv(T) : c.toc, codMw = Cc.length ? sumEv(Cc) : c.cod;
+        const lastDate = (evs, fb) => evs.length ? evs.map(e => e.date).sort().slice(-1)[0] : fb;
         const phase = await prisma.commissioningPhase.create({
           data: {
             projectId: proj.id, sourceType: c.src, capacityAppliedMw: c.applied,
-            ftcCompletedMw: c.ftc, ftcCompletedDate: D(c.ftcDate),
-            tocIssuedMw: c.toc, tocIssuedDate: D(c.tocDate),
-            codDeclaredMw: c.cod, codDeclaredDate: D(c.codDate),
-            capacityUnderFtcMw: r3(c.applied - c.ftc), capacityUnderTocMw: r3(c.ftc - c.toc), capacityPendingCodMw: r3(c.toc - c.cod),
+            ftcCompletedMw: ftcMw, ftcCompletedDate: D(lastDate(F, c.ftcDate)),
+            tocIssuedMw: tocMw, tocIssuedDate: D(lastDate(T, c.tocDate)),
+            codDeclaredMw: codMw, codDeclaredDate: D(lastDate(Cc, c.codDate)),
+            capacityUnderFtcMw: r3(c.applied - ftcMw), capacityUnderTocMw: r3(ftcMw - tocMw), capacityPendingCodMw: r3(tocMw - codMw),
             expectedApr26Mw: p.expected, expectedMonth: '2026-06',
             delayRemarks: p.issues, otherRemarks: p.other,
           },
         });
-        if (c.ftc > 0 && c.ftcDate) await prisma.ftcEvent.create({ data: { phaseId: phase.id, capacityMw: c.ftc, eventDate: D(c.ftcDate) } });
-        if (c.toc > 0 && c.tocDate) await prisma.tocEvent.create({ data: { phaseId: phase.id, capacityMw: c.toc, eventDate: D(c.tocDate) } });
-        if (c.cod > 0 && c.codDate) await prisma.codEvent.create({ data: { phaseId: phase.id, capacityMw: c.cod, eventDate: D(c.codDate) } });
+        for (const e of F) await prisma.ftcEvent.create({ data: { phaseId: phase.id, capacityMw: e.mw, eventDate: D(e.date) } });
+        for (const e of T) await prisma.tocEvent.create({ data: { phaseId: phase.id, capacityMw: e.mw, eventDate: D(e.date) } });
+        for (const e of Cc) await prisma.codEvent.create({ data: { phaseId: phase.id, capacityMw: e.mw, eventDate: D(e.date) } });
+        ftcEvCount += F.length + T.length + Cc.length;
       }
       ftcCount++;
     }
@@ -326,7 +415,24 @@ function computeMatrix(byRegion) {
       c4Count++;
     }
   }
-  console.log(`  ✓ seeded ${ftcCount} FTC projects + ${c4Count} CONTD-4 study across WR/SR/ER/NER`);
-  console.log('Counts now:', { projects: await prisma.generationProject.count(), phases: await prisma.commissioningPhase.count(), ftcEv: await prisma.ftcEvent.count() });
+
+  // ── Transmission for ALL regions (NR included; tx was wiped earlier) ───────
+  for (const rg of ['NR', 'WR', 'SR', 'ER', 'NER']) {
+    const rid = regionId[rg];
+    for (const e of extractTransmission(rg)) {
+      const { firstEnergyDate, proposedFtcDate, ...rest } = e;
+      await prisma.transmissionElement.create({
+        data: { regionId: rid, ...rest, firstEnergyDate: D(firstEnergyDate), proposedFtcDate: D(proposedFtcDate) },
+      });
+      txCount++;
+    }
+  }
+
+  console.log(`  ✓ seeded ${ftcCount} FTC projects (${ftcEvCount} dated events) + ${c4Count} CONTD-4 + ${txCount} transmission elements`);
+  console.log('Counts now:', {
+    projects: await prisma.generationProject.count(),
+    ftcEv: await prisma.ftcEvent.count(), tocEv: await prisma.tocEvent.count(), codEv: await prisma.codEvent.count(),
+    tx: await prisma.transmissionElement.count(),
+  });
   await prisma.$disconnect();
 })().catch(e => { console.error(e); process.exit(1); });
