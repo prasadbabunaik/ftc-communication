@@ -297,7 +297,9 @@ export function SnapshotCompareTab() {
   const totalChanges = (diff?.t2?.length ?? 0) + (diff?.t1?.length ?? 0) + (diff?.t3?.length ?? 0);
 
   return (
-    <div className="space-y-5">
+    // Scroll within the dashboard's fixed-height tab area so long comparison
+    // tables don't overflow and push the page footer up over the content.
+    <div className="space-y-5 flex-1 min-h-0 overflow-auto pr-1">
       {/* View toggle */}
       <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-slate-50 p-1">
         <button
