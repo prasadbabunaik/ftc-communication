@@ -621,7 +621,26 @@ function Chip({ label, cls }) {
 // One contributor row — extracted so the consolidated layouts (which render
 // rows interleaved with subtotal rows) can reuse exactly the same cell
 // rendering as the original split layout.
-function ContribRow({ c, cols }) {
+function ContribRow({ c, cols, sub = false }) {
+  // Sub-row: a per-source bifurcation line under a hybrid project. Show the
+  // component label (indented) in the first column, numeric + event-stack cells,
+  // and leave the descriptive (tag/text) cells blank.
+  if (sub) {
+    let firstTextDone = false;
+    return (
+      <tr className="border-b border-slate-100/70 last:border-b-0 bg-slate-50/40 align-top">
+        {cols.map((col) => {
+          let content = null;
+          if (col.isEventStack) content = <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw={col.isEventStack === 'cod'} />;
+          else if (col.isNum) content = <span className={Number(c[col.key]) > 0 ? 'text-slate-600' : 'text-slate-300'}>{fmt(c[col.key])}</span>;
+          else if (!firstTextDone) { firstTextDone = true; content = <span className="pl-5 text-[10px] font-medium text-slate-500">↳ {CONTD4_SOURCE_LABEL[c.component] ?? c.component}</span>; }
+          return (
+            <td key={col.key} className={`px-3 py-1 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
+          );
+        })}
+      </tr>
+    );
+  }
   return (
     <tr className="border-b border-slate-100 last:border-b-0 hover:bg-blue-50/30 align-top">
       {cols.map((col) => (
@@ -699,20 +718,39 @@ function buildPipelineGroups(projects, asOf = null) {
     // SAME date-gated milestone logic as computePipelineMatrix, so the breakup
     // totals exactly equal the values shown in the FTC Pipeline table.
     const phases = p.phases ?? [];
+    const isHybrid = !!p.plantType?.isHybrid && phases.length > 1;
+    // Per-component plant capacity (for the sub-row "Total" column).
+    const hcomp = {};
+    for (const c of (p.hybridComponentsJson?.components ?? [])) hcomp[c.sourceType] = c;
     const agg = { applied: 0, ftc: 0, uftc: 0, toc: 0, utoc: 0, cod: 0, pendcod: 0, exp: 0 };
     const ftcEvents = [], tocEvents = [], codEvents = [];
+    const components = [];
     for (const ph of phases) {
+      const cFtc = milestoneAsOf(ph.ftcEvents, asOf, ph.ftcCompletedDate, ph.ftcCompletedMw);
+      const cToc = milestoneAsOf(ph.tocEvents, asOf, ph.tocIssuedDate,    ph.tocIssuedMw);
+      const cCod = milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate,  ph.codDeclaredMw);
       agg.applied += num(ph.capacityAppliedMw);
-      agg.ftc     += milestoneAsOf(ph.ftcEvents, asOf, ph.ftcCompletedDate, ph.ftcCompletedMw);
-      agg.toc     += milestoneAsOf(ph.tocEvents, asOf, ph.tocIssuedDate,    ph.tocIssuedMw);
-      agg.cod     += milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate,  ph.codDeclaredMw);
+      agg.ftc += cFtc; agg.toc += cToc; agg.cod += cCod;
       agg.uftc    += num(ph.capacityUnderFtcMw);
       agg.utoc    += num(ph.capacityUnderTocMw);
       agg.pendcod += num(ph.capacityPendingCodMw);
       agg.exp     += num(ph.expectedApr26Mw);
-      ftcEvents.push(...(ph.ftcEvents ?? []).map(mapEv));
-      tocEvents.push(...(ph.tocEvents ?? []).map(mapEv));
-      codEvents.push(...(ph.codEvents ?? []).map(mapEv));
+      const fe = (ph.ftcEvents ?? []).map(mapEv), te = (ph.tocEvents ?? []).map(mapEv), ce = (ph.codEvents ?? []).map(mapEv);
+      ftcEvents.push(...fe); tocEvents.push(...te); codEvents.push(...ce);
+      // One bifurcation sub-row per source component (hybrids only).
+      if (isHybrid) {
+        components.push({
+          component: ph.sourceType,
+          total:   num(hcomp[ph.sourceType]?.totalMw),
+          contd4:  num(hcomp[ph.sourceType]?.contd4Mw),
+          applied: num(ph.capacityAppliedMw),
+          ftc: cFtc, uftc: num(ph.capacityUnderFtcMw),
+          toc: cToc, utoc: num(ph.capacityUnderTocMw),
+          cod: cCod, pendcod: num(ph.capacityPendingCodMw),
+          exp: num(ph.expectedApr26Mw),
+          ftcEvents: fe, tocEvents: te, codEvents: ce,
+        });
+      }
     }
     const first = phases[0] ?? {};
     groups[key].contributors.push({
@@ -730,6 +768,7 @@ function buildPipelineGroups(projects, asOf = null) {
       exp:     agg.exp,
       // Per-event timelines (across all components) for the Excel-style date cells.
       ftcEvents, tocEvents, codEvents,
+      components: isHybrid ? components : null,
       proposedFtcDate: first.proposedFtcDate ?? null,
       delayRemarks:    first.delayRemarks ?? null,
       otherRemarks:    first.otherRemarks ?? null,
@@ -1486,7 +1525,12 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                             ? clusters.map((cl, idx) => (
                                 <Fragment key={cl.key}>
                                   {cl.rows.map((c, i) => (
-                                    <ContribRow key={c.id ?? `${cl.key}-${i}`} c={c} cols={cols} />
+                                    <Fragment key={c.id ?? `${cl.key}-${i}`}>
+                                      <ContribRow c={c} cols={cols} />
+                                      {(c.components ?? []).map((sc, si) => (
+                                        <ContribRow key={`${c.id}-c${si}`} c={sc} cols={cols} sub />
+                                      ))}
+                                    </Fragment>
                                   ))}
                                   <tr className="bg-slate-50/80 border-t border-slate-200 font-semibold">
                                     {cols.map((col, i) => (
@@ -1509,7 +1553,12 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                               ))
                             // ─ Split layout: original flat list of rows ────
                             : g.contributors.map((c, i) => (
-                                <ContribRow key={c.id ?? i} c={c} cols={cols} />
+                                <Fragment key={c.id ?? i}>
+                                  <ContribRow c={c} cols={cols} />
+                                  {(c.components ?? []).map((sc, si) => (
+                                    <ContribRow key={`${c.id}-c${si}`} c={sc} cols={cols} sub />
+                                  ))}
+                                </Fragment>
                               ))}
                           {numCols.length > 0 && (
                             <tr className="bg-blue-50 border-t-2 border-blue-200 font-bold">
