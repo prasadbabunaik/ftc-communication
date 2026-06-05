@@ -213,7 +213,27 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
 
       {/* Table */}
       <div className="overflow-auto flex-1 min-h-0">
-        <table className="w-full text-sm border-collapse">
+        {/* table-fixed + colgroup: column widths are fixed by the colgroup (the
+            grouped colSpan header row can't set per-column widths), so columns
+            stay aligned no matter how rows are sorted / paged. */}
+        <table className="w-full text-sm border-collapse table-fixed min-w-[1440px]">
+          <colgroup>
+            <col className="w-[44px]" />{/* # */}
+            <col className="w-[200px]" />{/* Station */}
+            <col className="w-[68px]" />{/* Region */}
+            <col className="w-[86px]" />{/* Total */}
+            <col className="w-[98px]" />{/* CONTD-4 */}
+            <col className="w-[78px]" />{/* Applied */}
+            <col className="w-[80px]" />{/* Approved */}
+            <col className="w-[78px]" />{/* FTC Pending */}
+            <col className="w-[75px]" />{/* TOC Issued */}
+            <col className="w-[78px]" />{/* TOC Pending */}
+            <col className="w-[75px]" />{/* COD Done */}
+            <col className="w-[78px]" />{/* COD Pending */}
+            <col className="w-[92px]" />{/* Expected */}
+            <col className="w-[280px]" />{/* History */}
+            <col className="w-[40px]" />{/* expand */}
+          </colgroup>
           <thead className="bg-muted/30 border-b">
             {/* Group header row */}
             <tr className="border-b border-border/40">

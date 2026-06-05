@@ -169,12 +169,14 @@ export function TransmissionTable({ elements, userRole, onView }) {
       </div>
 
       <div className="overflow-auto flex-1 min-h-0">
-        <table className="w-full text-sm">
+        {/* table-fixed: column widths come from the header only, so they stay
+            aligned regardless of sort order / which rows are on the page. */}
+        <table className="w-full text-sm table-fixed min-w-[860px]">
           <thead className="bg-card border-b sticky top-0 z-20 shadow-sm">
             <tr>
               <Th label="Sr. No"                               className="w-[52px]" />
-              <SortableTh label="Agency / Owner"  field="agency"    className="min-w-[140px]" {...sp} />
-              <SortableTh label="Element Name"    field="name"      className="min-w-[180px]" {...sp} />
+              <SortableTh label="Agency / Owner"  field="agency"    className="w-[150px]" {...sp} />
+              <SortableTh label="Element Name"    field="name"      className="w-[220px]" {...sp} />
               <SortableTh label="Region"          field="region"    className="w-[70px]"      {...sp} />
               <SortableTh label="Type"            field="type"      className="w-[80px]"      {...sp} />
               <SortableTh label="Voltage (kV)"    field="voltage"   className="w-[95px]"      {...sp} />
@@ -193,9 +195,9 @@ export function TransmissionTable({ elements, userRole, onView }) {
               paginated.map((e, i) => (
                 <tr key={e.id} onClick={() => onView?.(e)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
-                  <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">{e.agencyOwner}</td>
+                  <td className="px-3 py-3 font-medium text-foreground truncate" title={e.agencyOwner}>{e.agencyOwner}</td>
                   <td className="px-3 py-2.5">
-                    <div className="text-sm">{e.elementName}</div>
+                    <div className="text-sm truncate" title={e.elementName}>{e.elementName}</div>
                     {e.isRe && (
                       <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-green-50 text-green-700 border-green-200">RE</span>
                     )}

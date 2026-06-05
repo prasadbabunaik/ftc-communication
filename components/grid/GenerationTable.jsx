@@ -142,11 +142,12 @@ export function GenerationTable({ projects, userRole, onView }) {
 
       {/* Table */}
       <div className="overflow-auto flex-1 min-h-0">
-        <table className="w-full text-sm">
+        {/* table-fixed keeps columns aligned regardless of sort order. */}
+        <table className="w-full text-sm table-fixed min-w-[880px]">
           <thead className="bg-muted/30 border-b">
             <tr>
               <PlainTh label="Sr. No"         className="w-[52px]" />
-              <Th col="name"            label="Generating Station"  className="min-w-[200px]" />
+              <Th col="name"            label="Generating Station"  className="w-[220px]" />
               <Th col="region"          label="Region"               className="w-[80px]" />
               <Th col="totalCapacityMw" label="Capacity (MW)"        className="w-[100px]" />
               <PlainTh label="App. Date"       className="w-[105px]" />

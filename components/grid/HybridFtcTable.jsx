@@ -126,13 +126,14 @@ export function HybridFtcTable({ projects, userRole, onView }) {
 
       {/* Table */}
       <div className="overflow-auto flex-1 min-h-0">
-        <table className="w-full text-sm">
+        {/* table-fixed keeps columns aligned regardless of sort order. */}
+        <table className="w-full text-sm table-fixed min-w-[1100px]">
           <thead className="bg-muted/30 border-b">
             <tr>
               <Th label="Sr. No"                              className="w-[52px]" />
-              <SortableTh label="Generating Station" field="name"     className="min-w-[180px]" {...sp} />
-              <Th label="Pooling Station"                     className="min-w-[150px]" />
-              <Th label="Plant Type"                          className="min-w-[150px]" />
+              <SortableTh label="Generating Station" field="name"     className="w-[200px]" {...sp} />
+              <Th label="Pooling Station"                     className="w-[150px]" />
+              <Th label="Plant Type"                          className="w-[150px]" />
               <SortableTh label="Region"            field="region"    className="w-[70px]"      {...sp} />
               <SortableTh label="Wind (MW)"         field="wind"      className="w-[90px]"      {...sp} />
               <SortableTh label="Solar (MW)"        field="solar"     className="w-[90px]"      {...sp} />
@@ -153,9 +154,9 @@ export function HybridFtcTable({ projects, userRole, onView }) {
               paginated.map((p, i) => (
                 <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
-                  <td className="px-3 py-3 font-medium text-foreground">{p.name}</td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground">{p.poolingStation?.name ?? '—'}</td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">{p.plantType.label}</td>
+                  <td className="px-3 py-3 font-medium text-foreground truncate" title={p.name}>{p.name}</td>
+                  <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={p.poolingStation?.name ?? ''}>{p.poolingStation?.name ?? '—'}</td>
+                  <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={p.plantType.label}>{p.plantType.label}</td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {p.region.code}
