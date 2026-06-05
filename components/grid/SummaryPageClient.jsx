@@ -379,7 +379,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Capacity (MW) Under CONTD-4 Study</p>
           <p className="text-[10px] text-slate-500 mt-0.5">
-            Active (PENDING / RECEIVED) applications — expected completion by month
+            Active (Under Process) applications — expected completion by month
             {carriedTotal > 0 && referenceMonth && (
               <span className="ml-2 inline-flex items-center gap-1 text-amber-700 font-medium">
                 · {fmt(carriedTotal)} MW carried forward into {fmtMonth(referenceMonth)}

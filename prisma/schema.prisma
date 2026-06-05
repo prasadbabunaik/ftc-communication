@@ -168,7 +168,7 @@ model Contd4Application {
   // Contd4Phase records below — see lib/grid-computations.js > computeContd4Study.
   capacityApr26Mw Decimal?     @db.Decimal(10, 2)
   capacityMonth   String?
-  status          Contd4Status @default(PENDING)
+  status          Contd4Status @default(UNDER_PROCESS)
   remarks         String?
   // When the `remarks` field was last edited (not the row as a whole).
   // Updating this only on remarks change lets the UI date each remark
@@ -492,8 +492,7 @@ enum SourceType {
 }
 
 enum Contd4Status {
-  PENDING
-  RECEIVED
+  UNDER_PROCESS
   CLEARED
   REJECTED
 }

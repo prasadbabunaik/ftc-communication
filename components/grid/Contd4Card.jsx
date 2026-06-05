@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { Pencil, FileText, CheckCircle2, X, Plus, Trash2, History, Info, AlertTriangle } from 'lucide-react';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE } from '@/lib/grid-computations';
 
 function currentMonthLabel() {
   const now = new Date();
@@ -80,12 +81,7 @@ function canClearProject(userRole, regionCode) {
   return ROLE_REGION_MAP[userRole] === regionCode;
 }
 
-const STATUS_COLORS = {
-  PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-blue-50 text-blue-700 border-blue-200',
-  CLEARED:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-red-50 text-red-700 border-red-200',
-};
+const STATUS_COLORS = CONTD4_STATUS_BADGE;
 
 function toDateInput(date) {
   if (!date) return '';
@@ -131,7 +127,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
       // validator stays happy but never bind them to UI inputs.
       capacityApr26Mw: '',
       capacityMonth:   '',
-      status: contd4?.status ?? 'PENDING',
+      status: contd4?.status ?? 'UNDER_PROCESS',
       remarks: contd4?.remarks ?? '',
       effectiveDate: lastEffectiveISO,
     },
@@ -282,7 +278,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
             <div>
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Status</p>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_COLORS[contd4.status]}`}>
-                {contd4.status}
+                {CONTD4_STATUS_LABEL[contd4.status] ?? contd4.status}
               </span>
             </div>
           </div>
@@ -515,17 +511,16 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
             )} />
             {/* Capacity is recorded as separate dated phases below the form
                 in the read-only view — see "Capacity Phases" section. */}
-            {/* For a brand-new CONTD-4 application, status is locked to PENDING.
-                Existing applications can be transitioned to RECEIVED / REJECTED
-                via this dropdown (CLEARED uses the "Mark as Cleared" action). */}
+            {/* For a brand-new CONTD-4 application, status is locked to Under
+                Process. Existing applications can be transitioned to Cleared /
+                Rejected via this dropdown. */}
             <FormField control={form.control} name="status" render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
                 {contd4 ? (
                   <FormControl>
                     <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                      <option value="PENDING">Pending</option>
-                      <option value="RECEIVED">Received</option>
+                      <option value="UNDER_PROCESS">Under Process</option>
                       <option value="CLEARED">Cleared</option>
                       <option value="REJECTED">Rejected</option>
                     </select>
@@ -533,11 +528,11 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
                 ) : (
                   <>
                     <FormControl>
-                      <input type="hidden" {...field} value="PENDING" />
+                      <input type="hidden" {...field} value="UNDER_PROCESS" />
                     </FormControl>
                     <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
-                        Pending
+                        Under Process
                       </span>
                       <span className="text-[10px] text-muted-foreground ml-2">— update after creation</span>
                     </div>

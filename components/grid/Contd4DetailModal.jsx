@@ -5,6 +5,7 @@ import { Contd4Card } from '@/components/grid/Contd4Card';
 import { AuditFeed } from '@/components/grid/AuditFeed';
 import { ProjectHistory } from '@/components/grid/ProjectHistory';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS } from '@/lib/grid-computations';
 
 function InfoRow({ label, value }) {
   return (
@@ -15,12 +16,6 @@ function InfoRow({ label, value }) {
   );
 }
 
-const STATUS_COLORS = {
-  PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-blue-50 text-blue-700 border-blue-200',
-  CLEARED:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-red-50 text-red-700 border-red-200',
-};
 
 export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRole }) {
   if (!project) return null;
@@ -49,7 +44,7 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
                 )}
                 {project.contd4 && (
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${STATUS_COLORS[project.contd4.status]}`}>
-                    CONTD-4: {project.contd4.status}
+                    CONTD-4: {CONTD4_STATUS_LABEL[project.contd4.status] ?? project.contd4.status}
                   </span>
                 )}
               </div>

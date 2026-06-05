@@ -12,13 +12,9 @@ import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
+import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS } from '@/lib/grid-computations';
 
-const STATUS_COLORS = {
-  PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-blue-50 text-blue-700 border-blue-200',
-  CLEARED:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-red-50 text-red-700 border-red-200',
-};
+const STATUS_OPTIONS = ['UNDER_PROCESS', 'CLEARED', 'REJECTED'];
 
 function SortableTh({ label, field, sortField, sortDir, onSort, className = '' }) {
   const active = sortField === field;
@@ -127,9 +123,9 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
     }
     if (statusFilter !== 'All') rows = rows.filter((p) => (p.contd4?.status ?? 'NONE') === statusFilter);
     // If no explicit sort is chosen, default-order by status priority so the
-    // active (PENDING / RECEIVED) applications surface above the completed ones.
+    // active (Under Process) applications surface above the completed ones.
     if (!sortField) {
-      const STATUS_RANK = { PENDING: 0, RECEIVED: 1, REJECTED: 2, CLEARED: 3, NONE: 4 };
+      const STATUS_RANK = { UNDER_PROCESS: 0, REJECTED: 2, CLEARED: 3, NONE: 4 };
       return [...rows].sort((a, b) => {
         const ra = STATUS_RANK[a.contd4?.status ?? 'NONE'] ?? 99;
         const rb = STATUS_RANK[b.contd4?.status ?? 'NONE'] ?? 99;
@@ -258,8 +254,8 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           >
-            {['All', 'PENDING', 'RECEIVED', 'CLEARED', 'REJECTED'].map((s) => (
-              <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
+            {['All', ...STATUS_OPTIONS].map((s) => (
+              <option key={s} value={s}>{s === 'All' ? 'All Statuses' : CONTD4_STATUS_LABEL[s]}</option>
             ))}
           </select>
         </div>
@@ -348,7 +344,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                   <td className="px-3 py-3">
                     {p.contd4 ? (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${STATUS_COLORS[p.contd4.status] ?? ''}`}>
-                        {p.contd4.status}
+                        {CONTD4_STATUS_LABEL[p.contd4.status] ?? p.contd4.status}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">No application</span>

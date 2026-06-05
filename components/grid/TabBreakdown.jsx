@@ -1007,7 +1007,7 @@ const COLUMNS = {
 
 const TAB_META = {
   pipeline:     { title: 'FTC Pipeline — Contributors',     subtitle: 'CLEARED projects, grouped per the chosen layout. Region layout mirrors the NR/WR/SR/ER/NER sheets; Source layout mirrors the Source-wise sheet.' },
-  contd4:       { title: 'CONTD-4 Study — Contributors',    subtitle: 'Active (PENDING / RECEIVED) applications grouped by Region × Source.' },
+  contd4:       { title: 'CONTD-4 Study — Contributors',    subtitle: 'Active (Under Process) applications grouped by Region × Source.' },
   hybrid:       { title: 'Hybrid Breakdown — Contributors', subtitle: 'CLEARED hybrid projects, split by their constituent source components.' },
   sourcewise:   { title: 'Source-wise Pipeline — Contributors', subtitle: 'Same CLEARED projects as FTC Pipeline, grouped by Source × Region.' },
   transmission: { title: 'Transmission — Contributors',     subtitle: 'Transmission elements grouped by Region × Element Type.' },

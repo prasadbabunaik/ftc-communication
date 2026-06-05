@@ -27,7 +27,7 @@ export async function GET(request) {
       txTotalCount,
     ] = await Promise.all([
       prisma.contd4Application.count({
-        where: { status: 'PENDING', project: regionScope },
+        where: { status: 'UNDER_PROCESS', project: regionScope },
       }),
       prisma.contd4Application.count({
         where: { project: regionScope },

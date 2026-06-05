@@ -140,7 +140,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
         proposedFtcDate: '',
         capacityApr26Mw: '',
         capacityMonth:   '',
-        status: 'PENDING',
+        status: 'UNDER_PROCESS',
         remarks: '',
       },
       effectiveDate: canBackdate ? todayISO : '',
@@ -493,7 +493,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
               {/* Status: locked to PENDING for everyone except ADMIN/NLDC, who
                   may pick any status (typically CLEARED) when onboarding a
                   project that's already past CONTD-4. Server enforces the
-                  same rule — non-ADMIN/NLDC requests are coerced to PENDING. */}
+                  same rule — non-ADMIN/NLDC requests are coerced to Under Process. */}
               <FormField control={form.control} name="contd4.status" render={({ field }) => (
                 <FormItem>
                   <FormLabel>
@@ -507,8 +507,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                   {canBackdate ? (
                     <FormControl>
                       <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                        <option value="PENDING">Pending</option>
-                        <option value="RECEIVED">Received</option>
+                        <option value="UNDER_PROCESS">Under Process</option>
                         <option value="CLEARED">Cleared</option>
                         <option value="REJECTED">Rejected</option>
                       </select>
@@ -516,13 +515,13 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                   ) : (
                     <>
                       <FormControl>
-                        <input type="hidden" {...field} value="PENDING" />
+                        <input type="hidden" {...field} value="UNDER_PROCESS" />
                       </FormControl>
                       <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm text-foreground">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
-                          Pending
+                          Under Process
                         </span>
-                        <span className="text-[10px] text-muted-foreground ml-2">— starts as Pending; update later from the project page</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">— starts as Under Process; update later from the project page</span>
                       </div>
                     </>
                   )}

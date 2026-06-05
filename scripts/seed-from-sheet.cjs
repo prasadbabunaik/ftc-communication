@@ -461,7 +461,7 @@ async function seed(byRegion) {
         data: {
           name: p.name, regionId: rid, plantTypeId: ptId, poolingStationId: psId,
           totalCapacityMw: p.cap, inFtcPipeline: false, createdById: admin.id,
-          contd4: { create: { status: 'RECEIVED', capacityApr26Mw: p.jun, capacityMonth: '2026-06', applicationDate: D(p.app), remarks: p.rem,
+          contd4: { create: { status: 'UNDER_PROCESS', capacityApr26Mw: p.jun, capacityMonth: '2026-06', applicationDate: D(p.app), remarks: p.rem,
             phases: p.jun > 0 ? { create: { declaredDate: D(p.app) || D('2026-06-01'), capacityMw: p.jun, capacityMonth: '2026-06' } } : undefined } },
         },
       });

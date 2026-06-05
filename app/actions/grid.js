@@ -233,12 +233,12 @@ export async function createGenerationProject(formData) {
   const effectiveDate = resolveEffectiveDate(user.role, data.effectiveDate);
   const remarkStamp   = effectiveDate ?? new Date();
 
-  // CONTD-4 status at creation: anyone gets PENDING; ADMIN/NLDC may pick any
-  // status (PENDING / RECEIVED / CLEARED / REJECTED) — this is how a project
+  // CONTD-4 status at creation: anyone gets UNDER_PROCESS; ADMIN/NLDC may pick any
+  // status (UNDER_PROCESS / CLEARED / REJECTED) — this is how a project
   // that's already past CONTD-4 is onboarded. The client form gates the
   // dropdown to ADMIN/NLDC; this is the server-side defence.
-  const requestedStatus = data.contd4?.status ?? 'PENDING';
-  const contd4Status = canBackdate(user.role) ? requestedStatus : 'PENDING';
+  const requestedStatus = data.contd4?.status ?? 'UNDER_PROCESS';
+  const contd4Status = canBackdate(user.role) ? requestedStatus : 'UNDER_PROCESS';
 
   // Resolve pooling station: prefer the explicit id; otherwise, when a master
   // station auto-filled a pooling-station NAME, find-or-create that
@@ -471,7 +471,7 @@ export async function upsertContd4(projectId, formData) {
   // refreshContd4Cache() after every phase add/delete. Don't touch them
   // from the application-level upsert.
   //
-  // New CONTD-4 applications always start in PENDING — status transitions
+  // New CONTD-4 applications always start in UNDER_PROCESS — status transitions
   // (RECEIVED / REJECTED / CLEARED) only happen via subsequent edits or the
   // dedicated "Mark as Cleared" action.
   //
@@ -496,7 +496,7 @@ export async function upsertContd4(projectId, formData) {
   const newValues = {
     applicationDate: data.applicationDate ? new Date(data.applicationDate) : null,
     proposedFtcDate: parseDate(data.proposedFtcDate),
-    status:          existing ? data.status : 'PENDING',
+    status:          existing ? data.status : 'UNDER_PROCESS',
     remarks:         newRemarks,
     ...(shouldStampRemark ? { remarksUpdatedAt: newRemarks ? remarkStamp : null } : {}),
   };
@@ -1630,7 +1630,7 @@ export async function bulkImportRows(type, rows) {
                       applicationDate: new Date(row.applicationDate),
                       proposedFtcDate: parseDate(row.proposedFtcDate),
                       capacityApr26Mw: parseDecimal(row.capacityApr26Mw),
-                      status: 'PENDING',
+                      status: 'UNDER_PROCESS',
                       remarks: row.remarks || null,
                     },
                   },

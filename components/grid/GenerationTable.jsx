@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useSettings } from '@/providers/settings-provider';
+import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS } from '@/lib/grid-computations';
 
 function fmtRefMonthLabel(ym) {
   if (!ym) return 'Target Cap (MW)';
@@ -15,12 +16,6 @@ function fmtRefMonthLabel(ym) {
   } catch { return 'Target Cap (MW)'; }
 }
 
-const STATUS_COLORS = {
-  PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-blue-50 text-blue-700 border-blue-200',
-  CLEARED:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-red-50 text-red-700 border-red-200',
-};
 
 function fmt(date) {
   if (!date) return '—';
@@ -198,7 +193,7 @@ export function GenerationTable({ projects, userRole, onView }) {
                   <td className="px-3 py-3">
                     {p.contd4 ? (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${STATUS_COLORS[p.contd4.status]}`}>
-                        {p.contd4.status}
+                        {CONTD4_STATUS_LABEL[p.contd4.status] ?? p.contd4.status}
                       </span>
                     ) : (
                       <span className="text-muted-foreground text-xs">—</span>

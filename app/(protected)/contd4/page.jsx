@@ -67,7 +67,7 @@ export default async function Contd4Page({ searchParams }) {
   });
 
   // ── Snapshot-accurate status (as-of-date) ──────────────────────────────────
-  // CONTD-4 applications always start in PENDING. Every subsequent status
+  // CONTD-4 applications always start in UNDER_PROCESS. Every subsequent status
   // change (RECEIVED / REJECTED / CLEARED) is logged to `project_notes` with
   // field='Status', oldValue, newValue, createdAt. We can therefore replay
   // those logs to compute the status as it was on `asOf` without needing a
@@ -76,7 +76,7 @@ export default async function Contd4Page({ searchParams }) {
   //     createdAt <= asOf for each project.
   //   • Use that note's `newValue` as the historical status.
   //   • If no such note exists, the application was still at its initial
-  //     status (PENDING).
+  //     status (UNDER_PROCESS).
   function statusAsOf(p) {
     if (!asOf) return p.contd4?.status ?? null;
     if (!p.contd4) return null;
@@ -87,7 +87,7 @@ export default async function Contd4Page({ searchParams }) {
     const statusChange = (p.notes ?? [])
       .filter((n) => n.field === 'Status' && eff(n) <= cutoff)
       .sort((a, b) => eff(b) - eff(a))[0];
-    return statusChange?.newValue ?? 'PENDING';
+    return statusChange?.newValue ?? 'UNDER_PROCESS';
   }
 
   const enriched = serialize(

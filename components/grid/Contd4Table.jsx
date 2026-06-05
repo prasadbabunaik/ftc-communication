@@ -3,13 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-
-const STATUS_COLORS = {
-  PENDING:  'bg-amber-50 text-amber-700 border-amber-200',
-  RECEIVED: 'bg-blue-50 text-blue-700 border-blue-200',
-  CLEARED:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  REJECTED: 'bg-red-50 text-red-700 border-red-200',
-};
+import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS } from '@/lib/grid-computations';
 
 function fmt(date) {
   if (!date) return '—';
@@ -71,7 +65,7 @@ export function Contd4Table({ applications, userRole, onView }) {
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
         >
-          {['All', 'PENDING', 'RECEIVED', 'CLEARED', 'REJECTED'].map((s) => <option key={s}>{s}</option>)}
+          {['All', 'UNDER_PROCESS', 'CLEARED', 'REJECTED'].map((s) => <option key={s} value={s}>{s === 'All' ? 'All' : CONTD4_STATUS_LABEL[s]}</option>)}
         </select>
         <span className="text-sm text-muted-foreground self-center">{filtered.length} applications</span>
       </div>
@@ -123,7 +117,7 @@ export function Contd4Table({ applications, userRole, onView }) {
                   <td className="px-4 py-3 font-mono text-sm">{a.capacityApr26Mw ? Number(a.capacityApr26Mw).toFixed(1) : '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${STATUS_COLORS[a.status]}`}>
-                      {a.status}
+                      {CONTD4_STATUS_LABEL[a.status] ?? a.status}
                     </span>
                   </td>
                 </tr>
