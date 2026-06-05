@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createPhasesSchema } from '@/lib/validations/grid';
 import { upsertProjectPhases } from '@/app/actions/grid';
@@ -227,7 +227,11 @@ export function AddPhasesForm({
   // for hybrids, otherwise one row). Event-level append/remove still works
   // inside each EventList.
   const { fields } = useFieldArray({ control: form.control, name: 'phases' });
-  const watchedPhases = form.watch('phases');
+  // useWatch (not form.watch) so the cross-milestone pipeline check + Save gate
+  // re-render reliably on NESTED edits — editing a TOC/COD event's MW must
+  // immediately update the "COD exceeds TOC" banner. form.watch('phases') misses
+  // these deep field-array value changes.
+  const watchedPhases = useWatch({ control: form.control, name: 'phases' }) ?? [];
 
   // Counter math:
   //   newCodSum     — COD MW the form will write (across all phase rows)
@@ -620,6 +624,23 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const ftcLimit  = appliedMw > 0 ? appliedMw : null;
   const tocLimit  = ftcTotal + (isHybrid ? srcState.ftc : 0);
   const codLimit  = tocTotal + (isHybrid ? srcState.toc : 0);
+
+  // Keep the "Under FTC / Under TOC" headroom fields consistent as the user
+  // edits milestones: when FTC/TOC grows, the in-process headroom shrinks, so
+  // clamp these down to the available room (FTC+UnderFTC ≤ Applied, TOC+UnderTOC
+  // ≤ FTC). Without this, a stale Under-* value silently blocks Save after the
+  // user raises a milestone. Only ever reduces an over-limit value — a valid
+  // entry is never touched.
+  useEffect(() => {
+    const head = Math.max(0, Math.round((appliedMw - ftcTotal) * 1000) / 1000);
+    const cur = parseFloat(form.getValues(`${prefix}.capacityUnderFtcMw`) || '0') || 0;
+    if (cur > head + 0.01) form.setValue(`${prefix}.capacityUnderFtcMw`, String(head), { shouldValidate: true });
+  }, [appliedMw, ftcTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const head = Math.max(0, Math.round((ftcTotal - tocTotal) * 1000) / 1000);
+    const cur = parseFloat(form.getValues(`${prefix}.capacityUnderTocMw`) || '0') || 0;
+    if (cur > head + 0.01) form.setValue(`${prefix}.capacityUnderTocMw`, String(head), { shouldValidate: true });
+  }, [ftcTotal, tocTotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
