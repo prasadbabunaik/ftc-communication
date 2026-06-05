@@ -1180,6 +1180,29 @@ export async function upsertProjectPhases(projectId, formData) {
     return { error: e.message };
   }
 
+  // Applied-capacity ceiling (covers non-hybrids AND edits, which the
+  // new-phase-only check above misses): the post-save applied capacity must not
+  // exceed the plant's total (single-source) or each component's capacity
+  // (hybrid). finalPhases = existing rows this call keeps + all submitted rows.
+  {
+    const capField = { WIND: 'windCapacityMw', SOLAR: 'solarCapacityMw', BESS: 'bessCapacityMw' };
+    const appliedBySource = {};
+    for (const p of stillExistingPhases) appliedBySource[p.sourceType] = (appliedBySource[p.sourceType] ?? 0) + Number(p.capacityAppliedMw ?? 0);
+    for (const p of parsed.data.phases) appliedBySource[p.sourceType] = (appliedBySource[p.sourceType] ?? 0) + (parseFloat(p.capacityAppliedMw) || 0);
+    const total = Number(project.totalCapacityMw);
+    if (project.plantType.isHybrid) {
+      for (const [src, ap] of Object.entries(appliedBySource)) {
+        const cap = project[capField[src]] != null ? Number(project[capField[src]]) : total;
+        if (ap > cap + 0.01) return { error: `${src} applied capacity (${ap} MW) exceeds its capacity of ${cap} MW.` };
+      }
+    } else {
+      const totalApplied = Object.values(appliedBySource).reduce((a, b) => a + b, 0);
+      if (totalApplied > total + 0.01) {
+        return { error: `Applied capacity (${totalApplied} MW) exceeds the plant's total capacity of ${total} MW.` };
+      }
+    }
+  }
+
   const evSum  = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const evLatestDate = (evs) => {
     const dates = (evs ?? []).map((e) => parseDate(e.date)).filter(Boolean);

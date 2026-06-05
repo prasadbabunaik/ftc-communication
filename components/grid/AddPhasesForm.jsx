@@ -276,6 +276,7 @@ export function AddPhasesForm({
     const out = {};
     for (const s of sources) {
       out[s] = {
+        applied: (survivingExisting[s]?.applied ?? 0) + (batchPipeline[s]?.applied ?? 0),
         ftc: (survivingExisting[s]?.ftc ?? 0) + (batchPipeline[s]?.ftc ?? 0),
         toc: (survivingExisting[s]?.toc ?? 0) + (batchPipeline[s]?.toc ?? 0),
         cod: (survivingExisting[s]?.cod ?? 0) + (batchPipeline[s]?.cod ?? 0),
@@ -284,16 +285,28 @@ export function AddPhasesForm({
     return out;
   }, [survivingExisting, batchPipeline]);
 
+  // Per-lane capacity ceiling: a single-source project is bounded by the plant's
+  // Total Capacity; a hybrid component is bounded by that component's capacity.
+  const capForSource = (s) => {
+    if (!plantType.isHybrid) return totalCapacityMw;
+    const m = { WIND: windCapacityMw, SOLAR: solarCapacityMw, BESS: bessCapacityMw, PSP: pspCapacityMw };
+    return m[s] ?? totalCapacityMw;
+  };
+
   const pipelineErrors = useMemo(() => {
     const errs = {};
-    for (const [s, { ftc, toc, cod }] of Object.entries(combinedPipeline)) {
+    for (const [s, { applied, ftc, toc, cod }] of Object.entries(combinedPipeline)) {
       const msgs = [];
+      const cap = capForSource(s);
+      if (cap != null && applied > cap + 0.01) {
+        msgs.push(`Applied (${applied.toFixed(1)} MW) exceeds ${plantType.isHybrid ? `${s} ` : ''}capacity (${cap.toFixed(1)} MW)`);
+      }
       if (toc > ftc + 0.001) msgs.push(`TOC (${toc.toFixed(1)} MW) exceeds FTC (${ftc.toFixed(1)} MW)`);
       if (cod > toc + 0.001) msgs.push(`COD (${cod.toFixed(1)} MW) exceeds TOC (${toc.toFixed(1)} MW)`);
       if (msgs.length) errs[s] = msgs;
     }
     return errs;
-  }, [combinedPipeline]);
+  }, [combinedPipeline, totalCapacityMw, windCapacityMw, solarCapacityMw, bessCapacityMw, pspCapacityMw, plantType.isHybrid]);
 
   const hasPipelineErrors = Object.keys(pipelineErrors).length > 0;
   // Also check Zod-level errors (schema refine errors have no path set)
@@ -407,6 +420,7 @@ export function AddPhasesForm({
             existingPipeline={existingPipeline}
             refMonthLabel={refMonthLabel}
             canPickExpectedMonth={canPickExpectedMonth}
+            capForSource={capForSource}
           />
         ))}
 
@@ -602,7 +616,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -624,6 +638,10 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const ftcLimit  = appliedMw > 0 ? appliedMw : null;
   const tocLimit  = ftcTotal + (isHybrid ? srcState.ftc : 0);
   const codLimit  = tocTotal + (isHybrid ? srcState.toc : 0);
+
+  // Applied capacity may not exceed the plant's (or component's) total capacity.
+  const appliedCap = capForSource ? capForSource(selectedSource) : null;
+  const appliedOver = appliedCap != null && appliedMw > appliedCap + 0.01;
 
   // Keep the "Under FTC / Under TOC" headroom fields consistent as the user
   // edits milestones: when FTC/TOC grows, the in-process headroom shrinks, so
@@ -668,6 +686,11 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         </div>
         <div>
           <Field prefix={prefix} name="capacityAppliedMw" label="Capacity Applied (MW) *" type="number" form={form} errors={errors} />
+          {appliedOver && (
+            <p className="text-xs text-destructive mt-1">
+              Applied ({appliedMw.toFixed(1)} MW) exceeds {isHybrid ? `${selectedSource} ` : ''}capacity ({appliedCap.toFixed(1)} MW)
+            </p>
+          )}
         </div>
       </div>
 
