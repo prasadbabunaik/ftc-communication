@@ -36,8 +36,11 @@ const fmt = (iso) => {
 export function DateRangePicker({ from, to, onChange, placeholder = 'Pick a date range', className }) {
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => parseValue(from) ?? parseValue(to) ?? new Date());
-  // When a start is chosen but not yet an end, we're "picking the end".
-  const pickingEnd = Boolean(from) && !to;
+  // The first click of a new range is held LOCALLY (not pushed to the URL) so the
+  // two-click flow doesn't round-trip through the page's date defaulting. We only
+  // commit via onChange once BOTH ends are chosen.
+  const [pendingFrom, setPendingFrom] = useState(null);
+  const pickingEnd = pendingFrom != null;
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -48,29 +51,40 @@ export function DateRangePicker({ from, to, onChange, placeholder = 'Pick a date
   function prevMonth() { setViewDate(new Date(year, month - 1, 1)); }
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); }
 
+  function onOpenChange(o) {
+    setOpen(o);
+    if (o) { setPendingFrom(null); setViewDate(parseValue(from) ?? parseValue(to) ?? new Date()); }
+  }
+
   function pick(iso) {
-    if (!from || (from && to)) {
-      // start a fresh range
-      onChange({ from: iso, to: '' });
+    if (pendingFrom == null) {
+      // first click — remember the start, wait for the end
+      setPendingFrom(iso);
       return;
     }
-    // choosing the end of an in-progress range
-    if (iso < from) { onChange({ from: iso, to: from }); }
-    else { onChange({ from, to: iso }); }
+    // second click — commit the ordered range in one navigation
+    const a = iso < pendingFrom ? iso : pendingFrom;
+    const b = iso < pendingFrom ? pendingFrom : iso;
+    setPendingFrom(null);
     setOpen(false);
+    onChange({ from: a, to: b });
   }
-  function clear(e) { e.stopPropagation(); onChange({ from: '', to: '' }); }
+  function clear(e) { e.stopPropagation(); setPendingFrom(null); onChange({ from: '', to: '' }); }
+
+  // While picking, highlight the in-progress start only; otherwise the committed range.
+  const hlFrom = pendingFrom ?? from;
+  const hlTo = pendingFrom != null ? '' : to;
 
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  const label = from
-    ? (to ? `${fmt(from)} → ${fmt(to)}` : `${fmt(from)} → …`)
-    : null;
+  const label = pendingFrom != null
+    ? `${fmt(pendingFrom)} → …`
+    : (from ? (to ? `${fmt(from)} → ${fmt(to)}` : `${fmt(from)} → …`) : null);
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         <button
           type="button"
@@ -130,9 +144,9 @@ export function DateRangePicker({ from, to, onChange, placeholder = 'Pick a date
             {cells.map((day, idx) => {
               if (!day) return <div key={`e-${idx}`} />;
               const iso = toISO(new Date(year, month, day));
-              const isStart = iso === from;
-              const isEnd = iso === to;
-              const inRange = from && to && iso > from && iso < to;
+              const isStart = iso === hlFrom;
+              const isEnd = iso === hlTo;
+              const inRange = hlFrom && hlTo && iso > hlFrom && iso < hlTo;
               const isToday = iso === todayISO;
               return (
                 <div
@@ -140,7 +154,7 @@ export function DateRangePicker({ from, to, onChange, placeholder = 'Pick a date
                   className={cn(
                     'flex justify-center',
                     inRange && 'bg-primary/10',
-                    isStart && to && 'bg-primary/10 rounded-l-md',
+                    isStart && hlTo && 'bg-primary/10 rounded-l-md',
                     isEnd && 'bg-primary/10 rounded-r-md',
                   )}
                 >
