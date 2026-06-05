@@ -255,6 +255,10 @@ export async function createGenerationProject(formData) {
       ? foundPs.id
       : (await prisma.poolingStation.create({ data: { name: psName, regionId: data.regionId } })).id;
   }
+  // Pooling station is mandatory (defense-in-depth — the schema also enforces it).
+  if (!poolingStationId) {
+    return { error: { fieldErrors: { poolingStationId: ['Pooling station is required'] } } };
+  }
 
   // Resolve plant type: prefer an explicit master id; otherwise resolve by the
   // derived source-combination code, find-or-creating the PlantType so novel

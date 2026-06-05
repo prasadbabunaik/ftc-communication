@@ -338,11 +338,14 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {stationLocked ? (
+            {/* Lock to the master pooling station only when it actually has one;
+                otherwise fall through to the editable selector since a pooling
+                station is mandatory. */}
+            {stationLocked && (form.watch('poolingStationName') ?? '').trim() && !['-', '—', '–'].includes((form.watch('poolingStationName') ?? '').trim()) ? (
               <FormItem>
-                <FormLabel>Pooling Station</FormLabel>
+                <FormLabel>Pooling Station *</FormLabel>
                 <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/40 text-sm text-foreground">
-                  {form.watch('poolingStationName') || <span className="text-muted-foreground">— none on master —</span>}
+                  {form.watch('poolingStationName')}
                 </div>
                 <p className="text-[11px] text-emerald-700">Locked to the master station's pooling station.</p>
               </FormItem>
@@ -350,7 +353,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
               <FormField control={form.control} name="poolingStationId" render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Pooling Station</FormLabel>
+                    <FormLabel>Pooling Station *</FormLabel>
                     <button
                       type="button"
                       onClick={() => { setAddPsError(null); setAddPsOpen(true); }}
