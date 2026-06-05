@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useSettings } from '@/providers/settings-provider';
 import { SnapshotCompareTab } from '@/components/grid/SnapshotCompareTab';
 import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
@@ -759,27 +760,18 @@ function ActivityDateRange({ from, to }) {
   const router = useRouter();
   const sp     = useSearchParams();
 
-  const update = (key, value) => {
+  const apply = ({ from: f, to: t }) => {
     const params = new URLSearchParams(sp.toString());
-    if (value) params.set(key, value);
-    else       params.delete(key);
+    if (f) params.set('from', f); else params.delete('from');
+    if (t) params.set('to', t);   else params.delete('to');
     router.push(`/dashboard?${params.toString()}`);
   };
 
   return (
-    <div className="flex items-end gap-2">
-      <div className="flex flex-col gap-1">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">From</span>
-        <div className="w-[150px]">
-          <DatePicker value={from ?? ''} onChange={v => update('from', v || null)} className="h-9" />
-        </div>
-      </div>
-      <span className="mb-2 text-muted-foreground text-sm">→</span>
-      <div className="flex flex-col gap-1">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">To</span>
-        <div className="w-[150px]">
-          <DatePicker value={to ?? ''} onChange={v => update('to', v || null)} className="h-9" />
-        </div>
+    <div className="flex flex-col gap-1">
+      <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">Date range</span>
+      <div className="w-[260px]">
+        <DateRangePicker from={from ?? ''} to={to ?? ''} onChange={apply} className="h-9" />
       </div>
     </div>
   );
