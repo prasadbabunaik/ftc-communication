@@ -11,7 +11,7 @@ import autoTable from 'jspdf-autotable';
 import {
   Dialog, DialogContent, DialogTitle,
 } from '@/components/ui/dialog';
-import { CONTD4_SOURCE_LABEL, isInFtcPipeline } from '@/lib/grid-computations';
+import { CONTD4_SOURCE_LABEL, isInFtcPipeline, milestoneAsOf } from '@/lib/grid-computations';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -677,7 +677,7 @@ function contd4StudySource(p) {
 
 // ── Builders: one per tab — return [{ region, source, label, contributors: [...] }] ─
 
-function buildPipelineGroups(projects) {
+function buildPipelineGroups(projects, asOf = null) {
   const cleared = projects.filter(isInFtcPipeline);
   const groups = {};
   // Normalise an event row to { mw, date } so the renderer can build the
@@ -688,32 +688,51 @@ function buildPipelineGroups(projects) {
     date: e.eventDate ?? e.date ?? null,
     remarks: e.remarks ?? null,
   });
+  const num = (v) => Number(v) || 0;
   for (const p of cleared) {
     const region = p.region.code;
     const source = projectSource(p);
     const key = `${region}|${source}`;
     if (!groups[key]) groups[key] = { region, source, contributors: [] };
-    const ph = (p.phases ?? [])[0] ?? {};
+
+    // Aggregate across ALL phases (hybrids have one per component) and use the
+    // SAME date-gated milestone logic as computePipelineMatrix, so the breakup
+    // totals exactly equal the values shown in the FTC Pipeline table.
+    const phases = p.phases ?? [];
+    const agg = { applied: 0, ftc: 0, uftc: 0, toc: 0, utoc: 0, cod: 0, pendcod: 0, exp: 0 };
+    const ftcEvents = [], tocEvents = [], codEvents = [];
+    for (const ph of phases) {
+      agg.applied += num(ph.capacityAppliedMw);
+      agg.ftc     += milestoneAsOf(ph.ftcEvents, asOf, ph.ftcCompletedDate, ph.ftcCompletedMw);
+      agg.toc     += milestoneAsOf(ph.tocEvents, asOf, ph.tocIssuedDate,    ph.tocIssuedMw);
+      agg.cod     += milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate,  ph.codDeclaredMw);
+      agg.uftc    += num(ph.capacityUnderFtcMw);
+      agg.utoc    += num(ph.capacityUnderTocMw);
+      agg.pendcod += num(ph.capacityPendingCodMw);
+      agg.exp     += num(ph.expectedApr26Mw);
+      ftcEvents.push(...(ph.ftcEvents ?? []).map(mapEv));
+      tocEvents.push(...(ph.tocEvents ?? []).map(mapEv));
+      codEvents.push(...(ph.codEvents ?? []).map(mapEv));
+    }
+    const first = phases[0] ?? {};
     groups[key].contributors.push({
       id: p.id, name: p.name, plantType: p.plantType?.label, region,
       poolingStation: p.poolingStation?.name ?? null,
-      total:   Number(p.totalCapacityMw) || 0,
-      contd4:  Number(p.contd4?.capacityApr26Mw) || 0,
-      applied: Number(ph.capacityAppliedMw) || 0,
-      ftc:     Number(ph.ftcCompletedMw) || 0,
-      uftc:    Number(ph.capacityUnderFtcMw) || 0,
-      toc:     Number(ph.tocIssuedMw) || 0,
-      utoc:    Number(ph.capacityUnderTocMw) || 0,
-      cod:     Number(ph.codDeclaredMw) || 0,
-      pendcod: Number(ph.capacityPendingCodMw) || 0,
-      exp:     Number(ph.expectedApr26Mw) || 0,
-      // Per-event timelines for the Excel-style date cells.
-      ftcEvents: (ph.ftcEvents ?? []).map(mapEv),
-      tocEvents: (ph.tocEvents ?? []).map(mapEv),
-      codEvents: (ph.codEvents ?? []).map(mapEv),
-      proposedFtcDate: ph.proposedFtcDate ?? null,
-      delayRemarks:    ph.delayRemarks ?? null,
-      otherRemarks:    ph.otherRemarks ?? null,
+      total:   num(p.totalCapacityMw),
+      contd4:  num(p.contd4?.capacityApr26Mw),
+      applied: agg.applied,
+      ftc:     agg.ftc,
+      uftc:    agg.uftc,
+      toc:     agg.toc,
+      utoc:    agg.utoc,
+      cod:     agg.cod,
+      pendcod: agg.pendcod,
+      exp:     agg.exp,
+      // Per-event timelines (across all components) for the Excel-style date cells.
+      ftcEvents, tocEvents, codEvents,
+      proposedFtcDate: first.proposedFtcDate ?? null,
+      delayRemarks:    first.delayRemarks ?? null,
+      otherRemarks:    first.otherRemarks ?? null,
     });
   }
   return Object.values(groups).sort((a, b) =>
@@ -836,24 +855,32 @@ function buildContd4Groups(projects) {
   );
 }
 
-function buildHybridGroups(projects) {
-  const hybrids = projects.filter(p => p.plantType?.isHybrid && isInFtcPipeline(p));
+function buildHybridGroups(projects, asOf = null) {
+  // Mirror computeHybridBreakdown EXACTLY: per-component from hybridComponentsJson,
+  // date-gated, de-duped by project name — so the breakup equals the matrix.
+  const hybrids = projects.filter(p => p.plantType?.isHybrid && isInFtcPipeline(p) && p.hybridComponentsJson);
+  let cutoff = asOf; if (!cutoff) { cutoff = new Date(); cutoff.setUTCHours(23, 59, 59, 999); }
+  const gate = (mw, date) => { const m = Number(mw) || 0; if (!date) return m; return new Date(date) <= cutoff ? m : 0; };
   const groups = {};
+  const seen = new Set();
   for (const p of hybrids) {
+    if (seen.has(p.name)) continue;
+    seen.add(p.name);
     const region = p.region.code;
-    const ht     = p.plantType.label;
+    const data   = p.hybridComponentsJson;
+    const ht     = data?.hybridType || p.plantType.label;
     const key = `${region}|${ht}`;
     if (!groups[key]) groups[key] = { region, source: ht, contributors: [] };
-    for (const ph of (p.phases ?? [])) {
+    for (const c of (data?.components || [])) {
       groups[key].contributors.push({
-        id: `${p.id}|${ph.sourceType}`, name: p.name, plantType: ht, region,
-        component: ph.sourceType,
-        total:   Number(p.totalCapacityMw) || 0,
-        applied: Number(ph.capacityAppliedMw) || 0,
-        ftc:     Number(ph.ftcCompletedMw) || 0,
-        toc:     Number(ph.tocIssuedMw) || 0,
-        cod:     Number(ph.codDeclaredMw) || 0,
-        exp:     Number(ph.expectedApr26Mw) || 0,
+        id: `${p.id}|${c.sourceType}`, name: p.name, plantType: ht, region,
+        component: c.sourceType,
+        total:   Number(c.totalMw) || 0,
+        applied: Number(c.appliedMw) || 0,
+        ftc:     gate(c.ftcMw, c.ftcDate),
+        toc:     gate(c.tocMw, c.tocDate),
+        cod:     gate(c.codMw, c.codDate),
+        exp:     Number(c.expectedMw) || 0,
       });
     }
   }
@@ -1032,7 +1059,7 @@ const LAYOUTS = [
 // `asPage` renders the breakdown inline (no Dialog chrome) for the dedicated
 // Source-wise / Region-wise sidebar pages; the default modal behaviour is
 // unchanged. When asPage, the view is always active (no open gate).
-export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElements, activityFrom, activityTo, asPage = false, titleOverride, subtitleOverride }) {
+export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElements, activityFrom, activityTo, asOf = null, asPage = false, titleOverride, subtitleOverride }) {
   const isActive = asPage || open;
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState({});
@@ -1079,13 +1106,13 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
 
   const groups = useMemo(() => {
     if (!isActive) return [];
-    if (activeTab === 'pipeline' || activeTab === 'sourcewise') return buildPipelineGroups(projects);
+    if (activeTab === 'pipeline' || activeTab === 'sourcewise') return buildPipelineGroups(projects, asOf);
     if (activeTab === 'contd4')       return buildContd4Groups(projects);
-    if (activeTab === 'hybrid')       return buildHybridGroups(projects);
+    if (activeTab === 'hybrid')       return buildHybridGroups(projects, asOf);
     if (activeTab === 'transmission') return buildTransmissionGroups(txElements ?? []);
     if (activeTab === 'activity')     return buildActivityGroups(projects, activityFrom, activityTo);
     return [];
-  }, [isActive, activeTab, projects, txElements, activityFrom, activityTo]);
+  }, [isActive, activeTab, projects, txElements, activityFrom, activityTo, asOf]);
 
   // First-stage filter on the original Region × Source split (so the
   // chip/search semantics stay identical regardless of layout). We

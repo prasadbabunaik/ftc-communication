@@ -1242,6 +1242,7 @@ export function SummaryPageClient({
         txElements={txElements}
         activityFrom={activityFrom}
         activityTo={activityTo}
+        asOf={asOf}
       />
 
       {/* Tab content — flex-grows to fill the remaining viewport height */}
