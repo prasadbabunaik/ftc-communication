@@ -306,16 +306,18 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
 
       {/* Table */}
       <div className="overflow-auto flex-1 min-h-0">
-        <table className="w-full text-sm">
+        {/* table-fixed: column widths come from the header only, so they stay
+            uniform regardless of sort order / which rows are on the page. */}
+        <table className="w-full text-sm table-fixed min-w-[1080px]">
           <thead className="bg-card border-b sticky top-0 z-20 shadow-sm">
             <tr>
               <Th label="Sr. No"  className="w-[52px]" />
-              <SortableTh label="Generating Station" field="name"      className="min-w-[220px]" {...sortProps} />
-              <SortableTh label="Region"             field="region"    className="w-[75px]"      {...sortProps} />
-              <SortableTh label="Generation Type"    field="type"      className="min-w-[160px]" {...sortProps} />
-              <SortableTh label="Declared Cap (MW)"  field="capacity"  className="w-[120px]"     {...sortProps} />
-              <SortableTh label="Status"             field="status"    className="w-[110px]"     {...sortProps} />
-              <Th label="Remarks"                                       className="min-w-[200px]" />
+              <SortableTh label="Generating Station" field="name"      className="w-[240px]"  {...sortProps} />
+              <SortableTh label="Region"             field="region"    className="w-[75px]"   {...sortProps} />
+              <SortableTh label="Generation Type"    field="type"      className="w-[160px]"  {...sortProps} />
+              <SortableTh label="Declared Cap (MW)"  field="capacity"  className="w-[140px]"  {...sortProps} />
+              <SortableTh label="Status"             field="status"    className="w-[110px]"  {...sortProps} />
+              <Th label="Remarks"                                       className="w-[300px]" />
               <Th label="Actions" className="w-[110px] text-right pr-4" />
             </tr>
           </thead>
@@ -330,13 +332,13 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
               paginated.map((p, i) => (
                 <tr key={p.id} onClick={() => onView?.(p)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
-                  <td className="px-3 py-3 text-sm font-medium text-foreground">{p.name}</td>
+                  <td className="px-3 py-3 text-sm font-medium text-foreground truncate" title={p.name}>{p.name}</td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {p.region.code}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">{p.plantType.label}</td>
+                  <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={p.plantType.label}>{p.plantType.label}</td>
                   <td className="px-3 py-3 tabular-nums">
                     {p.contd4?.capacityApr26Mw
                       ? <span className="font-mono text-sm font-semibold">{Number(p.contd4.capacityApr26Mw).toFixed(1)}</span>
