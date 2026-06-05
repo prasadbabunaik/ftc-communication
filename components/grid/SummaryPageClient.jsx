@@ -256,10 +256,12 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   if (!rows?.length) return <Empty />;
   const isRegionPrimary = primaryKey === 'region';
 
-  // Split off the All India block (breakdown rows + grand total) so it can
-  // be pinned to the bottom of the scroll container.
-  const regionRows = rows.filter((r) => !r.isAllIndiaBreakdown && !r.isTotal);
-  const footerRows = rows.filter((r) =>  r.isAllIndiaBreakdown ||  r.isTotal);
+  // Order: All India summary first, then the per-region detail, then the grand
+  // total — everything in one scrolling body (no pinned/sticky All India block).
+  const regionRows   = rows.filter((r) => !r.isAllIndiaBreakdown && !r.isTotal);
+  const allIndiaRows  = rows.filter((r) => r.isAllIndiaBreakdown);
+  const totalRow      = rows.find((r) => r.isTotal);
+  const orderedRows   = [...allIndiaRows, ...regionRows, ...(totalRow ? [totalRow] : [])];
 
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
@@ -276,17 +278,10 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
         <table className="w-full border-collapse">
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
-            {regionRows.map((row, i) => (
-              <PipelineRow key={i} row={row} i={i} rows={regionRows} isRegionPrimary={isRegionPrimary} />
+            {orderedRows.map((row, i) => (
+              <PipelineRow key={i} row={row} i={i} rows={orderedRows} isRegionPrimary={isRegionPrimary} />
             ))}
           </tbody>
-          {footerRows.length > 0 && (
-            <tfoot style={{ backgroundColor: "#ffffff" }} className="sticky bottom-0 z-20 bg-white shadow-[0_-2px_6px_rgba(0,0,0,0.05)]">
-              {footerRows.map((row, i) => (
-                <PipelineRow key={`f${i}`} row={row} i={i} rows={footerRows} isRegionPrimary={isRegionPrimary} />
-              ))}
-            </tfoot>
-          )}
         </table>
       </div>
     </div>
@@ -368,10 +363,12 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
   const { rows, allMonths, referenceMonth, carriedTotal } = contd4Study ?? {};
   if (!rows?.length) return <Empty />;
 
-  // Split off the All India block (breakdown + grand total) so it can be
-  // pinned to the bottom of the scroll container — only regions scroll.
-  const regionRows = rows.filter(r => !r.isAllIndiaBreakdown && !r.isTotal);
-  const footerRows = rows.filter(r =>  r.isAllIndiaBreakdown ||  r.isTotal);
+  // All India summary first, then per-region detail, then grand total — one
+  // scrolling body (no pinned/sticky All India block).
+  const regionRows  = rows.filter(r => !r.isAllIndiaBreakdown && !r.isTotal);
+  const allIndiaRows = rows.filter(r => r.isAllIndiaBreakdown);
+  const totalRow     = rows.find(r => r.isTotal);
+  const orderedRows  = [...allIndiaRows, ...regionRows, ...(totalRow ? [totalRow] : [])];
 
   return (
     <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
@@ -404,20 +401,12 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
             </tr>
           </thead>
           <tbody>
-            {regionRows.map((row, i) => (
-              <Contd4Row key={i} row={row} prev={regionRows[i - 1]} allMonths={allMonths}
-                isAllIndiaSection={false} isFirstAllIndiaBreakdown={false} />
+            {orderedRows.map((row, i) => (
+              <Contd4Row key={i} row={row} prev={orderedRows[i - 1]} allMonths={allMonths}
+                isAllIndiaSection={row.isAllIndiaBreakdown || row.isTotal}
+                isFirstAllIndiaBreakdown={row.isAllIndiaBreakdown && !orderedRows[i - 1]?.isAllIndiaBreakdown} />
             ))}
           </tbody>
-          {footerRows.length > 0 && (
-            <tfoot style={{ backgroundColor: "#ffffff" }} className="sticky bottom-0 z-20 bg-white shadow-[0_-2px_6px_rgba(0,0,0,0.05)]">
-              {footerRows.map((row, i) => (
-                <Contd4Row key={`f${i}`} row={row} prev={footerRows[i - 1]} allMonths={allMonths}
-                  isAllIndiaSection={true}
-                  isFirstAllIndiaBreakdown={i === 0 && row.isAllIndiaBreakdown} />
-              ))}
-            </tfoot>
-          )}
         </table>
       </div>
     </div>
