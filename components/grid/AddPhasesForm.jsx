@@ -624,8 +624,10 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
 
   const watchedFtcEvents = form.watch(`${prefix}.ftcEvents`) ?? [];
   const watchedTocEvents = form.watch(`${prefix}.tocEvents`) ?? [];
+  const watchedCodEvents = form.watch(`${prefix}.codEvents`) ?? [];
   const ftcTotal = watchedFtcEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const tocTotal = watchedTocEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  const codTotal = watchedCodEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
 
   const tocGated = isHybrid && srcState.ftc === 0 && ftcTotal === 0;
   const codGated = isHybrid && srcState.toc === 0 && tocTotal === 0;
@@ -643,22 +645,27 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const appliedCap = capForSource ? capForSource(selectedSource) : null;
   const appliedOver = appliedCap != null && appliedMw > appliedCap + 0.01;
 
-  // Keep the "Under FTC / Under TOC" headroom fields consistent as the user
-  // edits milestones: when FTC/TOC grows, the in-process headroom shrinks, so
-  // clamp these down to the available room (FTC+UnderFTC ≤ Applied, TOC+UnderTOC
-  // ≤ FTC). Without this, a stale Under-* value silently blocks Save after the
-  // user raises a milestone. Only ever reduces an over-limit value — a valid
-  // entry is never touched.
+  // Auto-derive the dependent fields from the entered milestones/events so they
+  // always track add/edit/delete:
+  //   Under FTC = Applied − FTC,  Under TOC = FTC − TOC,  Expected = Applied − COD.
+  // Gated on the form being dirty so simply OPENING the form never rewrites the
+  // stored values — only a real edit recomputes them. (setValue uses shouldDirty
+  // off, so this never self-triggers.)
+  const r3 = (n) => Math.round(n * 1000) / 1000;
+  const formDirty = form.formState.isDirty;
+  const syncDerived = (field, value) => {
+    const cur = parseFloat(form.getValues(`${prefix}.${field}`) || '0') || 0;
+    if (Math.abs(cur - value) > 0.001) form.setValue(`${prefix}.${field}`, String(value), { shouldValidate: true });
+  };
   useEffect(() => {
-    const head = Math.max(0, Math.round((appliedMw - ftcTotal) * 1000) / 1000);
-    const cur = parseFloat(form.getValues(`${prefix}.capacityUnderFtcMw`) || '0') || 0;
-    if (cur > head + 0.01) form.setValue(`${prefix}.capacityUnderFtcMw`, String(head), { shouldValidate: true });
-  }, [appliedMw, ftcTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (formDirty) syncDerived('capacityUnderFtcMw', Math.max(0, r3(appliedMw - ftcTotal)));
+  }, [appliedMw, ftcTotal, formDirty]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const head = Math.max(0, Math.round((ftcTotal - tocTotal) * 1000) / 1000);
-    const cur = parseFloat(form.getValues(`${prefix}.capacityUnderTocMw`) || '0') || 0;
-    if (cur > head + 0.01) form.setValue(`${prefix}.capacityUnderTocMw`, String(head), { shouldValidate: true });
-  }, [ftcTotal, tocTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (formDirty) syncDerived('capacityUnderTocMw', Math.max(0, r3(ftcTotal - tocTotal)));
+  }, [ftcTotal, tocTotal, formDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (formDirty) syncDerived('expectedApr26Mw', Math.max(0, r3(appliedMw - codTotal)));
+  }, [appliedMw, codTotal, formDirty]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
