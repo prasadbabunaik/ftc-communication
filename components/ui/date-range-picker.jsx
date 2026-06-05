@@ -78,6 +78,7 @@ export function DateRangePicker({ from, to, onChange, placeholder = 'Pick a date
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length < 42) cells.push(null); // constant 6-row height (no popover jump between months)
 
   const label = pendingFrom != null
     ? `${fmt(pendingFrom)} → …`
@@ -142,7 +143,7 @@ export function DateRangePicker({ from, to, onChange, placeholder = 'Pick a date
 
           <div className="grid grid-cols-7 gap-y-0.5">
             {cells.map((day, idx) => {
-              if (!day) return <div key={`e-${idx}`} />;
+              if (!day) return <div key={`e-${idx}`} className="size-8" />;
               const iso = toISO(new Date(year, month, day));
               const isStart = iso === hlFrom;
               const isEnd = iso === hlTo;

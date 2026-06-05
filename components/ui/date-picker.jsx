@@ -49,10 +49,14 @@ export function DatePicker({ value, onChange, placeholder = 'Pick a date', disab
     });
   }
 
-  // Build calendar cells: null = empty leading cell
+  // Build calendar cells: null = empty leading cell. Always pad to 6 rows (42
+  // cells) so the calendar is the SAME height for every month — otherwise the
+  // popover resizes between months (5 vs 6 week rows) and appears to jump
+  // up/down as you open pickers showing different dates.
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length < 42) cells.push(null);
 
   return (
     <Popover.Root open={open} onOpenChange={(o) => setOpen(disabled ? false : o)}>
@@ -127,7 +131,7 @@ export function DatePicker({ value, onChange, placeholder = 'Pick a date', disab
           {/* Day cells */}
           <div className="grid grid-cols-7 gap-0.5">
             {cells.map((day, idx) => {
-              if (!day) return <div key={`e-${idx}`} />;
+              if (!day) return <div key={`e-${idx}`} className="size-8 mx-auto" />;
               const iso      = toISO(new Date(year, month, day));
               const isSel    = iso === value;
               const isToday  = iso === todayISO;
