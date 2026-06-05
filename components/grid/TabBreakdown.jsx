@@ -708,6 +708,7 @@ function buildPipelineGroups(projects, asOf = null) {
     remarks: e.remarks ?? null,
   });
   const num = (v) => Number(v) || 0;
+  const r3 = (x) => Math.round(x * 1000) / 1000;
   for (const p of cleared) {
     const region = p.region.code;
     const source = projectSource(p);
@@ -737,16 +738,18 @@ function buildPipelineGroups(projects, asOf = null) {
       agg.exp     += num(ph.expectedApr26Mw);
       const fe = (ph.ftcEvents ?? []).map(mapEv), te = (ph.tocEvents ?? []).map(mapEv), ce = (ph.codEvents ?? []).map(mapEv);
       ftcEvents.push(...fe); tocEvents.push(...te); codEvents.push(...ce);
-      // One bifurcation sub-row per source component (hybrids only).
+      // One bifurcation sub-row per source component (hybrids only). Pending
+      // columns are funnel gaps (clamped ≥ 0), matching the matrix.
       if (isHybrid) {
+        const cApplied = num(ph.capacityAppliedMw);
         components.push({
           component: ph.sourceType,
           total:   num(hcomp[ph.sourceType]?.totalMw),
           contd4:  num(hcomp[ph.sourceType]?.contd4Mw),
-          applied: num(ph.capacityAppliedMw),
-          ftc: cFtc, uftc: num(ph.capacityUnderFtcMw),
-          toc: cToc, utoc: num(ph.capacityUnderTocMw),
-          cod: cCod, pendcod: num(ph.capacityPendingCodMw),
+          applied: cApplied,
+          ftc: cFtc, uftc: Math.max(0, r3(cApplied - cFtc)),
+          toc: cToc, utoc: Math.max(0, r3(cFtc - cToc)),
+          cod: cCod, pendcod: Math.max(0, r3(cToc - cCod)),
           exp: num(ph.expectedApr26Mw),
           ftcEvents: fe, tocEvents: te, codEvents: ce,
         });
@@ -760,11 +763,11 @@ function buildPipelineGroups(projects, asOf = null) {
       contd4:  num(p.contd4?.capacityApr26Mw),
       applied: agg.applied,
       ftc:     agg.ftc,
-      uftc:    agg.uftc,
+      uftc:    Math.max(0, r3(agg.applied - agg.ftc)),
       toc:     agg.toc,
-      utoc:    agg.utoc,
+      utoc:    Math.max(0, r3(agg.ftc - agg.toc)),
       cod:     agg.cod,
-      pendcod: agg.pendcod,
+      pendcod: Math.max(0, r3(agg.toc - agg.cod)),
       exp:     agg.exp,
       // Per-event timelines (across all components) for the Excel-style date cells.
       ftcEvents, tocEvents, codEvents,
