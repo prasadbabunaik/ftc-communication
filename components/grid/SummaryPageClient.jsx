@@ -847,11 +847,9 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
       .sort((a, b) => (COMP_ORDER.indexOf(a[0]) - COMP_ORDER.indexOf(b[0])));
   };
 
-  // Only show source rows that have any activity (in the selected milestone)
-  // across the regions — keeps the grid focused while preserving sheet order.
-  const activeSources = SOURCE_ORDER.filter(src =>
-    REGION_ORDER.some(reg => cell(src, reg) > 0));
-  const sources = activeSources.length ? activeSources : SOURCE_ORDER;
+  // Always show every source row (0 when absent in the range), matching the
+  // sheet's fixed Source × Region layout.
+  const sources = SOURCE_ORDER;
 
   const rowTotal = (source) => REGION_ORDER.reduce((s, reg) => s + cell(source, reg), 0);
   const colTotal = (region) => sources.reduce((s, src) => s + cell(src, region), 0);
