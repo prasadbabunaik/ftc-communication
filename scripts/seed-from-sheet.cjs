@@ -65,8 +65,14 @@ function parseEvents(v) {
     if (!ch.trim()) continue;
     const date = parseOneDate(ch);
     if (!date) continue;
-    const mw = ch.match(/(\d+(?:\.\d+)?)\s*MW/i); // number directly before "MW"
-    out.push({ mw: mw ? parseFloat(mw[1]) : null, date });
+    // MW quantum, in priority order:
+    //   1. a number right before "MW"  → "90MW", "U1 240MW", "(51.975MW)"
+    //   2. a leading "number :"        → "50: 25-01-2026"  (quantum before the date)
+    let mw = null;
+    const mwUnit = ch.match(/(\d+(?:\.\d+)?)\s*MW/i);
+    if (mwUnit) mw = parseFloat(mwUnit[1]);
+    else { const lead = ch.match(/^\s*(\d+(?:\.\d+)?)\s*:/); if (lead) mw = parseFloat(lead[1]); }
+    out.push({ mw, date });
   }
   return out;
 }

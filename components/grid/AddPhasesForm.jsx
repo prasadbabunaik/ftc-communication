@@ -453,7 +453,7 @@ const MILESTONE_STYLES = {
 function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [] }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
-  const watchedEvents = form.watch(prefix) ?? [];
+  const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
   const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const st = MILESTONE_STYLES[milestone];
 
@@ -622,9 +622,11 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const selectedSource = form.watch(`${prefix}.sourceType`);
   const srcState = existingPipeline[selectedSource] ?? { ftc: 0, toc: 0, cod: 0 };
 
-  const watchedFtcEvents = form.watch(`${prefix}.ftcEvents`) ?? [];
-  const watchedTocEvents = form.watch(`${prefix}.tocEvents`) ?? [];
-  const watchedCodEvents = form.watch(`${prefix}.codEvents`) ?? [];
+  // useWatch (not form.watch) so per-lane limits/warnings re-render reliably on
+  // nested event-array edits (add/edit/delete MW) — form.watch can miss these.
+  const watchedFtcEvents = useWatch({ control: form.control, name: `${prefix}.ftcEvents` }) ?? [];
+  const watchedTocEvents = useWatch({ control: form.control, name: `${prefix}.tocEvents` }) ?? [];
+  const watchedCodEvents = useWatch({ control: form.control, name: `${prefix}.codEvents` }) ?? [];
   const ftcTotal = watchedFtcEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const tocTotal = watchedTocEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const codTotal = watchedCodEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
@@ -636,7 +638,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   // FTC: bounded by Applied (capacity entered just above). TOC: bounded by
   // total FTC. COD: bounded by total TOC. All combine batch + existing for
   // hybrid projects where other phases may already have recorded values.
-  const appliedMw = parseFloat(form.watch(`${prefix}.capacityAppliedMw`) || '0') || 0;
+  const appliedMw = parseFloat(useWatch({ control: form.control, name: `${prefix}.capacityAppliedMw` }) || '0') || 0;
   const ftcLimit  = appliedMw > 0 ? appliedMw : null;
   const tocLimit  = ftcTotal + (isHybrid ? srcState.ftc : 0);
   const codLimit  = tocTotal + (isHybrid ? srcState.toc : 0);
