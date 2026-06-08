@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { GovLoader } from '@/components/ui/gov-loader';
-import { AlertCircle, Plus, Trash2, Lock, Pencil } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Lock, Pencil, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSettings } from '@/providers/settings-provider';
 
@@ -188,6 +188,10 @@ export function AddPhasesForm({
   // parsed to numbers wherever the pipeline math needs them, so violations and
   // headroom recompute live as the operator types.
   const canEditCaps = EDIT_ROLES_CLIENT.includes(userRole);
+  // Capacities are read-only until the user clicks "Edit" — this single toggle
+  // flips the Total Capacity stat (and, for hybrids, the component caps) into
+  // editable inputs.
+  const [editingCaps, setEditingCaps] = useState(false);
   const [caps, setCaps] = useState({
     total: totalCapacityMw != null ? String(totalCapacityMw) : '',
     WIND:  windCapacityMw  != null ? String(windCapacityMw)  : '',
@@ -395,12 +399,28 @@ export function AddPhasesForm({
       <div className="rounded-xl border bg-card p-4 space-y-4 sticky top-0 z-10 shadow-sm">
         <div className="flex items-end justify-between flex-wrap gap-4">
           <div className="flex gap-6 items-end">
-            {canEditCaps ? (
-              <div>
-                <label htmlFor="total-capacity-input" className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold flex items-center gap-1 mb-1">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
                   Total Capacity
-                  <Pencil className="size-2.5 text-primary/60" />
-                </label>
+                </span>
+                {canEditCaps && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingCaps((v) => !v)}
+                    className={`inline-flex items-center gap-0.5 text-[10px] font-semibold rounded px-1 py-0.5 transition-colors ${
+                      editingCaps
+                        ? 'text-emerald-700 hover:bg-emerald-50'
+                        : 'text-primary hover:bg-primary/10'
+                    }`}
+                  >
+                    {editingCaps
+                      ? (<><Check className="size-3" /> Done</>)
+                      : (<><Pencil className="size-2.5" /> Edit</>)}
+                  </button>
+                )}
+              </div>
+              {canEditCaps && editingCaps ? (
                 <div className="relative w-32">
                   <Input
                     id="total-capacity-input"
@@ -409,16 +429,17 @@ export function AddPhasesForm({
                     min="0"
                     value={caps.total}
                     onChange={(e) => setCap('total', e.target.value)}
-                    className="h-9 w-full text-lg font-bold font-mono pr-9 border-primary/30 hover:border-primary/60 focus-visible:border-primary transition-colors"
+                    autoFocus
+                    className="h-9 w-full text-lg font-bold font-mono pr-9 border-primary/40 hover:border-primary/60 focus-visible:border-primary transition-colors"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground pointer-events-none">
                     MW
                   </span>
                 </div>
-              </div>
-            ) : (
-              <Stat label="Total Capacity" value={`${capTotal.toFixed(1)} MW`} />
-            )}
+              ) : (
+                <p className="text-lg font-bold text-foreground">{capTotal.toFixed(1)} MW</p>
+              )}
+            </div>
             <Stat label="Already COD"         value={`${existingCodMw.toFixed(1)} MW`}   color="emerald" />
             <Stat label="New COD (this form)" value={`${newCodSum.toFixed(1)} MW`}        color="blue" />
           </div>
@@ -444,9 +465,9 @@ export function AddPhasesForm({
               Source Pipeline Status (FTC → TOC → COD)
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={capForSource('WIND')}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  editable={canEditCaps} capStr={caps.WIND}  onCapChange={(v) => setCap('WIND', v)}  />}
-              {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={capForSource('SOLAR')} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} editable={canEditCaps} capStr={caps.SOLAR} onCapChange={(v) => setCap('SOLAR', v)} />}
-              {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={capForSource('BESS')}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  editable={canEditCaps} capStr={caps.BESS}  onCapChange={(v) => setCap('BESS', v)}  />}
+              {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={capForSource('WIND')}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  editable={canEditCaps && editingCaps} capStr={caps.WIND}  onCapChange={(v) => setCap('WIND', v)}  />}
+              {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={capForSource('SOLAR')} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} editable={canEditCaps && editingCaps} capStr={caps.SOLAR} onCapChange={(v) => setCap('SOLAR', v)} />}
+              {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={capForSource('BESS')}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  editable={canEditCaps && editingCaps} capStr={caps.BESS}  onCapChange={(v) => setCap('BESS', v)}  />}
               {pspCapacityMw   != null && <SourcePipelineCard source="PSP"   cap={capForSource('PSP')}   existing={existingPipeline.PSP}   combined={combinedPipeline.PSP}   hasError={!!pipelineErrors.PSP}   />}
             </div>
           </div>
