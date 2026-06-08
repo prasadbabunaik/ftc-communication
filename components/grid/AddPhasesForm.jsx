@@ -569,8 +569,13 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
       .sort();
     return dated[0] ?? null;
   }, [priorEvents]);
+  // Only flag NEWLY-added events (no DB `id`). Real historical data is often
+  // staged — e.g. TOC booked as a single lump on the final date while COD was
+  // declared earlier in steps — so pre-existing rows legitimately predate the
+  // prior milestone and must not show an un-clearable warning. The guard still
+  // catches genuine entry mistakes typed in this session.
   const datesOutOfOrder = watchedEvents.some(
-    (e) => e.date && earliestPriorDate && e.date < earliestPriorDate
+    (e) => !e.id && e.date && earliestPriorDate && e.date < earliestPriorDate
   );
 
   return (
@@ -613,7 +618,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
       )}
       {datesOutOfOrder && earliestPriorDate && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">
-          ⚠ One or more {milestone} dates is BEFORE the earliest prior-milestone date ({earliestPriorDate}). {milestone} must happen on or after the prerequisite milestone.
+          ⚠ A newly added {milestone} date is BEFORE the earliest prior-milestone date ({earliestPriorDate}). {milestone} must happen on or after the prerequisite milestone.
         </div>
       )}
 
@@ -745,26 +750,25 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const appliedOver = appliedCap != null && appliedMw > appliedCap + 0.01;
 
   // Auto-derive the dependent fields from the entered milestones/events so they
-  // always track add/edit/delete:
+  // always track add/edit/delete LIVE:
   //   Under FTC = Applied − FTC,  Under TOC = FTC − TOC,  Expected = Applied − COD.
-  // Gated on the form being dirty so simply OPENING the form never rewrites the
-  // stored values — only a real edit recomputes them. (setValue uses shouldDirty
-  // off, so this never self-triggers.)
+  // These run on open too (not gated on dirty) so a stale stored value is
+  // corrected immediately and the fields visibly follow every edit. setValue
+  // uses shouldDirty off, so recomputing never marks the form dirty on its own.
   const r3 = (n) => Math.round(n * 1000) / 1000;
-  const formDirty = form.formState.isDirty;
   const syncDerived = (field, value) => {
     const cur = parseFloat(form.getValues(`${prefix}.${field}`) || '0') || 0;
     if (Math.abs(cur - value) > 0.001) form.setValue(`${prefix}.${field}`, String(value), { shouldValidate: true });
   };
   useEffect(() => {
-    if (formDirty) syncDerived('capacityUnderFtcMw', Math.max(0, r3(appliedMw - ftcTotal)));
-  }, [appliedMw, ftcTotal, formDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+    syncDerived('capacityUnderFtcMw', Math.max(0, r3(appliedMw - ftcTotal)));
+  }, [appliedMw, ftcTotal]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (formDirty) syncDerived('capacityUnderTocMw', Math.max(0, r3(ftcTotal - tocTotal)));
-  }, [ftcTotal, tocTotal, formDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+    syncDerived('capacityUnderTocMw', Math.max(0, r3(ftcTotal - tocTotal)));
+  }, [ftcTotal, tocTotal]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (formDirty) syncDerived('expectedApr26Mw', Math.max(0, r3(appliedMw - codTotal)));
-  }, [appliedMw, codTotal, formDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+    syncDerived('expectedApr26Mw', Math.max(0, r3(appliedMw - codTotal)));
+  }, [appliedMw, codTotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
