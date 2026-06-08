@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createPhasesSchema } from '@/lib/validations/grid';
-import { upsertProjectPhases } from '@/app/actions/grid';
+import { upsertProjectPhases, updateProjectCapacities } from '@/app/actions/grid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -26,6 +26,11 @@ function fmtRefMonth(ym) {
 }
 
 const SOURCE_TYPES = ['WIND', 'SOLAR', 'COAL', 'HYDRO', 'PSP', 'BESS'];
+
+// Mirrors EDIT_ROLES in lib/server-auth.js — drives whether the capacity
+// fields render as editable inputs. The server action re-checks this; the
+// client gate just hides the inputs from read-only viewers.
+const EDIT_ROLES_CLIENT = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
 
 // Derive valid source types from the plant type label
 function getPlantSources(plantType) {
@@ -176,6 +181,36 @@ export function AddPhasesForm({
   const canPickExpectedMonth = userRole === 'ADMIN' || userRole === 'NLDC';
   const refMonthLabel = fmtRefMonth(defaultExpectedMonth);
 
+  // Editable capacities. The plant's Total Capacity (and, for hybrids, each
+  // component capacity) can be corrected inline here — e.g. to resolve an
+  // "Applied exceeds capacity" violation without leaving the phase editor.
+  // Kept as strings so intermediate input states ("47.", "") are allowed;
+  // parsed to numbers wherever the pipeline math needs them, so violations and
+  // headroom recompute live as the operator types.
+  const canEditCaps = EDIT_ROLES_CLIENT.includes(userRole);
+  const [caps, setCaps] = useState({
+    total: totalCapacityMw != null ? String(totalCapacityMw) : '',
+    WIND:  windCapacityMw  != null ? String(windCapacityMw)  : '',
+    SOLAR: solarCapacityMw != null ? String(solarCapacityMw) : '',
+    BESS:  bessCapacityMw  != null ? String(bessCapacityMw)  : '',
+    PSP:   pspCapacityMw   != null ? String(pspCapacityMw)   : '',
+  });
+  const setCap = (key, value) => setCaps((c) => ({ ...c, [key]: value }));
+  const capTotal = parseFloat(caps.total) || 0;
+  // True when any persisted capacity differs from its incoming prop value.
+  // (PSP has no DB column, so it never participates in persistence.)
+  const capsChanged = useMemo(() => {
+    const eq = (s, orig) => {
+      const a = s === '' || s == null ? null : parseFloat(s);
+      const b = orig == null ? null : Number(orig);
+      return a === b;
+    };
+    return !(eq(caps.total, totalCapacityMw)
+      && eq(caps.WIND,  windCapacityMw)
+      && eq(caps.SOLAR, solarCapacityMw)
+      && eq(caps.BESS,  bessCapacityMw));
+  }, [caps, totalCapacityMw, windCapacityMw, solarCapacityMw, bessCapacityMw]);
+
   // Build one row per plant source, every time.
   //   - For hybrids the project has multiple components (Wind / Solar /
   //     BESS / etc.); each one must be addressable in the form even when
@@ -245,7 +280,7 @@ export function AddPhasesForm({
     (s, p) => s + (watchedPhases.some((w) => w.existingId === p.id) ? 0 : Number(p.codDeclaredMw ?? 0)),
     0,
   );
-  const pendingMw = totalCapacityMw - survivingCodMw - newCodSum;
+  const pendingMw = capTotal - survivingCodMw - newCodSum;
 
   const existingPipeline = useMemo(() => computePipeline(existingPhases), [existingPhases]);
 
@@ -288,9 +323,9 @@ export function AddPhasesForm({
   // Per-lane capacity ceiling: a single-source project is bounded by the plant's
   // Total Capacity; a hybrid component is bounded by that component's capacity.
   const capForSource = (s) => {
-    if (!plantType.isHybrid) return totalCapacityMw;
-    const m = { WIND: windCapacityMw, SOLAR: solarCapacityMw, BESS: bessCapacityMw, PSP: pspCapacityMw };
-    return m[s] ?? totalCapacityMw;
+    if (!plantType.isHybrid) return capTotal;
+    const v = parseFloat(caps[s]);
+    return Number.isFinite(v) ? v : capTotal;
   };
 
   const pipelineErrors = useMemo(() => {
@@ -306,7 +341,7 @@ export function AddPhasesForm({
       if (msgs.length) errs[s] = msgs;
     }
     return errs;
-  }, [combinedPipeline, totalCapacityMw, windCapacityMw, solarCapacityMw, bessCapacityMw, pspCapacityMw, plantType.isHybrid]);
+  }, [combinedPipeline, caps, plantType.isHybrid]);
 
   const hasPipelineErrors = Object.keys(pipelineErrors).length > 0;
   // Also check Zod-level errors (schema refine errors have no path set)
@@ -316,6 +351,19 @@ export function AddPhasesForm({
     if (hasPipelineErrors) return;
     setServerError(null);
     startTransition(async () => {
+      // Persist any capacity edits first so the corrected ceiling is in place
+      // before the phases are (re)written. Only the component caps that the
+      // plant actually has are sent; PSP has no DB column so it's omitted.
+      if (capsChanged) {
+        const capPayload = { totalCapacityMw: caps.total };
+        if (plantType.isHybrid) {
+          if (windCapacityMw  != null) capPayload.windCapacityMw  = caps.WIND;
+          if (solarCapacityMw != null) capPayload.solarCapacityMw = caps.SOLAR;
+          if (bessCapacityMw  != null) capPayload.bessCapacityMw  = caps.BESS;
+        }
+        const capResult = await updateProjectCapacities(projectId, capPayload);
+        if (capResult?.error) { setServerError(capResult.error); return; }
+      }
       // upsertProjectPhases handles both new and existing phases — rows
       // carrying an existingId update in place; rows without one are
       // created. Saves never duplicate when the form is in edit mode.
@@ -346,8 +394,25 @@ export function AddPhasesForm({
       {/* ── Capacity + pipeline tracker ── */}
       <div className="rounded-xl border bg-card p-4 space-y-4 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex gap-6">
-            <Stat label="Total Capacity"      value={`${totalCapacityMw.toFixed(1)} MW`} />
+          <div className="flex gap-6 items-start">
+            {canEditCaps ? (
+              <div>
+                <label htmlFor="total-capacity-input" className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold block mb-1">
+                  Total Capacity (MW)
+                </label>
+                <Input
+                  id="total-capacity-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={caps.total}
+                  onChange={(e) => setCap('total', e.target.value)}
+                  className="h-9 w-28 text-base font-bold font-mono"
+                />
+              </div>
+            ) : (
+              <Stat label="Total Capacity" value={`${capTotal.toFixed(1)} MW`} />
+            )}
             <Stat label="Already COD"         value={`${existingCodMw.toFixed(1)} MW`}   color="emerald" />
             <Stat label="New COD (this form)" value={`${newCodSum.toFixed(1)} MW`}        color="blue" />
           </div>
@@ -373,10 +438,10 @@ export function AddPhasesForm({
               Source Pipeline Status (FTC → TOC → COD)
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={windCapacityMw}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  />}
-              {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={solarCapacityMw} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} />}
-              {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={bessCapacityMw}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  />}
-              {pspCapacityMw   != null && <SourcePipelineCard source="PSP"   cap={pspCapacityMw}   existing={existingPipeline.PSP}   combined={combinedPipeline.PSP}   hasError={!!pipelineErrors.PSP}   />}
+              {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={capForSource('WIND')}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  editable={canEditCaps} capStr={caps.WIND}  onCapChange={(v) => setCap('WIND', v)}  />}
+              {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={capForSource('SOLAR')} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} editable={canEditCaps} capStr={caps.SOLAR} onCapChange={(v) => setCap('SOLAR', v)} />}
+              {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={capForSource('BESS')}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  editable={canEditCaps} capStr={caps.BESS}  onCapChange={(v) => setCap('BESS', v)}  />}
+              {pspCapacityMw   != null && <SourcePipelineCard source="PSP"   cap={capForSource('PSP')}   existing={existingPipeline.PSP}   combined={combinedPipeline.PSP}   hasError={!!pipelineErrors.PSP}   />}
             </div>
           </div>
         )}
@@ -781,7 +846,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   );
 }
 
-function SourcePipelineCard({ source, cap, existing, combined, hasError }) {
+function SourcePipelineCard({ source, cap, existing, combined, hasError, editable = false, capStr, onCapChange }) {
   const ex   = existing  ?? { ftc: 0, toc: 0, cod: 0 };
   const comb = combined  ?? { ftc: 0, toc: 0, cod: 0 };
 
@@ -801,7 +866,21 @@ function SourcePipelineCard({ source, cap, existing, combined, hasError }) {
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${SOURCE_COLORS[source] ?? 'bg-muted text-foreground border-border'}`}>
           {source}
         </span>
-        <span className="text-xs text-muted-foreground font-mono">{cap.toFixed(1)} MW</span>
+        {editable ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={capStr ?? ''}
+              onChange={(e) => onCapChange?.(e.target.value)}
+              className="h-7 w-20 text-xs font-mono text-right"
+            />
+            <span className="text-[10px] text-muted-foreground">MW</span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground font-mono">{cap.toFixed(1)} MW</span>
+        )}
       </div>
       <div className="space-y-1.5">
         {stages.map(({ key, label, exMw, combMw, prev }, idx) => {

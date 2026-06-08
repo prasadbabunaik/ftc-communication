@@ -398,6 +398,51 @@ export async function updateGenerationProject(projectId, formData) {
   return { success: true };
 }
 
+// Lightweight capacity-only edit used by the "Edit Sources / Components" modal
+// so an operator can correct the plant's Total Capacity (and, for hybrids, each
+// component capacity) inline while fixing an "Applied exceeds capacity"
+// violation — without leaving the phase editor. Unlike updateGenerationProject
+// this NEVER touches name / poolingStation, so the modal doesn't need (and
+// can't accidentally clear) those fields. Only the capacity keys actually
+// present in `caps` are written.
+export async function updateProjectCapacities(projectId, caps) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+  const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'You cannot edit projects outside your assigned region.' };
+  }
+
+  const data = {};
+  if (caps.totalCapacityMw != null && caps.totalCapacityMw !== '') {
+    const t = parseFloat(caps.totalCapacityMw);
+    if (isNaN(t) || t <= 0) return { error: 'Total Capacity must be a positive number.' };
+    data.totalCapacityMw = t;
+  }
+  if ('windCapacityMw'  in caps) data.windCapacityMw  = parseDecimal(caps.windCapacityMw);
+  if ('solarCapacityMw' in caps) data.solarCapacityMw = parseDecimal(caps.solarCapacityMw);
+  if ('bessCapacityMw'  in caps) data.bessCapacityMw  = parseDecimal(caps.bessCapacityMw);
+
+  if (Object.keys(data).length === 0) return { success: true };
+
+  await prisma.generationProject.update({ where: { id: projectId }, data });
+
+  const tracked = [];
+  if ('totalCapacityMw' in data) tracked.push({ field: 'Total Capacity', old: fmtMw(project.totalCapacityMw), new: fmtMw(data.totalCapacityMw) });
+  if ('windCapacityMw'  in data) tracked.push({ field: 'Wind Capacity',  old: fmtMw(project.windCapacityMw),  new: fmtMw(data.windCapacityMw) });
+  if ('solarCapacityMw' in data) tracked.push({ field: 'Solar Capacity', old: fmtMw(project.solarCapacityMw), new: fmtMw(data.solarCapacityMw) });
+  if ('bessCapacityMw'  in data) tracked.push({ field: 'BESS Capacity',  old: fmtMw(project.bessCapacityMw),  new: fmtMw(data.bessCapacityMw) });
+  const logs = diffFields(tracked, projectId, user.id);
+  if (logs.length) await prisma.projectNote.createMany({ data: logs });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true };
+}
+
 // "Delete" is actually a soft-delete (deactivation) — the project stays in
 // the DB so historical / as-of-date dashboards keep showing it for the period
 // it was live. Pass { hard: true } to wipe the row entirely (admin-only).
