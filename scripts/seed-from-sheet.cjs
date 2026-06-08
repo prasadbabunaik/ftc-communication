@@ -272,6 +272,15 @@ function buildRegion(region) {
       }
       continue; // hybrids with a breakdown come from seg below
     }
+    // De-dup: a station that also exists as a hybrid (in the segregation table)
+    // must appear ONCE — as the hybrid. Skip the same-named non-hybrid main row
+    // (e.g. WR "AGE26BL Khavda PSS10" is listed as both a Solar row and a
+    // Hybrid row; keep only the hybrid).
+    const nkey = g.station.toUpperCase().replace(/\s+/g, ' ');
+    if (seg[nkey]) {
+      warnings.push(`${region}: non-hybrid "${g.station}" skipped — a same-named hybrid exists (kept the hybrid).`);
+      continue;
+    }
     if (g.applied <= 0 && g.total <= 0) continue;
     projects.push(onePhaseProject(g, cls));
   }
