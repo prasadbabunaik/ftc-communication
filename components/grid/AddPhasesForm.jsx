@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { GovLoader } from '@/components/ui/gov-loader';
-import { AlertCircle, Plus, Trash2, Lock } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Lock, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSettings } from '@/providers/settings-provider';
 
@@ -393,22 +393,28 @@ export function AddPhasesForm({
 
       {/* ── Capacity + pipeline tracker ── */}
       <div className="rounded-xl border bg-card p-4 space-y-4 sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex gap-6 items-start">
+        <div className="flex items-end justify-between flex-wrap gap-4">
+          <div className="flex gap-6 items-end">
             {canEditCaps ? (
               <div>
-                <label htmlFor="total-capacity-input" className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold block mb-1">
-                  Total Capacity (MW)
+                <label htmlFor="total-capacity-input" className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold flex items-center gap-1 mb-1">
+                  Total Capacity
+                  <Pencil className="size-2.5 text-primary/60" />
                 </label>
-                <Input
-                  id="total-capacity-input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={caps.total}
-                  onChange={(e) => setCap('total', e.target.value)}
-                  className="h-9 w-28 text-base font-bold font-mono"
-                />
+                <div className="relative w-32">
+                  <Input
+                    id="total-capacity-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={caps.total}
+                    onChange={(e) => setCap('total', e.target.value)}
+                    className="h-9 w-full text-lg font-bold font-mono pr-9 border-primary/30 hover:border-primary/60 focus-visible:border-primary transition-colors"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground pointer-events-none">
+                    MW
+                  </span>
+                </div>
               </div>
             ) : (
               <Stat label="Total Capacity" value={`${capTotal.toFixed(1)} MW`} />
@@ -455,14 +461,19 @@ export function AddPhasesForm({
       {hasPipelineErrors && (
         <Alert variant="destructive">
           <AlertIcon><AlertCircle /></AlertIcon>
-          <AlertTitle>
+          <div className="flex flex-col gap-2 min-w-0">
             <span className="font-semibold">Source pipeline violation — submission blocked</span>
-            {Object.entries(pipelineErrors).map(([src, msgs]) => (
-              <div key={src} className="mt-1 text-sm font-normal">
-                <span className="font-semibold">{src}:</span> {msgs.join('; ')}
-              </div>
-            ))}
-          </AlertTitle>
+            <ul className="flex flex-col gap-1.5">
+              {Object.entries(pipelineErrors).map(([src, msgs]) => (
+                <li key={src} className="flex items-start gap-2 text-sm font-normal">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 mt-0.5 ${SOURCE_COLORS[src] ?? 'bg-red-100 text-red-800 border-red-200'}`}>
+                    {src}
+                  </span>
+                  <span>{msgs.join('; ')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </Alert>
       )}
 
@@ -867,16 +878,16 @@ function SourcePipelineCard({ source, cap, existing, combined, hasError, editabl
           {source}
         </span>
         {editable ? (
-          <div className="flex items-center gap-1">
+          <div className="relative w-24">
             <Input
               type="number"
               step="0.01"
               min="0"
               value={capStr ?? ''}
               onChange={(e) => onCapChange?.(e.target.value)}
-              className="h-7 w-20 text-xs font-mono text-right"
+              className="h-7 w-full text-xs font-mono text-right pr-7 border-primary/30 hover:border-primary/60 focus-visible:border-primary transition-colors"
             />
-            <span className="text-[10px] text-muted-foreground">MW</span>
+            <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">MW</span>
           </div>
         ) : (
           <span className="text-xs text-muted-foreground font-mono">{cap.toFixed(1)} MW</span>
