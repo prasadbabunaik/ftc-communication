@@ -547,7 +547,7 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
@@ -592,11 +592,6 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
                   · {remaining.toFixed(2)} MW headroom
                 </span>
               )}
-            </span>
-          )}
-          {existingMw > 0 && (
-            <span className="text-[10px] text-emerald-600 font-medium">
-              ({existingMw.toFixed(1)} MW already recorded)
             </span>
           )}
           {gated && (
@@ -736,12 +731,14 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
 
   // Per-milestone limits for the EventList running-total banner.
   // FTC: bounded by Applied (capacity entered just above). TOC: bounded by
-  // total FTC. COD: bounded by total TOC. All combine batch + existing for
-  // hybrid projects where other phases may already have recorded values.
+  // total FTC. COD: bounded by total TOC. The form row already holds ALL of
+  // this source's events (existing ones are pre-filled), so the running totals
+  // ftcTotal / tocTotal ARE the full per-source totals — adding the cached
+  // srcState on top double-counts (e.g. TOC limit showed 2× the FTC).
   const appliedMw = parseFloat(useWatch({ control: form.control, name: `${prefix}.capacityAppliedMw` }) || '0') || 0;
   const ftcLimit  = appliedMw > 0 ? appliedMw : null;
-  const tocLimit  = ftcTotal + (isHybrid ? srcState.ftc : 0);
-  const codLimit  = tocTotal + (isHybrid ? srcState.toc : 0);
+  const tocLimit  = ftcTotal;
+  const codLimit  = tocTotal;
 
   // Applied capacity may not exceed the plant's (or component's) total capacity.
   const appliedCap = capForSource ? capForSource(selectedSource) : null;
@@ -814,7 +811,6 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         milestone="FTC"
         form={form}
         gated={false}
-        existingMw={isHybrid ? srcState.ftc : 0}
         refMonthLabel={refMonthLabel}
         canPickExpectedMonth={canPickExpectedMonth}
         limitMw={ftcLimit}
@@ -828,7 +824,6 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         form={form}
         gated={tocGated}
         gatedMsg={`Requires ${selectedSource} FTC to be completed first`}
-        existingMw={isHybrid ? srcState.toc : 0}
         refMonthLabel={refMonthLabel}
         canPickExpectedMonth={canPickExpectedMonth}
         limitMw={tocLimit}
@@ -849,7 +844,6 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         form={form}
         gated={codGated}
         gatedMsg={`Requires ${selectedSource} TOC to be issued first`}
-        existingMw={isHybrid ? srcState.cod : 0}
         refMonthLabel={refMonthLabel}
         canPickExpectedMonth={canPickExpectedMonth}
         limitMw={codLimit}
