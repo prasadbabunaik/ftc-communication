@@ -953,10 +953,12 @@ function SourcePipelineCard({ source, cap, existing, combined, hasError, editabl
 }
 
 function Field({ prefix, name, label, type, form, errors }) {
+  const id = `${prefix}.${name}`;
   return (
     <div>
-      <label className="text-xs font-medium text-foreground block mb-1.5">{label}</label>
+      <label htmlFor={id} className="text-xs font-medium text-foreground block mb-1.5">{label}</label>
       <Input
+        id={id}
         type={type}
         step={type === 'number' ? '0.01' : undefined}
         {...form.register(`${prefix}.${name}`)}
