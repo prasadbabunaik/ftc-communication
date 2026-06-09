@@ -547,7 +547,7 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [] }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
@@ -560,23 +560,21 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
   const overLimit  = limitMw != null && total > limitMw + 0.01;
   const remaining  = limitMw != null ? Math.max(0, limitMw - total) : null;
 
-  // Earliest prior milestone date — used to flag "TOC before any FTC" or
-  // "COD before any TOC" entry mistakes. Empty when no prior events yet.
-  const earliestPriorDate = useMemo(() => {
-    const dated = (priorEvents ?? [])
-      .map((e) => e?.date)
-      .filter(Boolean)
-      .sort();
-    return dated[0] ?? null;
-  }, [priorEvents]);
-  // Only flag NEWLY-added events (no DB `id`). Real historical data is often
-  // staged — e.g. TOC booked as a single lump on the final date while COD was
-  // declared earlier in steps — so pre-existing rows legitimately predate the
-  // prior milestone and must not show an un-clearable warning. The guard still
-  // catches genuine entry mistakes typed in this session.
-  const datesOutOfOrder = watchedEvents.some(
-    (e) => !e.id && e.date && earliestPriorDate && e.date < earliestPriorDate
-  );
+  // Chronology check across milestones. A later-stage milestone (TOC, then COD)
+  // must COMPLETE on or after the earlier-stage one — physically FTC happens
+  // before TOC before COD. We compare the *latest* date of each milestone:
+  // if this milestone's last event predates the prior milestone's last event,
+  // the prior milestone was (at least partly) done AFTER this one — e.g. FTC
+  // dated 10 Jul while TOC is dated 28 Mar. Using the latest date (not the
+  // earliest) tolerates legitimately staged commissioning, where an early
+  // tranche of a later milestone can precede the final prior-milestone date.
+  const latestDate = (evs) => {
+    const dated = (evs ?? []).map((e) => e?.date).filter(Boolean).sort();
+    return dated[dated.length - 1] ?? null;
+  };
+  const latestPriorDate = useMemo(() => latestDate(priorEvents), [priorEvents]);
+  const latestThisDate  = latestDate(watchedEvents);
+  const datesOutOfOrder = !!(latestPriorDate && latestThisDate && latestThisDate < latestPriorDate);
 
   return (
     <div className={`rounded-lg border p-3 space-y-2.5 ${overLimit ? 'border-red-300 bg-red-50/30' : st.header}`}>
@@ -616,9 +614,9 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, existingMw, r
           ⚠ Total {milestone} ({total.toFixed(2)} MW) exceeds {limitLabel || 'limit'} ({limitMw.toFixed(2)} MW). Remove or reduce events to fit.
         </div>
       )}
-      {datesOutOfOrder && earliestPriorDate && (
+      {datesOutOfOrder && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">
-          ⚠ A newly added {milestone} date is BEFORE the earliest prior-milestone date ({earliestPriorDate}). {milestone} must happen on or after the prerequisite milestone.
+          ⚠ {priorLabel} (last on {latestPriorDate}) is dated AFTER {milestone} (last on {latestThisDate}). {priorLabel} must be completed on or before {milestone}.
         </div>
       )}
 
@@ -836,6 +834,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         limitMw={tocLimit}
         limitLabel="Total FTC"
         priorEvents={watchedFtcEvents}
+        priorLabel="FTC"
       />
 
       {/* Under TOC */}
@@ -856,6 +855,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         limitMw={codLimit}
         limitLabel="Total TOC"
         priorEvents={watchedTocEvents}
+        priorLabel="TOC"
       />
 
       {/* Remarks */}
