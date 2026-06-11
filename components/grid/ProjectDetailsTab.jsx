@@ -45,9 +45,9 @@ function MilestoneDot({ done }) {
 function ProjectTable({ projects, source }) {
   if (!projects.length) return null;
   return (
-    <div className="overflow-auto flex-1 min-h-0 rounded border border-border">
+    <div className="rounded border border-border">
       <table className="w-full text-xs min-w-[900px]">
-        <thead className="sticky top-0 z-[8]">
+        <thead className="sticky top-[100px] lg:top-[110px] z-[8] bg-slate-100">
           <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
             <th className="px-2 py-2 text-left font-bold whitespace-nowrap w-6">#</th>
             <th className="px-3 py-2 text-left font-bold whitespace-nowrap">Project</th>
@@ -143,7 +143,7 @@ export function ProjectDetailsTab({ projects, refMonthLabel }) {
   const availableSources = SOURCE_ORDER.filter(s => bySource[s].length > 0);
 
   return (
-    <div className="space-y-3 flex flex-col min-h-0 flex-1">
+    <div className="space-y-4">
       <div className="shrink-0">
         <h2 className="text-sm font-semibold text-foreground">Project-wise FTC Pipeline Details</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Individual project rows for all CONTD-4 cleared projects, grouped by source type. Mirrors the Summary sheet project tables.</p>
@@ -168,8 +168,8 @@ export function ProjectDetailsTab({ projects, refMonthLabel }) {
 
       {/* Table for active source */}
       {availableSources.includes(activeSource) ? (
-        <div className="flex flex-col min-h-0 flex-1">
-          <div className="flex items-center justify-between mb-2 shrink-0">
+        <div>
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-foreground">
               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold mr-2 ${SOURCE_BADGE[activeSource]}`}>{activeSource}</span>
               {bySource[activeSource].length} Projects
