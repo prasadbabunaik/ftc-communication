@@ -98,7 +98,7 @@ function ViewBreakupBtn({ onClick }) {
 // Dark two-row grouped header used by Pipeline (Tables 2 & 5)
 function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   return (
-    <thead className="sticky top-0 z-20 text-[12px]">
+    <thead className="text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
         <th rowSpan={2} className="sticky left-0 z-30 bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
@@ -203,14 +203,10 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
     );
   };
 
-  // Region cell is rowSpan-merged. For body rows (not footer), it's also
-  // vertically sticky — `top: 70px` parks the cell below PipelineHead's
-  // two-row sticky <thead>, so the badge stays visible while the user scrolls
-  // through the source rows in this region group. align-top keeps the badge
-  // at the natural top of the merged cell when the group is already in view.
-  const regionTdStyle = isFooterRow
-    ? cellStyle
-    : { ...(cellStyle ?? {}), top: 70 };
+  // Region cell is rowSpan-merged and horizontally frozen (sticky left-0) so the
+  // region/source label stays visible during horizontal scroll. No vertical
+  // sticky — the table flows with the page.
+  const regionTdStyle = cellStyle;
   return (
     <tr className={`${rowCls} ${bg}`}>
       {isFirstInGroup && (
@@ -256,15 +252,15 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   if (!rows?.length) return <Empty />;
   const isRegionPrimary = primaryKey === 'region';
 
-  // Order: All India summary first, then the per-region detail, then the grand
-  // total — everything in one scrolling body (no pinned/sticky All India block).
+  // Order: per-region detail first, then the All India summary, then the grand
+  // total — everything in one naturally-scrolling body.
   const regionRows   = rows.filter((r) => !r.isAllIndiaBreakdown && !r.isTotal);
   const allIndiaRows  = rows.filter((r) => r.isAllIndiaBreakdown);
   const totalRow      = rows.find((r) => r.isTotal);
-  const orderedRows   = [...allIndiaRows, ...regionRows, ...(totalRow ? [totalRow] : [])];
+  const orderedRows   = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
+    <div className="rounded-xl border overflow-hidden shadow-sm">
       {title && (
         <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-start justify-between gap-3 shrink-0">
           <div>
@@ -274,7 +270,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           <ViewBreakupBtn onClick={onViewBreakup} />
         </div>
       )}
-      <div className="overflow-auto flex-1 min-h-0">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
@@ -363,15 +359,15 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
   const { rows, allMonths, referenceMonth, carriedTotal } = contd4Study ?? {};
   if (!rows?.length) return <Empty />;
 
-  // All India summary first, then per-region detail, then grand total — one
-  // scrolling body (no pinned/sticky All India block).
+  // Per-region detail first, then the All India summary, then grand total —
+  // one naturally-scrolling body.
   const regionRows  = rows.filter(r => !r.isAllIndiaBreakdown && !r.isTotal);
   const allIndiaRows = rows.filter(r => r.isAllIndiaBreakdown);
   const totalRow     = rows.find(r => r.isTotal);
-  const orderedRows  = [...allIndiaRows, ...regionRows, ...(totalRow ? [totalRow] : [])];
+  const orderedRows  = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
+    <div className="rounded-xl border overflow-hidden shadow-sm">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Capacity (MW) Under CONTD-4 Study</p>
@@ -386,9 +382,9 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-auto flex-1 min-h-0">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-0 z-20">
+          <thead>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="sticky z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
@@ -428,7 +424,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
   if (!transmissionRows?.length) return <Empty />;
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
+    <div className="rounded-xl border overflow-hidden shadow-sm">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Transmission Elements — FTC Status</p>
@@ -436,9 +432,9 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-auto flex-1 min-h-0">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-0 z-20">
+          <thead>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
@@ -628,7 +624,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
   );
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
+    <div className="rounded-xl border overflow-hidden shadow-sm">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Hybrid Capacity Details Under FTC / TOC / COD (MW)</p>
@@ -636,9 +632,9 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-auto flex-1 min-h-0">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-0 z-20">
+          <thead>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
@@ -839,7 +835,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
   const hasAny = grand > 0 || (totals?.ftc ?? 0) > 0 || (totals?.toc ?? 0) > 0 || (totals?.cod ?? 0) > 0;
 
   return (
-    <div className="space-y-3 flex flex-col min-h-0">
+    <div className="space-y-3">
       {/* Controls: date range + breakup */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <ActivityDateRange from={from} to={to} />
@@ -861,7 +857,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
         ))}
       </div>
 
-      <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0">
+      <div className="rounded-xl border overflow-hidden shadow-sm">
         <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">
@@ -872,12 +868,12 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
             </p>
           </div>
         </div>
-        <div className="overflow-auto">
+        <div className="overflow-x-auto">
           {!hasAny ? (
             <div className="p-10 text-center text-sm text-muted-foreground">No FTC / TOC / COD milestones in this date range.</div>
           ) : (
             <table className="w-full border-collapse text-[11px]">
-              <thead className="sticky top-0 z-10">
+              <thead>
                 <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
                   <th className="sticky left-0 z-20 px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
                   {REGION_ORDER.map(reg => (
@@ -1168,7 +1164,7 @@ export function SummaryPageClient({
   ];
 
   return (
-    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
+    <div className="px-6 pt-7 pb-10 space-y-4">
       {/* Page header — title left, controls (date picker + export buttons) right */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2.5">
@@ -1245,8 +1241,8 @@ export function SummaryPageClient({
         asOf={asOf}
       />
 
-      {/* Tab content — flex-grows to fill the remaining viewport height */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      {/* Tab content — renders at natural height; the page scrolls. */}
+      <div>
         {activeTab === 'pipeline' && (
           <PipelineTable
             rows={table2Rows}
