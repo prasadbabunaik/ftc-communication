@@ -699,7 +699,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
               if (r.kind === 'allIndiaSource') {
                 const bg = ALL_INDIA_SRC_BG[r.sourceType] ?? 'bg-slate-300';
                 return (
-                  <tr key={i} className={`border-t-2 border-slate-400 ${bg} font-bold text-white`}>
+                  <tr key={i} className={`border-t-2 border-slate-300 ${bg} font-bold text-slate-800`}>
                     <td className="px-3 py-2 sticky left-0 z-[4] align-top">
                       <span className="text-[10px] uppercase tracking-wide">All India</span>
                     </td>
@@ -710,7 +710,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
               }
               // allIndiaGrand
               return (
-                <tr key={i} className="border-t-2 border-yellow-500 bg-yellow-400 font-bold text-slate-900">
+                <tr key={i} className="border-t-2 border-amber-300 bg-amber-100 font-bold text-slate-900">
                   <td className="px-3 py-2 sticky left-0 z-[4] align-top">
                     <span className="text-[10px] uppercase tracking-wide">All India</span>
                   </td>
@@ -727,12 +727,13 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
 }
 
 // Colour-coding the All India per-source totals like the Google Sheet's
-// blue / orange / green / yellow stripes at the bottom of the hybrid sheet.
+// blue / orange / green / yellow stripes at the bottom of the hybrid sheet —
+// kept as light tints (dark text) so the table stays soft on the eyes.
 const ALL_INDIA_SRC_BG = {
-  SOLAR: 'bg-orange-500',
-  WIND:  'bg-blue-500',
-  BESS:  'bg-emerald-600',
-  PSP:   'bg-amber-500',
+  SOLAR: 'bg-orange-100',
+  WIND:  'bg-blue-100',
+  BESS:  'bg-emerald-100',
+  PSP:   'bg-amber-100',
 };
 
 // ── FTC / TOC / COD Activity in a date range ──────────────────────────────────
