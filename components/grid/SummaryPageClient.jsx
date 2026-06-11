@@ -98,7 +98,7 @@ function ViewBreakupBtn({ onClick }) {
 // Dark two-row grouped header used by Pipeline (Tables 2 & 5)
 function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   return (
-    <thead className="text-[12px]">
+    <thead className="sticky top-0 z-[8] text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
         <th rowSpan={2} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
@@ -260,7 +260,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   const orderedRows   = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       {title && (
         <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-start justify-between gap-3 shrink-0">
           <div>
@@ -270,7 +270,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           <ViewBreakupBtn onClick={onViewBreakup} />
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse">
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
@@ -367,7 +367,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
   const orderedRows  = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Capacity (MW) Under CONTD-4 Study</p>
@@ -382,9 +382,9 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse text-[11px]">
-          <thead>
+          <thead className="sticky top-0 z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
@@ -424,7 +424,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
   if (!transmissionRows?.length) return <Empty />;
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Transmission Elements — FTC Status</p>
@@ -432,9 +432,9 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse text-[11px]">
-          <thead>
+          <thead className="sticky top-0 z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
@@ -624,7 +624,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
   );
 
   return (
-    <div className="rounded-xl border overflow-hidden shadow-sm">
+    <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">Total Hybrid Capacity Details Under FTC / TOC / COD (MW)</p>
@@ -632,9 +632,9 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1 min-h-0">
         <table className="w-full border-collapse text-[11px]">
-          <thead>
+          <thead className="sticky top-0 z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
@@ -835,15 +835,15 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
   const hasAny = grand > 0 || (totals?.ftc ?? 0) > 0 || (totals?.toc ?? 0) > 0 || (totals?.cod ?? 0) > 0;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 flex flex-col min-h-0 flex-1">
       {/* Controls: date range + breakup */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 shrink-0">
         <ActivityDateRange from={from} to={to} />
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
 
       {/* Three totals double as the milestone selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 shrink-0">
         {MILESTONES.map(m => (
           <ActivityStat
             key={m.key}
@@ -857,7 +857,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
         ))}
       </div>
 
-      <div className="rounded-xl border overflow-hidden shadow-sm">
+      <div className="rounded-xl border overflow-hidden shadow-sm flex flex-col min-h-0 flex-1">
         <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">
@@ -868,12 +868,12 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
             </p>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto flex-1 min-h-0">
           {!hasAny ? (
             <div className="p-10 text-center text-sm text-muted-foreground">No FTC / TOC / COD milestones in this date range.</div>
           ) : (
             <table className="w-full border-collapse text-[11px]">
-              <thead>
+              <thead className="sticky top-0 z-[8]">
                 <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
                   <th className="sticky left-0 z-[5] px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
                   {REGION_ORDER.map(reg => (
@@ -1164,9 +1164,9 @@ export function SummaryPageClient({
   ];
 
   return (
-    <div className="px-6 pt-7 pb-10 space-y-4">
+    <div className="px-6 pt-6 pb-4 space-y-3 flex flex-col h-[calc(100vh-118px)] min-h-0">
       {/* Page header — title left, controls (date picker + export buttons) right */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
             <BarChart3 className="size-4 text-blue-600" />
@@ -1187,14 +1187,16 @@ export function SummaryPageClient({
       </div>
 
       {/* Last changes card — surfaces day-over-day movement at a glance */}
-      <LastChangesCard
-        availableSnapshots={availableSnapshots}
-        currentAsOf={asOf}
-        onOpenRangeDiff={() => setActiveTab('changes')}
-      />
+      <div className="shrink-0">
+        <LastChangesCard
+          availableSnapshots={availableSnapshots}
+          currentAsOf={asOf}
+          onOpenRangeDiff={() => setActiveTab('changes')}
+        />
+      </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 shrink-0">
         <StatCard icon={Zap}        label="Applied for FTC" value={stats.totalApplied}  color="blue"    />
         <StatCard icon={TrendingUp} label="FTC Approved"    value={stats.totalFtc}      color="emerald" />
         <StatCard icon={BarChart3}  label="TOC Issued"      value={stats.totalToc}      color="amber"   />
@@ -1203,11 +1205,9 @@ export function SummaryPageClient({
         <StatCard icon={Cable}      label="Tx Pending FTC"  value={stats.txPending}     unit="elements" color="slate" />
       </div>
 
-      {/* Tab bar — sticks just below the fixed app header (60/70px) when the page
-          scrolls, so tabs stay reachable and the tables get the full height. The
-          opaque, full-bleed bar also masks the table scrolling underneath, so the
-          frozen columns never ride up over the header/breadcrumb. */}
-      <div className="sticky top-[60px] lg:top-[70px] z-40 -mx-6 px-6 bg-background border-b shadow-sm">
+      {/* Tab bar — part of the fixed top section (always visible); the table
+          below gets the rest of the viewport with its own scroll + sticky head. */}
+      <div className="border-b shrink-0">
         <nav className="-mb-px flex w-full">
           {tabs.map(tab => {
             const Icon = tab.icon;
@@ -1244,8 +1244,9 @@ export function SummaryPageClient({
         asOf={asOf}
       />
 
-      {/* Tab content — renders at natural height; the page scrolls. */}
-      <div>
+      {/* Tab content — fills the remaining viewport; the table inside scrolls
+          with a frozen header. */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === 'pipeline' && (
           <PipelineTable
             rows={table2Rows}
