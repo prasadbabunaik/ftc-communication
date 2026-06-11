@@ -100,10 +100,10 @@ function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   return (
     <thead className="text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-        <th rowSpan={2} className="sticky left-0 z-30 bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
+        <th rowSpan={2} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
         </th>
-        <th rowSpan={2} className="sticky z-30 bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
+        <th rowSpan={2} className="sticky z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
           {isRegionPrimary ? 'Source' : 'Region'}
         </th>
         <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
@@ -213,7 +213,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
         <td
           rowSpan={groupSize}
           style={regionTdStyle}
-          className={`px-4 py-2.5 align-top text-center sticky left-0 border-r border-gray-200 z-10 ${bg}`}
+          className={`px-4 py-2.5 align-top text-center sticky left-0 border-r border-gray-200 z-[4] ${bg}`}
         >
           {isTotal
             ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
@@ -224,7 +224,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
       )}
       <td
         style={{ ...cellStyle, left: 90 }}
-        className={`px-4 py-2.5 sticky border-r border-gray-200 z-10 ${bg}`}
+        className={`px-4 py-2.5 sticky border-r border-gray-200 z-[4] ${bg}`}
       >
         {isTotal
           ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
@@ -320,14 +320,14 @@ function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, all
     <tr className={`${rowCls} ${bg}`}>
       <td
         style={cellStyle}
-        className={`px-3 py-2 sticky left-0 z-10 border-r border-gray-200 ${bg}`}
+        className={`px-3 py-2 sticky left-0 z-[4] border-r border-gray-200 ${bg}`}
       >
         {!sameRegion && !isSubtotal && !isTotal && !isAllIndiaBreakdown && <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />}
         {isFirstAllIndiaBreakdown && <span className="text-[11px] font-bold text-slate-600">All India</span>}
       </td>
       <td
         style={{ ...cellStyle, left: 76 }}
-        className={`px-3 py-2 sticky z-10 border-r border-gray-200 ${bg}`}
+        className={`px-3 py-2 sticky z-[4] border-r border-gray-200 ${bg}`}
       >
         {isSubtotal || isTotal
           ? <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
@@ -386,8 +386,8 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-              <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
-              <th className="sticky z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
+              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
+              <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
               <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
               {allMonths.map(m => (
                 <th key={m} className="px-3 py-2 text-right font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700">
@@ -436,14 +436,14 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-              <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
+              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
               <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">FTC Completed</th>
               <th colSpan={2} className="px-3 py-1 text-center font-bold bg-amber-50 text-amber-700 border-r border-amber-200 whitespace-nowrap">FTC Pending</th>
               <th colSpan={2} className="px-3 py-1 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">Commissioning Expected ({refMonthLabel})</th>
             </tr>
             <tr className="text-[10px] bg-slate-50">
-              <th className="sticky left-0 z-30 bg-slate-50 border-r border-slate-200" />
+              <th className="sticky left-0 z-[6] bg-slate-50 border-r border-slate-200" />
               <th className="bg-slate-50 border-r border-slate-200" />
               <th className="px-3 py-1 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">No. of Elements</th>
               <th className="px-3 py-1 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
@@ -463,7 +463,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
               const expectedVal  = isLine ? row.expectedKm   : row.expectedMva;
               return (
                 <tr key={i} className="border-t border-gray-100 bg-white hover:bg-amber-50/20 transition-colors">
-                  <td className="px-3 py-2 sticky left-0 bg-white border-r border-gray-200 z-10">
+                  <td className="px-3 py-2 sticky left-0 bg-white border-r border-gray-200 z-[4]">
                     {!sameRegion && <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />}
                   </td>
                   <td className="px-3 py-2 text-foreground border-r border-gray-100">
@@ -636,7 +636,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-              <th className="sticky left-0 z-30 bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
+              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source (Type)</th>
               <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Capacity (MW)</th>
@@ -654,7 +654,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 return (
                   <tr key={i} className="border-t border-slate-100 bg-white hover:bg-teal-50/20 transition-colors">
                     {regionSpans.has(i) && (
-                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top">
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
                         <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
                       </td>
                     )}
@@ -674,7 +674,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 return (
                   <tr key={i} className="border-t border-slate-200 bg-slate-50/70 font-semibold">
                     {regionSpans.has(i) && (
-                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top">
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
                         <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
                       </td>
                     )}
@@ -687,7 +687,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 return (
                   <tr key={i} className="border-t border-slate-300 bg-slate-200 font-bold">
                     {regionSpans.has(i) && (
-                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-10 align-top">
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
                         <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
                       </td>
                     )}
@@ -700,7 +700,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 const bg = ALL_INDIA_SRC_BG[r.sourceType] ?? 'bg-slate-300';
                 return (
                   <tr key={i} className={`border-t-2 border-slate-400 ${bg} font-bold text-white`}>
-                    <td className="px-3 py-2 sticky left-0 z-10 align-top">
+                    <td className="px-3 py-2 sticky left-0 z-[4] align-top">
                       <span className="text-[10px] uppercase tracking-wide">All India</span>
                     </td>
                     <td colSpan={2} className="px-3 py-2 text-right text-[11px]">Total {r.sourceType.charAt(0) + r.sourceType.slice(1).toLowerCase()}</td>
@@ -711,7 +711,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
               // allIndiaGrand
               return (
                 <tr key={i} className="border-t-2 border-yellow-500 bg-yellow-400 font-bold text-slate-900">
-                  <td className="px-3 py-2 sticky left-0 z-10 align-top">
+                  <td className="px-3 py-2 sticky left-0 z-[4] align-top">
                     <span className="text-[10px] uppercase tracking-wide">All India</span>
                   </td>
                   <td colSpan={2} className="px-3 py-2 text-right text-[11px] uppercase tracking-wide">Grand Total</td>
@@ -875,7 +875,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
-                  <th className="sticky left-0 z-20 px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
+                  <th className="sticky left-0 z-[5] px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
                   {REGION_ORDER.map(reg => (
                     <th key={reg} className="px-4 py-2 text-center font-bold border-r border-slate-300/60 whitespace-nowrap">{reg}</th>
                   ))}
@@ -887,7 +887,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
                   const isHybrid = src === 'HYBRID';
                   return (
                     <tr key={src} className="border-t border-gray-100 bg-white hover:bg-slate-50/60 transition-colors align-top">
-                      <td className="px-4 py-2 sticky left-0 z-10 bg-white border-r border-gray-200">
+                      <td className="px-4 py-2 sticky left-0 z-[4] bg-white border-r border-gray-200">
                         <Chip label={SOURCE_LABEL[src] ?? src} colorCls={SOURCE_BADGE[src] ?? 'bg-muted text-foreground'} />
                       </td>
                       {REGION_ORDER.map(reg => {
@@ -910,7 +910,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
                   );
                 })}
                 <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
-                  <td className="px-4 py-2 sticky left-0 z-10 bg-slate-100 border-r border-gray-200">
+                  <td className="px-4 py-2 sticky left-0 z-[4] bg-slate-100 border-r border-gray-200">
                     <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">Total</span>
                   </td>
                   {REGION_ORDER.map(reg => (
@@ -1203,8 +1203,11 @@ export function SummaryPageClient({
         <StatCard icon={Cable}      label="Tx Pending FTC"  value={stats.txPending}     unit="elements" color="slate" />
       </div>
 
-      {/* Tab bar — fits without scroll, label hides on small screens */}
-      <div className="border-b">
+      {/* Tab bar — sticks just below the fixed app header (60/70px) when the page
+          scrolls, so tabs stay reachable and the tables get the full height. The
+          opaque, full-bleed bar also masks the table scrolling underneath, so the
+          frozen columns never ride up over the header/breadcrumb. */}
+      <div className="sticky top-[60px] lg:top-[70px] z-40 -mx-6 px-6 bg-background border-b shadow-sm">
         <nav className="-mb-px flex w-full">
           {tabs.map(tab => {
             const Icon = tab.icon;
