@@ -1206,9 +1206,10 @@ export function SummaryPageClient({
         <StatCard icon={Cable}      label="Tx Pending FTC"  value={stats.txPending}     unit="elements" color="slate" />
       </div>
 
-      {/* Tab bar — part of the fixed top section (always visible); the table
-          below gets the rest of the viewport with its own scroll + sticky head. */}
-      <div className="sticky top-[60px] lg:top-[70px] z-40 -mx-6 px-6 bg-background border-b shadow-sm">
+      {/* Tab bar — sticks just below the fixed app header while the page scrolls.
+          z-30 keeps it above the table content but BELOW the sidebar overlay
+          (z-40), so an expanded sidebar isn't overlapped by the tabs. */}
+      <div className="sticky top-[60px] lg:top-[70px] z-30 -mx-6 px-6 bg-background border-b shadow-sm">
         <nav className="-mb-px flex w-full">
           {tabs.map(tab => {
             const Icon = tab.icon;
