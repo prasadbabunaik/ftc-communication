@@ -761,11 +761,43 @@ function ActivityDateRange({ from, to }) {
     router.push(`/dashboard?${params.toString()}`);
   };
 
+  // Quick presets — inclusive windows ending today (local date), so
+  // "Last 7 days" = today and the 6 days before it.
+  const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const presetRange = (days) => {
+    const now = new Date();
+    return { from: isoLocal(new Date(now.getTime() - (days - 1) * 86400000)), to: isoLocal(now) };
+  };
+  const isActivePreset = (days) => {
+    const p = presetRange(days);
+    return from === p.from && to === p.to;
+  };
+  const PRESETS = [
+    { days: 7,  label: 'Last 7 days'  },
+    { days: 30, label: 'Last 30 days' },
+  ];
+
   return (
     <div className="flex flex-col gap-1">
       <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">Date range</span>
-      <div className="w-[260px]">
-        <DateRangePicker from={from ?? ''} to={to ?? ''} onChange={apply} className="h-9" />
+      <div className="flex items-center gap-1.5">
+        <div className="w-[260px]">
+          <DateRangePicker from={from ?? ''} to={to ?? ''} onChange={apply} className="h-9" />
+        </div>
+        {PRESETS.map(({ days, label }) => (
+          <button
+            key={days}
+            type="button"
+            onClick={() => apply(presetRange(days))}
+            className={`h-9 px-3 rounded-md border text-xs font-medium whitespace-nowrap transition-colors ${
+              isActivePreset(days)
+                ? 'border-blue-300 bg-blue-50 text-blue-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   );
