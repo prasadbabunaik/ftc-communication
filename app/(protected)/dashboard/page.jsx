@@ -7,6 +7,7 @@ import {
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission,
   computeHybridBreakdown, computeMilestoneActivity,
+  getProjectSource, SOURCE_ORDER,
 } from '@/lib/grid-computations';
 
 // Returns ISO date strings (YYYY-MM-DD, UTC) for every day strictly between
@@ -58,13 +59,24 @@ export default async function DashboardPage({ searchParams }) {
   // header dropdown.
   const allRegions    = await prisma.gridRegion.findMany({ orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } });
   const isRegionLocked = !!baseScope.regionId;
-  const regionParam    = !isRegionLocked ? (params.region ?? null) : null;
-  const selectedRegion = regionParam && allRegions.some(r => r.code === regionParam) ? regionParam : null;
-  const selectedRegionId = selectedRegion ? allRegions.find(r => r.code === selectedRegion).id : null;
+
+  // Filters are multi-select: comma-separated codes in the URL (?region=ER,NR).
+  const parseCsv = (v) => (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
+
+  const selectedRegions = !isRegionLocked
+    ? parseCsv(params.region).filter(c => allRegions.some(r => r.code === c))
+    : [];
+  const selectedRegionIds = selectedRegions.map(c => allRegions.find(r => r.code === c).id);
 
   const scope = isRegionLocked
     ? baseScope
-    : (selectedRegionId ? { regionId: selectedRegionId } : {});
+    : (selectedRegionIds.length ? { regionId: { in: selectedRegionIds } } : {});
+
+  // Source filter (all roles). Narrows the generation tabs to the chosen source
+  // bucket(s), matching how the pipeline tables categorise each project
+  // (getProjectSource — hybrids bucket as HYBRID). Applied in JS post-query
+  // since "source" is computed, not a column. Transmission is unaffected.
+  const selectedSources = parseCsv(params.source).filter(c => SOURCE_ORDER.includes(c));
 
   // Restrict to projects/elements that were "live" on the requested date.
   // With no asOf, this becomes `activeUntil IS NULL` — i.e. currently-active.
@@ -94,13 +106,29 @@ export default async function DashboardPage({ searchParams }) {
     }),
   ]);
 
-  const pipelineMatrix   = computePipelineMatrix(projects, computeAsOf);
-  const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source');
-  const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
-  const contd4Study      = computeContd4Study(projects);
+  // Generation tabs read from the source-filtered set; transmission does not.
+  const viewProjects = selectedSources.length
+    ? projects.filter((p) => selectedSources.includes(getProjectSource(p)))
+    : projects;
+
+  // Filters that narrow the table scaffolds to the selected axis (so filtering
+  // removes non-matching rows instead of merely zeroing them).
+  const filters = { regions: selectedRegions, sources: selectedSources };
+
+  // When HYBRID is selected alongside specific sources, restrict each hybrid's
+  // component rows to those sources (Solar+Hybrid → only the Solar component of
+  // each hybrid). HYBRID alone (empty list) → show every component.
+  const componentSources = selectedSources.includes('HYBRID')
+    ? selectedSources.filter((s) => s !== 'HYBRID')
+    : [];
+
+  const pipelineMatrix   = computePipelineMatrix(viewProjects, computeAsOf);
+  const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source', filters);
+  const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region', filters);
+  const contd4Study      = computeContd4Study(viewProjects, filters);
   const transmissionRows = computeTransmission(txElements);
-  const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
-  const activity         = computeMilestoneActivity(projects, activityFrom, activityTo);
+  const hybridRows       = computeHybridBreakdown(viewProjects, computeAsOf, componentSources);
+  const activity         = computeMilestoneActivity(viewProjects, activityFrom, activityTo, componentSources);
 
   // Stat-card totals reuse the same milestone aggregation as the pipeline
   // matrix — sum across cells so values are consistent with the tables below.
@@ -108,14 +136,16 @@ export default async function DashboardPage({ searchParams }) {
   const totalFtc      = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.ftcApprovedMw),  0);
   const totalToc      = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.tocIssuedMw),    0);
   const totalCod      = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.codCompletedMw), 0);
-  const contd4Active  = projects.filter(p => p.contd4 && !['CLEARED', 'REJECTED'].includes(p.contd4.status)).length;
+  const contd4Active  = viewProjects.filter(p => p.contd4 && !['CLEARED', 'REJECTED'].includes(p.contd4.status)).length;
   const txPending     = txElements.filter(e => e.pendingFtc).length;
 
   const regionLabel = isRegionLocked
     ? 'Showing your region'
-    : (selectedRegion
-        ? `${allRegions.find(r => r.code === selectedRegion).name} (${selectedRegion})`
-        : 'All India view');
+    : (selectedRegions.length === 1
+        ? `${allRegions.find(r => r.code === selectedRegions[0]).name} (${selectedRegions[0]})`
+        : selectedRegions.length > 1
+          ? `${selectedRegions.join(', ')} (${selectedRegions.length} regions)`
+          : 'All India view');
 
   // Auto-upsert today's snapshot on every live page load. Also backfill any
   // missing day between the most recent stored snapshot and today, so
@@ -230,8 +260,10 @@ export default async function DashboardPage({ searchParams }) {
       activityFrom={activityFromStr}
       activityTo={activityToStr}
       regions={allRegions.map(r => ({ code: r.code, name: r.name }))}
-      selectedRegion={selectedRegion}
+      selectedRegions={selectedRegions}
       canFilterRegion={!isRegionLocked}
+      sources={SOURCE_ORDER}
+      selectedSources={selectedSources}
       stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending }}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}
@@ -239,7 +271,7 @@ export default async function DashboardPage({ searchParams }) {
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
       activity={JSON.parse(JSON.stringify(activity))}
-      projects={JSON.parse(JSON.stringify(projects))}
+      projects={JSON.parse(JSON.stringify(viewProjects))}
       txElements={JSON.parse(JSON.stringify(txElements))}
       availableSnapshots={availableSnapshots}
     />

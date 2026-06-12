@@ -581,10 +581,13 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
         </div>
 
         {/* ── Body ── */}
-        <div className="px-6 py-5 overflow-y-auto max-h-[75vh]">
+        {/* No top padding: lets the add-phase sticky tracker sit flush under the
+            header (no gap/peek-through band). The detail view restores its top
+            spacing on its own wrapper below. */}
+        <div className="px-6 pb-5 overflow-y-auto max-h-[75vh]">
 
           {view === 'detail' && (
-            <div className="space-y-5">
+            <div className="space-y-5 pt-5">
               {/* Capacity summary */}
               <div className="grid grid-cols-3 gap-3">
                 <SummaryCard

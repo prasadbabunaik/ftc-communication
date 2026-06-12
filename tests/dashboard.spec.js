@@ -7,7 +7,7 @@ const TABS = [
   'Hybrid Breakdown',
   'Source-wise',
   'Transmission',
-  'Monthly COD',
+  'FTC/TOC/COD Activity',
   'Project Details',
   'Day-wise Changes',
 ];

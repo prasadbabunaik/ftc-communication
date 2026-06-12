@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { GovLoader } from '@/components/ui/gov-loader';
-import { AlertCircle, Plus, Trash2, Lock, Pencil, Check } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Lock, Pencil, Check, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSettings } from '@/providers/settings-provider';
 
@@ -192,6 +192,32 @@ export function AddPhasesForm({
   // flips the Total Capacity stat (and, for hybrids, the component caps) into
   // editable inputs.
   const [editingCaps, setEditingCaps] = useState(false);
+  // The whole capacity+pipeline tracker auto-collapses once the user scrolls the
+  // dialog, so it stops eating vertical space exactly when it's in the way. A
+  // slim bar (chevron + "remaining" badge) stays visible when collapsed. A
+  // manual chevron overrides the auto behaviour; editing caps forces it open
+  // (the cap inputs live inside the tracker).
+  //   trackerOverride: null = follow scroll, true/false = user's manual choice
+  const [trackerOverride, setTrackerOverride] = useState(null);
+  const [dialogScrolled, setDialogScrolled] = useState(false);
+  const rootRef = useRef(null);
+
+  // Attach a scroll listener to the nearest scrollable ancestor (the dialog
+  // body) and flag once the user has scrolled past the top, so the tracker can
+  // auto-collapse out of the way.
+  useEffect(() => {
+    let sc = rootRef.current?.parentElement;
+    while (sc && sc !== document.body) {
+      const oy = getComputedStyle(sc).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && sc.scrollHeight > sc.clientHeight) break;
+      sc = sc.parentElement;
+    }
+    if (!sc || sc === document.body) return;
+    const onScroll = () => setDialogScrolled(sc.scrollTop > 24);
+    onScroll();
+    sc.addEventListener('scroll', onScroll, { passive: true });
+    return () => sc.removeEventListener('scroll', onScroll);
+  }, []);
   const [caps, setCaps] = useState({
     total: totalCapacityMw != null ? String(totalCapacityMw) : '',
     WIND:  windCapacityMw  != null ? String(windCapacityMw)  : '',
@@ -390,60 +416,20 @@ export function AddPhasesForm({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" ref={rootRef}>
       {isPending && (
         <GovLoader overlay size="page" theme="navy" label="Saving phases..." sublabel="Please wait." />
       )}
 
-      {/* ── Capacity + pipeline tracker ── */}
-      <div className="rounded-xl border bg-card p-4 space-y-4 sticky top-0 z-10 shadow-sm">
-        <div className="flex items-end justify-between flex-wrap gap-4">
-          <div className="flex gap-6 items-end">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
-                  Total Capacity
-                </span>
-                {canEditCaps && (
-                  <button
-                    type="button"
-                    onClick={() => setEditingCaps((v) => !v)}
-                    className={`inline-flex items-center gap-0.5 text-[10px] font-semibold rounded px-1 py-0.5 transition-colors ${
-                      editingCaps
-                        ? 'text-emerald-700 hover:bg-emerald-50'
-                        : 'text-primary hover:bg-primary/10'
-                    }`}
-                  >
-                    {editingCaps
-                      ? (<><Check className="size-3" /> Done</>)
-                      : (<><Pencil className="size-2.5" /> Edit</>)}
-                  </button>
-                )}
-              </div>
-              {canEditCaps && editingCaps ? (
-                <div className="relative w-32">
-                  <Input
-                    id="total-capacity-input"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={caps.total}
-                    onChange={(e) => setCap('total', e.target.value)}
-                    autoFocus
-                    className="h-9 w-full text-lg font-bold font-mono pr-9 border-primary/40 hover:border-primary/60 focus-visible:border-primary transition-colors"
-                  />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground pointer-events-none">
-                    MW
-                  </span>
-                </div>
-              ) : (
-                <p className="text-lg font-bold text-foreground">{capTotal.toFixed(1)} MW</p>
-              )}
-            </div>
-            <Stat label="Already COD"         value={`${existingCodMw.toFixed(1)} MW`}   color="emerald" />
-            <Stat label="New COD (this form)" value={`${newCodSum.toFixed(1)} MW`}        color="blue" />
-          </div>
-          <div className={`px-4 py-2 rounded-lg text-sm font-bold ${
+      {/* ── Capacity + pipeline tracker (collapsible; auto-collapses on scroll,
+          starting from Total Capacity — only the slim bar below stays pinned) ── */}
+      {(() => {
+        const forcedOpen = canEditCaps && editingCaps;
+        const trackerOpen = forcedOpen
+          ? true
+          : trackerOverride != null ? trackerOverride : !dialogScrolled;
+        const remainingBadge = (
+          <span className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
             pendingMw < 0
               ? 'bg-red-50 text-red-700'
               : pendingMw === 0
@@ -455,24 +441,97 @@ export function AddPhasesForm({
               : pendingMw === 0
               ? 'Fully commissioned'
               : `${pendingMw.toFixed(1)} MW remaining`}
+          </span>
+        );
+        return (
+        <div className="rounded-xl border bg-card p-4 sticky top-0 z-10 shadow-sm">
+          {/* Slim always-visible bar — chevron collapses everything from Total
+              Capacity down; the remaining badge stays in view either way. */}
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setTrackerOverride(!trackerOpen)}
+              disabled={forcedOpen}
+              title={trackerOpen ? 'Collapse capacity & pipeline' : 'Show capacity & pipeline'}
+              className="flex items-center gap-1.5 group disabled:cursor-default min-w-0"
+            >
+              <ChevronDown
+                className={`size-4 shrink-0 text-muted-foreground transition-transform ${trackerOpen ? '' : '-rotate-90'}`}
+              />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide group-hover:text-foreground group-disabled:text-muted-foreground transition-colors truncate">
+                Capacity &amp; Pipeline{plantType.isHybrid ? ' (FTC → TOC → COD)' : ''}
+              </span>
+            </button>
+            {remainingBadge}
           </div>
-        </div>
 
-        {/* Hybrid: per-source pipeline cards */}
-        {plantType.isHybrid && (
-          <div className="border-t pt-3">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">
-              Source Pipeline Status (FTC → TOC → COD)
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={capForSource('WIND')}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  editable={canEditCaps && editingCaps} capStr={caps.WIND}  onCapChange={(v) => setCap('WIND', v)}  />}
-              {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={capForSource('SOLAR')} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} editable={canEditCaps && editingCaps} capStr={caps.SOLAR} onCapChange={(v) => setCap('SOLAR', v)} />}
-              {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={capForSource('BESS')}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  editable={canEditCaps && editingCaps} capStr={caps.BESS}  onCapChange={(v) => setCap('BESS', v)}  />}
-              {pspCapacityMw   != null && <SourcePipelineCard source="PSP"   cap={capForSource('PSP')}   existing={existingPipeline.PSP}   combined={combinedPipeline.PSP}   hasError={!!pipelineErrors.PSP}   />}
+          {trackerOpen && (
+          <div className="space-y-4 mt-3">
+            <div className="flex gap-6 items-end flex-wrap">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                    Total Capacity
+                  </span>
+                  {canEditCaps && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingCaps((v) => !v)}
+                      className={`inline-flex items-center gap-0.5 text-[10px] font-semibold rounded px-1 py-0.5 transition-colors ${
+                        editingCaps
+                          ? 'text-emerald-700 hover:bg-emerald-50'
+                          : 'text-primary hover:bg-primary/10'
+                      }`}
+                    >
+                      {editingCaps
+                        ? (<><Check className="size-3" /> Done</>)
+                        : (<><Pencil className="size-2.5" /> Edit</>)}
+                    </button>
+                  )}
+                </div>
+                {canEditCaps && editingCaps ? (
+                  <div className="relative w-32">
+                    <Input
+                      id="total-capacity-input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={caps.total}
+                      onChange={(e) => setCap('total', e.target.value)}
+                      autoFocus
+                      className="h-9 w-full text-lg font-bold font-mono pr-9 border-primary/40 hover:border-primary/60 focus-visible:border-primary transition-colors"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground pointer-events-none">
+                      MW
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-lg font-bold text-foreground">{capTotal.toFixed(1)} MW</p>
+                )}
+              </div>
+              <Stat label="Already COD"         value={`${existingCodMw.toFixed(1)} MW`}   color="emerald" />
+              <Stat label="New COD (this form)" value={`${newCodSum.toFixed(1)} MW`}        color="blue" />
             </div>
+
+            {/* Hybrid: per-source pipeline cards */}
+            {plantType.isHybrid && (
+              <div className="border-t pt-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">
+                  Source Pipeline Status (FTC → TOC → COD)
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {windCapacityMw  != null && <SourcePipelineCard source="WIND"  cap={capForSource('WIND')}  existing={existingPipeline.WIND}  combined={combinedPipeline.WIND}  hasError={!!pipelineErrors.WIND}  editable={canEditCaps && editingCaps} capStr={caps.WIND}  onCapChange={(v) => setCap('WIND', v)}  />}
+                  {solarCapacityMw != null && <SourcePipelineCard source="SOLAR" cap={capForSource('SOLAR')} existing={existingPipeline.SOLAR} combined={combinedPipeline.SOLAR} hasError={!!pipelineErrors.SOLAR} editable={canEditCaps && editingCaps} capStr={caps.SOLAR} onCapChange={(v) => setCap('SOLAR', v)} />}
+                  {bessCapacityMw  != null && <SourcePipelineCard source="BESS"  cap={capForSource('BESS')}  existing={existingPipeline.BESS}  combined={combinedPipeline.BESS}  hasError={!!pipelineErrors.BESS}  editable={canEditCaps && editingCaps} capStr={caps.BESS}  onCapChange={(v) => setCap('BESS', v)}  />}
+                  {pspCapacityMw   != null && <SourcePipelineCard source="PSP"   cap={capForSource('PSP')}   existing={existingPipeline.PSP}   combined={combinedPipeline.PSP}   hasError={!!pipelineErrors.PSP}   />}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          )}
+        </div>
+        );
+      })()}
 
       {/* Edit-mode behaviour is implicit — fields below are pre-filled
           with current phase data, and save updates in place via the

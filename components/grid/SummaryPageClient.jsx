@@ -11,6 +11,7 @@ import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
 import { TabBreakdown } from '@/components/grid/TabBreakdown';
 import { AsOfDatePicker } from '@/components/grid/AsOfDatePicker';
 import { RegionPicker } from '@/components/grid/RegionPicker';
+import { SourcePicker } from '@/components/grid/SourcePicker';
 import { LastChangesCard } from '@/components/grid/LastChangesCard';
 import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
 
@@ -97,30 +98,35 @@ function ViewBreakupBtn({ onClick }) {
 
 // Dark two-row grouped header used by Pipeline (Tables 2 & 5)
 function PipelineHead({ isRegionPrimary, refMonthLabel }) {
+  // Hover tooltips carry the full column titles from the source Google Sheet,
+  // so the on-screen headers can stay short without losing detail.
+  const expTooltip = refMonthLabel.startsWith('Exp.')
+    ? `Expected Capacity (MW) to be commissioned by End of ${refMonthLabel.slice(5)}`
+    : 'Expected Capacity (MW) to be commissioned by end of the reference month';
   return (
-    <thead className="sticky top-[100px] lg:top-[110px] z-[8] text-[12px]">
+    <thead className="sticky top-[156px] lg:top-[166px] z-[8] text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-        <th rowSpan={2} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
+        <th rowSpan={2} title={isRegionPrimary ? undefined : 'Source (Type)'} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
         </th>
-        <th rowSpan={2} className="sticky z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
+        <th rowSpan={2} title={isRegionPrimary ? 'Source (Type)' : undefined} className="sticky z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
           {isRegionPrimary ? 'Source' : 'Region'}
         </th>
-        <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
-        <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap text-slate-400">CONTD-4 (MW)</th>
-        <th rowSpan={2} className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied (MW)</th>
+        <th rowSpan={2} title="Total Installed Capacity (MW)" className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Total Cap (MW)</th>
+        <th rowSpan={2} title="Total Capacity (MW) for which CONTD-4 issued" className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap text-slate-400 cursor-help">CONTD-4 (MW)</th>
+        <th rowSpan={2} title="Capacity (MW) applied for FTC" className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Applied (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-violet-50 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD (MW)</th>
-        <th rowSpan={2} className="px-4 py-3 text-center font-bold bg-amber-50 text-amber-700 border-l border-amber-200 whitespace-nowrap">{refMonthLabel}</th>
+        <th rowSpan={2} title={expTooltip} className="px-4 py-3 text-center font-bold bg-amber-50 text-amber-700 border-l border-amber-200 whitespace-nowrap cursor-help">{refMonthLabel}</th>
       </tr>
       <tr className="text-[11px]">
-        <th className="px-4 py-1.5 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">Approved</th>
-        <th className="px-4 py-1.5 text-right font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
-        <th className="px-4 py-1.5 text-right font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">Issued</th>
-        <th className="px-4 py-1.5 text-right font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap">Pending</th>
-        <th className="px-4 py-1.5 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">Done</th>
-        <th className="px-4 py-1.5 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">Pending</th>
+        <th title="Capacity (MW) for which FTC approved" className="px-4 py-1.5 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap cursor-help">Approved</th>
+        <th title="FTC Pending (MW)" className="px-4 py-1.5 text-right font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="TOC Issued (MW)" className="px-4 py-1.5 text-right font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap cursor-help">Issued</th>
+        <th title="TOC Pending (MW)" className="px-4 py-1.5 text-right font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="COD Completed (MW)" className="px-4 py-1.5 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap cursor-help">Done</th>
+        <th title="COD Pending (MW)" className="px-4 py-1.5 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
       </tr>
     </thead>
   );
@@ -384,7 +390,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
       </div>
       <div>
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[100px] lg:top-[110px] z-[8]">
+          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
@@ -434,7 +440,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
       </div>
       <div>
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[100px] lg:top-[110px] z-[8]">
+          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
@@ -634,7 +640,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
       </div>
       <div>
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[100px] lg:top-[110px] z-[8]">
+          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
@@ -808,7 +814,7 @@ function ActivityStat({ label, value, count, color, active, onClick }) {
 // Source rows × Region columns (+ All India), a Total row, and the Hybrid row
 // showing its per-component split inside each cell. A milestone selector
 // (the three cards) switches which of FTC / TOC / COD the grid shows.
-function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
+function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedRegions = [], selectedSources = [] }) {
   const { matrix, totals } = activity ?? {};
   const [milestone, setMilestone] = useState('cod'); // default COD (matches the sheet)
   const meta   = MILESTONES.find(m => m.key === milestone);
@@ -825,11 +831,12 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
       .sort((a, b) => (COMP_ORDER.indexOf(a[0]) - COMP_ORDER.indexOf(b[0])));
   };
 
-  // Always show every source row (0 when absent in the range), matching the
-  // sheet's fixed Source × Region layout.
-  const sources = SOURCE_ORDER;
+  // Show every source row / region column by default, or narrow to the active
+  // dashboard filters so this tab honours them like the others.
+  const regions = selectedRegions.length ? REGION_ORDER.filter(r => selectedRegions.includes(r)) : REGION_ORDER;
+  const sources = selectedSources.length ? SOURCE_ORDER.filter(s => selectedSources.includes(s)) : SOURCE_ORDER;
 
-  const rowTotal = (source) => REGION_ORDER.reduce((s, reg) => s + cell(source, reg), 0);
+  const rowTotal = (source) => regions.reduce((s, reg) => s + cell(source, reg), 0);
   const colTotal = (region) => sources.reduce((s, src) => s + cell(src, region), 0);
   const grand    = totals?.[milestone] ?? 0;
 
@@ -874,10 +881,10 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
             <div className="p-10 text-center text-sm text-muted-foreground">No FTC / TOC / COD milestones in this date range.</div>
           ) : (
             <table className="w-full border-collapse text-[11px]">
-              <thead className="sticky top-[100px] lg:top-[110px] z-[8]">
+              <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
                 <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
                   <th className="sticky left-0 z-[5] px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
-                  {REGION_ORDER.map(reg => (
+                  {regions.map(reg => (
                     <th key={reg} className="px-4 py-2 text-center font-bold border-r border-slate-300/60 whitespace-nowrap">{reg}</th>
                   ))}
                   <th className="px-4 py-2 text-center font-black whitespace-nowrap">All India</th>
@@ -891,7 +898,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
                       <td className="px-4 py-2 sticky left-0 z-[4] bg-white border-r border-gray-200">
                         <Chip label={SOURCE_LABEL[src] ?? src} colorCls={SOURCE_BADGE[src] ?? 'bg-muted text-foreground'} />
                       </td>
-                      {REGION_ORDER.map(reg => {
+                      {regions.map(reg => {
                         const v = cell(src, reg);
                         const breakdown = isHybrid ? comps(reg) : [];
                         return (
@@ -914,7 +921,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup }) {
                   <td className="px-4 py-2 sticky left-0 z-[4] bg-slate-100 border-r border-gray-200">
                     <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">Total</span>
                   </td>
-                  {REGION_ORDER.map(reg => (
+                  {regions.map(reg => (
                     <td key={reg} className={`px-4 py-2 text-center tabular-nums border-r border-gray-200 ${accent.total}`}>{fmt(colTotal(reg))}</td>
                   ))}
                   <td className={`px-4 py-2 text-center tabular-nums font-black ${accent.total}`}>{fmt(grand)}</td>
@@ -1140,7 +1147,8 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
 
 export function SummaryPageClient({
   regionLabel, asOf, activityFrom, activityTo,
-  regions = [], selectedRegion = null, canFilterRegion = false,
+  regions = [], selectedRegions = [], canFilterRegion = false,
+  sources = [], selectedSources = [],
   stats, table2Rows, table5Rows, contd4Study,
   transmissionRows, hybridRows, activity, projects, txElements,
   availableSnapshots,
@@ -1176,12 +1184,12 @@ export function SummaryPageClient({
             <h1 className="text-lg font-bold text-foreground leading-tight">Generation &amp; Transmission Summary</h1>
             <p className="text-[12px] text-muted-foreground leading-tight">
               {regionLabel}
+              {selectedSources.length > 0 && <span className="ml-2 text-violet-600 font-medium">· {selectedSources.join(', ')}</span>}
               {asOf && <span className="ml-2 text-amber-600 font-medium">· As of {new Date(asOf).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</span>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canFilterRegion && <RegionPicker regions={regions} selectedRegion={selectedRegion} />}
           <AsOfDatePicker currentAsOf={asOf} />
           <FilterBar asOf={asOf} />
         </div>
@@ -1210,7 +1218,7 @@ export function SummaryPageClient({
           z-30 keeps it above the table content but BELOW the sidebar overlay
           (z-40), so an expanded sidebar isn't overlapped by the tabs. */}
       <div className="sticky top-[60px] lg:top-[70px] z-30 -mx-6 px-6 bg-background border-b shadow-sm">
-        <nav className="-mb-px flex w-full">
+        <nav className="-mb-px flex w-full border-b">
           {tabs.map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -1231,6 +1239,20 @@ export function SummaryPageClient({
             );
           })}
         </nav>
+
+        {/* Tab-level filters — pinned together with the tab bar so they stay
+            visible while the table scrolls. Always rendered at a fixed height
+            (h-14) so the frozen table-header offset below stays deterministic.
+            Source is disabled (not removed) on tabs where it has no meaning. */}
+        <div className="h-14 flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-0.5">Filters</span>
+          {canFilterRegion && <RegionPicker regions={regions} selectedRegions={selectedRegions} />}
+          <SourcePicker
+            sources={sources}
+            selectedSources={selectedSources}
+            disabled={activeTab === 'transmission' || activeTab === 'changes'}
+          />
+        </div>
       </div>
 
       {/* Per-tab Breakdown dialog — opened from the "View Breakup" button
@@ -1284,7 +1306,7 @@ export function SummaryPageClient({
         )}
 
         {activeTab === 'activity' && (
-          <MilestoneActivityTable activity={activity} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} />
+          <MilestoneActivityTable activity={activity} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} selectedRegions={selectedRegions} selectedSources={selectedSources} />
         )}
 
         {activeTab === 'projects' && (
