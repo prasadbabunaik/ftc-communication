@@ -750,9 +750,14 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
               type="number"
               step="0.01"
               {...form.register(`phases.${phaseIndex}.expectedApr26Mw`)}
-              className="h-8 text-xs"
+              className={`h-8 text-xs ${form.formState.errors.phases?.[phaseIndex]?.expectedApr26Mw ? 'border-red-400' : ''}`}
               placeholder="Expected MW"
             />
+            {form.formState.errors.phases?.[phaseIndex]?.expectedApr26Mw && (
+              <p className="text-[10px] text-destructive mt-1">
+                {form.formState.errors.phases[phaseIndex].expectedApr26Mw.message}
+              </p>
+            )}
           </div>
         </div>
       ) : (
