@@ -1252,7 +1252,7 @@ export function SummaryPageClient({
           <SourcePicker
             sources={sources}
             selectedSources={selectedSources}
-            disabled={activeTab === 'transmission' || activeTab === 'changes'}
+            disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid'}
           />
         </div>
       </div>

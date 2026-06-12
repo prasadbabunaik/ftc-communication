@@ -115,9 +115,10 @@ export default async function DashboardPage({ searchParams }) {
   // removes non-matching rows instead of merely zeroing them).
   const filters = { regions: selectedRegions, sources: selectedSources };
 
-  // When HYBRID is selected alongside specific sources, restrict each hybrid's
-  // component rows to those sources (Solar+Hybrid → only the Solar component of
-  // each hybrid). HYBRID alone (empty list) → show every component.
+  // Activity tab: when HYBRID is selected alongside specific sources, restrict
+  // each hybrid's component rows to those sources (Solar+Hybrid → only the
+  // Solar component of each hybrid). HYBRID alone (empty list) → show every
+  // component.
   const componentSources = selectedSources.includes('HYBRID')
     ? selectedSources.filter((s) => s !== 'HYBRID')
     : [];
@@ -127,7 +128,10 @@ export default async function DashboardPage({ searchParams }) {
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region', filters);
   const contd4Study      = computeContd4Study(viewProjects, filters);
   const transmissionRows = computeTransmission(txElements);
-  const hybridRows       = computeHybridBreakdown(viewProjects, computeAsOf, componentSources);
+  // Hybrid Breakdown ignores the source filter (its picker is disabled on that
+  // tab) — the table is inherently scoped to hybrid projects, so region is the
+  // only meaningful axis. Uses the unfiltered project set.
+  const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
   const activity         = computeMilestoneActivity(viewProjects, activityFrom, activityTo, componentSources);
 
   // Stat-card totals reuse the same milestone aggregation as the pipeline
