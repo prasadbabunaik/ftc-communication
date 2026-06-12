@@ -106,27 +106,27 @@ function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   return (
     <thead className="sticky top-[156px] lg:top-[166px] z-[8] text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-        <th rowSpan={2} title={isRegionPrimary ? undefined : 'Source (Type)'} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
+        <th rowSpan={2} title={isRegionPrimary ? undefined : 'Source (Type)'} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
         </th>
-        <th rowSpan={2} title={isRegionPrimary ? 'Source (Type)' : undefined} className="sticky z-[6] bg-slate-100 px-4 py-3 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
+        <th rowSpan={2} title={isRegionPrimary ? 'Source (Type)' : undefined} className="sticky z-[6] bg-slate-100 px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 90, minWidth: 96 }}>
           {isRegionPrimary ? 'Source' : 'Region'}
         </th>
-        <th rowSpan={2} title="Total Installed Capacity (MW)" className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Total Cap (MW)</th>
-        <th rowSpan={2} title="Total Capacity (MW) for which CONTD-4 issued" className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap text-slate-400 cursor-help">CONTD-4 (MW)</th>
-        <th rowSpan={2} title="Capacity (MW) applied for FTC" className="px-4 py-3 text-right font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Applied (MW)</th>
+        <th rowSpan={2} title="Total Installed Capacity (MW)" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Total Cap (MW)</th>
+        <th rowSpan={2} title="Total Capacity (MW) for which CONTD-4 issued" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap text-slate-400 cursor-help">CONTD-4 (MW)</th>
+        <th rowSpan={2} title="Capacity (MW) applied for FTC" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Applied (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-violet-50 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD (MW)</th>
         <th rowSpan={2} title={expTooltip} className="px-4 py-3 text-center font-bold bg-amber-50 text-amber-700 border-l border-amber-200 whitespace-nowrap cursor-help">{refMonthLabel}</th>
       </tr>
       <tr className="text-[11px]">
-        <th title="Capacity (MW) for which FTC approved" className="px-4 py-1.5 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap cursor-help">Approved</th>
-        <th title="FTC Pending (MW)" className="px-4 py-1.5 text-right font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
-        <th title="TOC Issued (MW)" className="px-4 py-1.5 text-right font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap cursor-help">Issued</th>
-        <th title="TOC Pending (MW)" className="px-4 py-1.5 text-right font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
-        <th title="COD Completed (MW)" className="px-4 py-1.5 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap cursor-help">Done</th>
-        <th title="COD Pending (MW)" className="px-4 py-1.5 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="Capacity (MW) for which FTC approved" className="px-4 py-1.5 text-center font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap cursor-help">Approved</th>
+        <th title="FTC Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="TOC Issued (MW)" className="px-4 py-1.5 text-center font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap cursor-help">Issued</th>
+        <th title="TOC Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="COD Completed (MW)" className="px-4 py-1.5 text-center font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap cursor-help">Done</th>
+        <th title="COD Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
       </tr>
     </thead>
   );
@@ -202,7 +202,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
     return (
       <td
         style={cellStyle}
-        className={`px-4 py-2.5 text-right tabular-nums ${bold ? 'font-bold' : ''} ${cleanCls}`}
+        className={`px-4 py-2.5 text-center tabular-nums ${bold ? 'font-bold' : ''} ${cleanCls}`}
       >
         {fmt(v)}
       </td>
@@ -230,7 +230,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
       )}
       <td
         style={{ ...cellStyle, left: 90 }}
-        className={`px-4 py-2.5 sticky border-r border-gray-200 z-[4] ${bg}`}
+        className={`px-4 py-2.5 sticky text-center border-r border-gray-200 z-[4] ${bg}`}
       >
         {isTotal
           ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
@@ -444,8 +444,8 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
+              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
+              <th className="px-3 py-2 text-center font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
               <th colSpan={2} className="px-3 py-1 text-center font-bold bg-emerald-50 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">FTC Completed</th>
               <th colSpan={2} className="px-3 py-1 text-center font-bold bg-amber-50 text-amber-700 border-r border-amber-200 whitespace-nowrap">FTC Pending</th>
               <th colSpan={2} className="px-3 py-1 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">Commissioning Expected ({refMonthLabel})</th>
@@ -453,12 +453,12 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
             <tr className="text-[10px] bg-slate-50">
               <th className="sticky left-0 z-[6] bg-slate-50 border-r border-slate-200" />
               <th className="bg-slate-50 border-r border-slate-200" />
-              <th className="px-3 py-1 text-right font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">No. of Elements</th>
-              <th className="px-3 py-1 text-right font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
-              <th className="px-3 py-1 text-right font-semibold bg-amber-100 text-amber-700 border-r border-amber-200 whitespace-nowrap">No. of Elements</th>
-              <th className="px-3 py-1 text-right font-semibold bg-amber-50 text-amber-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
-              <th className="px-3 py-1 text-right font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">No. of Elements</th>
-              <th className="px-3 py-1 text-right font-semibold bg-blue-50 text-blue-500 whitespace-nowrap">ckt km / MVA</th>
+              <th className="px-3 py-1 text-center font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">No. of Elements</th>
+              <th className="px-3 py-1 text-center font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
+              <th className="px-3 py-1 text-center font-semibold bg-amber-100 text-amber-700 border-r border-amber-200 whitespace-nowrap">No. of Elements</th>
+              <th className="px-3 py-1 text-center font-semibold bg-amber-50 text-amber-500 border-r border-slate-200 whitespace-nowrap">ckt km / MVA</th>
+              <th className="px-3 py-1 text-center font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">No. of Elements</th>
+              <th className="px-3 py-1 text-center font-semibold bg-blue-50 text-blue-500 whitespace-nowrap">ckt km / MVA</th>
             </tr>
           </thead>
           <tbody>
@@ -471,28 +471,28 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
               const expectedVal  = isLine ? row.expectedKm   : row.expectedMva;
               return (
                 <tr key={i} className="border-t border-gray-100 bg-white hover:bg-amber-50/20 transition-colors">
-                  <td className="px-3 py-2 sticky left-0 bg-white border-r border-gray-200 z-[4]">
+                  <td className="px-3 py-2 sticky left-0 text-center bg-white border-r border-gray-200 z-[4]">
                     {!sameRegion && <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />}
                   </td>
-                  <td className="px-3 py-2 text-foreground border-r border-gray-100">
+                  <td className="px-3 py-2 text-center text-foreground border-r border-gray-100">
                     {CAT_LABELS[row.category] ?? row.category}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-emerald-50/30 text-emerald-800 font-semibold border-r border-emerald-100">
+                  <td className="px-3 py-2 text-center tabular-nums bg-emerald-50/30 text-emerald-800 font-semibold border-r border-emerald-100">
                     {row.completedCount || '0'}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-emerald-50/20 text-emerald-700 border-r border-slate-200">
+                  <td className="px-3 py-2 text-center tabular-nums bg-emerald-50/20 text-emerald-700 border-r border-slate-200">
                     {fmt(completedVal)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-amber-50/30 text-amber-800 font-semibold border-r border-amber-100">
+                  <td className="px-3 py-2 text-center tabular-nums bg-amber-50/30 text-amber-800 font-semibold border-r border-amber-100">
                     {row.pendingCount || '0'}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-amber-50/20 text-amber-700 border-r border-slate-200">
+                  <td className="px-3 py-2 text-center tabular-nums bg-amber-50/20 text-amber-700 border-r border-slate-200">
                     {fmt(pendingVal)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-blue-50/30 text-blue-800 font-semibold border-r border-blue-100">
+                  <td className="px-3 py-2 text-center tabular-nums bg-blue-50/30 text-blue-800 font-semibold border-r border-blue-100">
                     {row.expectedCount || '0'}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums bg-blue-50/20 text-blue-700">
+                  <td className="px-3 py-2 text-center tabular-nums bg-blue-50/20 text-blue-700">
                     {fmt(expectedVal)}
                   </td>
                 </tr>
@@ -621,13 +621,13 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
 
   const renderNumCells = (r) => (
     <>
-      <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(r.totalMw)}</td>
-      <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(r.contd4Mw)}</td>
-      <td className="px-3 py-2 text-right tabular-nums border-r border-gray-100">{fmt(r.appliedMw)}</td>
-      <td className="px-3 py-2 text-right tabular-nums bg-blue-50/30 text-blue-800 border-r border-blue-100">{fmt(r.ftcMw)}</td>
-      <td className="px-3 py-2 text-right tabular-nums bg-violet-50/30 text-violet-800 border-r border-violet-100">{fmt(r.tocMw)}</td>
-      <td className="px-3 py-2 text-right tabular-nums bg-emerald-50/30 text-emerald-800 border-r border-emerald-100">{fmt(r.codMw)}</td>
-      <td className="px-3 py-2 text-right tabular-nums bg-amber-50/30 text-amber-800">{fmt(r.expectedMw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums border-r border-gray-100">{fmt(r.totalMw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums border-r border-gray-100">{fmt(r.contd4Mw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums border-r border-gray-100">{fmt(r.appliedMw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums bg-blue-50/30 text-blue-800 border-r border-blue-100">{fmt(r.ftcMw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums bg-violet-50/30 text-violet-800 border-r border-violet-100">{fmt(r.tocMw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums bg-emerald-50/30 text-emerald-800 border-r border-emerald-100">{fmt(r.codMw)}</td>
+      <td className="px-3 py-2 text-center tabular-nums bg-amber-50/30 text-amber-800">{fmt(r.expectedMw)}</td>
     </>
   );
 
@@ -644,16 +644,16 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
-              <th className="px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap">Source (Type)</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Capacity (MW)</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total CONTD-4 (MW)</th>
-              <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Applied for FTC</th>
-              <th className="px-3 py-2 text-right font-bold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC Approved</th>
-              <th className="px-3 py-2 text-right font-bold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC Issued</th>
-              <th className="px-3 py-2 text-right font-bold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD Completed</th>
-              <th className="px-3 py-2 text-right font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{refMonthLabel}</th>
+              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
+              <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
+              <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap">Source (Type)</th>
+              <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap">Total Capacity (MW)</th>
+              <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap">Total CONTD-4 (MW)</th>
+              <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap">Applied for FTC</th>
+              <th className="px-3 py-2 text-center font-bold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC Approved</th>
+              <th className="px-3 py-2 text-center font-bold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC Issued</th>
+              <th className="px-3 py-2 text-center font-bold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD Completed</th>
+              <th className="px-3 py-2 text-center font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{refMonthLabel}</th>
             </tr>
           </thead>
           <tbody>
@@ -662,16 +662,16 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 return (
                   <tr key={i} className="border-t border-slate-100 bg-white hover:bg-teal-50/20 transition-colors">
                     {regionSpans.has(i) && (
-                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 text-center bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
                         <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
                       </td>
                     )}
                     {typeSpans.has(i) && (
-                      <td rowSpan={typeSpans.get(i)} className="px-3 py-2 border-r border-slate-200 text-foreground align-top bg-white">
+                      <td rowSpan={typeSpans.get(i)} className="px-3 py-2 text-center border-r border-slate-200 text-foreground align-top bg-white">
                         <span className="font-semibold text-[11px]">{r.hybridType}</span>
                       </td>
                     )}
-                    <td className="px-3 py-2 border-r border-gray-100">
+                    <td className="px-3 py-2 text-center border-r border-gray-100">
                       <Chip label={r.sourceType} colorCls={SOURCE_BADGE[r.sourceType]} />
                     </td>
                     {renderNumCells(r)}
@@ -682,11 +682,11 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 return (
                   <tr key={i} className="border-t border-slate-200 bg-slate-50/70 font-semibold">
                     {regionSpans.has(i) && (
-                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 text-center bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
                         <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
                       </td>
                     )}
-                    <td colSpan={2} className="px-3 py-2 border-r border-slate-200 text-right text-slate-700">{r.label}</td>
+                    <td colSpan={2} className="px-3 py-2 border-r border-slate-200 text-center text-slate-700">{r.label}</td>
                     {renderNumCells(r)}
                   </tr>
                 );
@@ -695,11 +695,11 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                 return (
                   <tr key={i} className="border-t border-slate-300 bg-slate-200 font-bold">
                     {regionSpans.has(i) && (
-                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
+                      <td rowSpan={regionSpans.get(i)} className="px-3 py-2 sticky left-0 text-center bg-slate-50/60 border-r border-slate-200 z-[4] align-top">
                         <Chip label={r.region} colorCls={REGION_BADGE[r.region]} />
                       </td>
                     )}
-                    <td colSpan={2} className="px-3 py-2 border-r border-slate-300 text-right text-slate-800 uppercase text-[10px] tracking-wide">{r.label}</td>
+                    <td colSpan={2} className="px-3 py-2 border-r border-slate-300 text-center text-slate-800 uppercase text-[10px] tracking-wide">{r.label}</td>
                     {renderNumCells(r)}
                   </tr>
                 );
@@ -711,7 +711,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                     <td className="px-3 py-2 sticky left-0 z-[4] align-top">
                       <span className="text-[10px] uppercase tracking-wide">All India</span>
                     </td>
-                    <td colSpan={2} className="px-3 py-2 text-right text-[11px]">Total {r.sourceType.charAt(0) + r.sourceType.slice(1).toLowerCase()}</td>
+                    <td colSpan={2} className="px-3 py-2 text-center text-[11px]">Total {r.sourceType.charAt(0) + r.sourceType.slice(1).toLowerCase()}</td>
                     {renderNumCells(r)}
                   </tr>
                 );
@@ -722,7 +722,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
                   <td className="px-3 py-2 sticky left-0 z-[4] align-top">
                     <span className="text-[10px] uppercase tracking-wide">All India</span>
                   </td>
-                  <td colSpan={2} className="px-3 py-2 text-right text-[11px] uppercase tracking-wide">Grand Total</td>
+                  <td colSpan={2} className="px-3 py-2 text-center text-[11px] uppercase tracking-wide">Grand Total</td>
                   {renderNumCells(r)}
                 </tr>
               );
@@ -885,7 +885,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
             <table className="w-full border-collapse text-[11px]">
               <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
                 <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
-                  <th className="sticky left-0 z-[5] px-4 py-2 text-left font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
+                  <th className="sticky left-0 z-[5] px-4 py-2 text-center font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
                   {regions.map(reg => (
                     <th key={reg} className="px-4 py-2 text-center font-bold border-r border-slate-300/60 whitespace-nowrap">{reg}</th>
                   ))}
@@ -897,7 +897,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
                   const isHybrid = src === 'HYBRID';
                   return (
                     <tr key={src} className="border-t border-gray-100 bg-white hover:bg-slate-50/60 transition-colors align-top">
-                      <td className="px-4 py-2 sticky left-0 z-[4] bg-white border-r border-gray-200">
+                      <td className="px-4 py-2 sticky left-0 z-[4] text-center bg-white border-r border-gray-200">
                         <Chip label={SOURCE_LABEL[src] ?? src} colorCls={SOURCE_BADGE[src] ?? 'bg-muted text-foreground'} />
                       </td>
                       {regions.map(reg => {
@@ -920,7 +920,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
                   );
                 })}
                 <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
-                  <td className="px-4 py-2 sticky left-0 z-[4] bg-slate-100 border-r border-gray-200">
+                  <td className="px-4 py-2 sticky left-0 z-[4] text-center bg-slate-100 border-r border-gray-200">
                     <span className="font-black text-slate-600 uppercase text-[10px] tracking-widest">Total</span>
                   </td>
                   {regions.map(reg => (

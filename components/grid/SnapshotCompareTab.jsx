@@ -19,11 +19,11 @@ function fmt(v) {
 function DeltaCell({ val }) {
   const n = Number(val ?? 0);
   const abs = Math.abs(n);
-  if (abs < 0.01) return <td className="px-2 py-1 text-right text-xs text-slate-400">—</td>;
+  if (abs < 0.01) return <td className="px-2 py-1 text-center text-xs text-slate-400">—</td>;
   const color = n > 0 ? 'text-emerald-600' : 'text-red-600';
   const Icon  = n > 0 ? ArrowUp : ArrowDown;
   return (
-    <td className={`px-2 py-1 text-right text-xs font-semibold ${color}`}>
+    <td className={`px-2 py-1 text-center text-xs font-semibold ${color}`}>
       <span className="inline-flex items-center gap-0.5">
         <Icon className="size-3" />
         {n > 0 ? '+' : ''}{fmt(n)}
@@ -33,7 +33,7 @@ function DeltaCell({ val }) {
 }
 
 function NumCell({ v }) {
-  return <td className="px-2 py-1 text-right text-xs text-slate-700">{fmt(v)}</td>;
+  return <td className="px-2 py-1 text-center text-xs text-slate-700">{fmt(v)}</td>;
 }
 
 const SOURCE_BADGE = {
@@ -70,8 +70,8 @@ function T2DiffTable({ changes }) {
       <table className="w-full text-xs min-w-[700px]">
         <thead>
           <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-            <th className="px-3 py-2 text-left whitespace-nowrap">Region</th>
-            <th className="px-3 py-2 text-left whitespace-nowrap">Source</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Region</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Source</th>
             {T2_COLS.map(c => (
               <th key={c.key} colSpan={3} className="px-2 py-2 text-center whitespace-nowrap border-l border-slate-200">{c.label}</th>
             ))}
@@ -90,10 +90,10 @@ function T2DiffTable({ changes }) {
         <tbody>
           {changes.map((row, i) => (
             <tr key={row.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="px-3 py-1.5">
+              <td className="px-3 py-1.5 text-center">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${REGION_BADGE[row.region] ?? 'bg-slate-100'}`}>{row.region}</span>
               </td>
-              <td className="px-3 py-1.5">
+              <td className="px-3 py-1.5 text-center">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? 'bg-slate-100'}`}>{row.source}</span>
               </td>
               {T2_COLS.map(c => (
@@ -120,8 +120,8 @@ function T1DiffTable({ changes }) {
       <table className="w-full text-xs min-w-[500px]">
         <thead>
           <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-            <th className="px-3 py-2 text-left">Region</th>
-            <th className="px-3 py-2 text-left">Source</th>
+            <th className="px-3 py-2 text-center">Region</th>
+            <th className="px-3 py-2 text-center">Source</th>
             <th className="px-2 py-2 text-center border-l border-slate-200" colSpan={3}>Total MW</th>
             <th className="px-2 py-2 text-center border-l border-slate-200" colSpan={3}>Monthly Capacity</th>
           </tr>
@@ -136,10 +136,10 @@ function T1DiffTable({ changes }) {
         <tbody>
           {changes.map((row, i) => (
             <tr key={row.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="px-3 py-1.5">
+              <td className="px-3 py-1.5 text-center">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${REGION_BADGE[row.region] ?? 'bg-slate-100'}`}>{row.region}</span>
               </td>
-              <td className="px-3 py-1.5">
+              <td className="px-3 py-1.5 text-center">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${SOURCE_BADGE[row.source] ?? 'bg-slate-100'}`}>{row.source}</span>
               </td>
               <NumCell v={row.totalMw?.from} />
@@ -185,8 +185,8 @@ function T3DiffTable({ changes }) {
       <table className="w-full text-xs min-w-[600px]">
         <thead>
           <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-            <th className="px-3 py-2 text-left">Region</th>
-            <th className="px-3 py-2 text-left">Category</th>
+            <th className="px-3 py-2 text-center">Region</th>
+            <th className="px-3 py-2 text-center">Category</th>
             {cols.map(c => (
               <th key={c.key} colSpan={3} className="px-2 py-2 text-center border-l border-slate-200">{c.label}</th>
             ))}
@@ -205,10 +205,10 @@ function T3DiffTable({ changes }) {
         <tbody>
           {changes.map((row, i) => (
             <tr key={row.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="px-3 py-1.5">
+              <td className="px-3 py-1.5 text-center">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${REGION_BADGE[row.region] ?? 'bg-slate-100'}`}>{row.region}</span>
               </td>
-              <td className="px-3 py-1.5 font-medium text-slate-700">{row.category}</td>
+              <td className="px-3 py-1.5 text-center font-medium text-slate-700">{row.category}</td>
               {cols.map(c => (
                 <Fragment key={c.key}>
                   <NumCell v={row[c.key]?.from} />
@@ -508,34 +508,34 @@ function ChangeLog() {
           <table className="w-full text-xs">
             <thead className="bg-slate-50/60 text-[10px] text-slate-500 uppercase tracking-wide">
               <tr>
-                <th className="px-3 py-1.5 text-left">Time</th>
-                <th className="px-3 py-1.5 text-left">Type</th>
-                <th className="px-3 py-1.5 text-left">Entity</th>
-                <th className="px-3 py-1.5 text-left">Field</th>
-                <th className="px-3 py-1.5 text-left">Change</th>
-                <th className="px-3 py-1.5 text-left">By</th>
+                <th className="px-3 py-1.5 text-center">Time</th>
+                <th className="px-3 py-1.5 text-center">Type</th>
+                <th className="px-3 py-1.5 text-center">Entity</th>
+                <th className="px-3 py-1.5 text-center">Field</th>
+                <th className="px-3 py-1.5 text-center">Change</th>
+                <th className="px-3 py-1.5 text-center">By</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {grouped[day].map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/60">
-                  <td className="px-3 py-1.5 font-mono text-slate-600 whitespace-nowrap">{fmtTs(r.effectiveDate ?? r.createdAt)}</td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-1.5 text-center font-mono text-slate-600 whitespace-nowrap">{fmtTs(r.effectiveDate ?? r.createdAt)}</td>
+                  <td className="px-3 py-1.5 text-center">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${KIND_TONE[r.kind] ?? 'bg-slate-100 text-slate-700'}`}>
                       {r.kind === 'TRANSMISSION' ? 'TX' : 'GEN'}
                     </span>
                     {r.backDated && <span className="ml-1 text-[9px] px-1 rounded bg-amber-100 text-amber-700 font-semibold">back-dated</span>}
                   </td>
-                  <td className="px-3 py-1.5 font-medium text-slate-800 max-w-[220px] truncate" title={r.entityName}>
+                  <td className="px-3 py-1.5 text-center font-medium text-slate-800 max-w-[220px] truncate" title={r.entityName}>
                     {r.region && <span className="text-[10px] text-slate-400 mr-1">{r.region}</span>}{r.entityName}
                   </td>
-                  <td className="px-3 py-1.5 text-slate-600">{r.field ?? '—'}</td>
-                  <td className="px-3 py-1.5 text-slate-700">
+                  <td className="px-3 py-1.5 text-center text-slate-600">{r.field ?? '—'}</td>
+                  <td className="px-3 py-1.5 text-center text-slate-700">
                     {r.oldValue != null || r.newValue != null
                       ? <span><span className="text-rose-600">{r.oldValue ?? '—'}</span> → <span className="text-emerald-700 font-semibold">{r.newValue ?? '—'}</span></span>
                       : <span className="text-slate-500" title={r.text}>{r.text}</span>}
                   </td>
-                  <td className="px-3 py-1.5 text-slate-600 whitespace-nowrap">{r.userName}</td>
+                  <td className="px-3 py-1.5 text-center text-slate-600 whitespace-nowrap">{r.userName}</td>
                 </tr>
               ))}
             </tbody>
