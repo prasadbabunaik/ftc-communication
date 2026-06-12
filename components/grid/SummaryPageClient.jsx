@@ -1162,11 +1162,13 @@ export function SummaryPageClient({
   // (only the 6 aggregating tabs render it).
 
   const tabs = [
-    { id: 'pipeline',     label: 'FTC Pipeline',      icon: TrendingUp   },
-    { id: 'contd4',       label: 'CONTD-4 Study',     icon: Layers       },
-    { id: 'hybrid',       label: 'Hybrid Breakdown',  icon: GitBranch    },
-    { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3      },
-    { id: 'transmission', label: 'Transmission',       icon: Cable        },
+    // `tooltip` = the full table title from the source Google Sheet, shown on
+    // hover so the tab labels themselves can stay short.
+    { id: 'pipeline',     label: 'FTC Pipeline',      icon: TrendingUp,   tooltip: 'Total Generation Capacity Details Under FTC/TOC/COD (MW)' },
+    { id: 'contd4',       label: 'CONTD-4 Study',     icon: Layers,       tooltip: 'Total Capacity (MW) Under CONTD-4 Study' },
+    { id: 'hybrid',       label: 'Hybrid Breakdown',  icon: GitBranch,    tooltip: 'Total Hybrid Capacity Details Under FTC/TOC/COD (MW)' },
+    { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3,      tooltip: 'Total Generation Capacity Details Under FTC/TOC/COD (MW) (Source-wise)' },
+    { id: 'transmission', label: 'Transmission',       icon: Cable,        tooltip: 'Transmission Elements Details of FTC' },
     { id: 'activity',     label: 'FTC/TOC/COD Activity', icon: CalendarDays },
     { id: 'projects',     label: 'Project Details',   icon: ListTree     },
     { id: 'changes',      label: 'Day-wise Changes',  icon: History      },
@@ -1226,7 +1228,7 @@ export function SummaryPageClient({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                title={tab.label}
+                title={tab.tooltip || tab.label}
                 className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[13px] lg:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   active
                     ? 'border-blue-600 text-blue-600'
