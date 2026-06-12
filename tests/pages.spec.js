@@ -31,26 +31,29 @@ test.describe('Feature pages — smoke', () => {
       expect(res?.status(), `${path} returned ${res?.status()}`).toBeLessThan(400);
       // No Next.js error overlay
       await expect(page.getByText(/unhandled runtime error|application error/i)).toHaveCount(0);
-      // Some recognisable copy on the page
-      await expect(page.getByText(heading).first()).toBeVisible({ timeout: 15_000 });
+      // Some recognisable copy on the page. Filter to visible matches — the
+      // first DOM match can be hidden text (e.g. collapsed sidebar labels).
+      await expect(page.getByText(heading).filter({ visible: true }).first()).toBeVisible({ timeout: 15_000 });
     });
   }
 
+  // CSS and text engines can't be mixed inside one selector string — combine
+  // the two alternatives with locator.or() instead.
   test('FTC page renders a table or an empty state', async ({ page }) => {
     await page.goto('/ftc');
-    const tableOrEmpty = page.locator('table, text=/no data|empty|no projects/i').first();
+    const tableOrEmpty = page.locator('table').or(page.getByText(/no data|empty|no projects/i)).first();
     await expect(tableOrEmpty).toBeVisible({ timeout: 15_000 });
   });
 
   test('CONTD-4 page renders a table or empty state', async ({ page }) => {
     await page.goto('/contd4');
-    const tableOrEmpty = page.locator('table, text=/no data|empty|no applications/i').first();
+    const tableOrEmpty = page.locator('table').or(page.getByText(/no data|empty|no applications/i)).first();
     await expect(tableOrEmpty).toBeVisible({ timeout: 15_000 });
   });
 
   test('Transmission page renders a table or empty state', async ({ page }) => {
     await page.goto('/transmission');
-    const tableOrEmpty = page.locator('table, text=/no data|empty|no elements/i').first();
+    const tableOrEmpty = page.locator('table').or(page.getByText(/no data|empty|no elements/i)).first();
     await expect(tableOrEmpty).toBeVisible({ timeout: 15_000 });
   });
 

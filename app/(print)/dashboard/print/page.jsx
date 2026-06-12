@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { PrintSummaryClient } from '@/components/grid/PrintSummaryClient';
 import {
   computePipelineMatrix, buildPipelineRows,
-  computeContd4Study, computeTransmission,
+  computeContd4Study, computeTransmission, computeHybridBreakdown,
 } from '@/lib/grid-computations';
 
 export const metadata = { title: 'Print Summary — FTC Portal' };
@@ -37,6 +37,7 @@ export default async function PrintSummaryPage({ searchParams }) {
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
   const contd4Study      = computeContd4Study(projects);
   const transmissionRows = computeTransmission(txElements);
+  const hybridRows       = computeHybridBreakdown(projects, asOf);
 
   const dateLabel = asOfStr
     ? new Date(asOfStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -51,6 +52,7 @@ export default async function PrintSummaryPage({ searchParams }) {
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}
       contd4Study={JSON.parse(JSON.stringify(contd4Study))}
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
+      hybridRows={JSON.parse(JSON.stringify(hybridRows))}
       projects={JSON.parse(JSON.stringify(projects))}
     />
   );

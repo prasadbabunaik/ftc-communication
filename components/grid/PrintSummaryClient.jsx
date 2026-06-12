@@ -123,6 +123,46 @@ const PIPE_COLUMNS = [
   { key: 'expected', label: 'Expected Commissioning (MW)',           width: 54, get: r => r.expectedMw },
 ];
 
+// Per-table toggleable columns for the other sections. Like PIPE_COLUMNS, the
+// identifying label columns (Region / Source / station name…) are always shown;
+// only the data columns are toggleable.
+const CONTD4_COLUMNS = [
+  { key: 'total', label: 'Total Capacity (MW)', width: 70, get: r => r.totalMw },
+  // The per-month "Expected by …" columns are dynamic (one per month present in
+  // the data) and are appended at runtime — see contd4MonthCol().
+];
+const contd4MonthCol = (m) => ({ key: `month:${m}`, label: `Expected by ${fmtMonth(m)}`, width: 62, get: r => r.months?.[m] ?? 0 });
+
+const HYBRID_COLUMNS = [
+  { key: 'total',    label: 'Total Capacity (MW)',  width: 56, get: r => r.totalMw },
+  { key: 'contd4',   label: 'Total CONTD-4 (MW)',   width: 56, get: r => r.contd4Mw },
+  { key: 'applied',  label: 'Applied for FTC (MW)', width: 56, get: r => r.appliedMw },
+  { key: 'ftc',      label: 'FTC Approved (MW)',    width: 56, get: r => r.ftcMw },
+  { key: 'toc',      label: 'TOC Issued (MW)',      width: 56, get: r => r.tocMw },
+  { key: 'cod',      label: 'COD Completed (MW)',   width: 56, get: r => r.codMw },
+  { key: 'expected', label: 'Expected (MW)',        width: 56, get: r => r.expectedMw },
+];
+
+const TX_COLUMNS = [
+  { key: 'compNo',  label: 'FTC Completed (No.)',          width: 70 },
+  { key: 'compQty', label: 'FTC Completed (ckt km / MVA)', width: 80 },
+  { key: 'pendNo',  label: 'FTC Pending (No.)',            width: 70 },
+  { key: 'pendQty', label: 'FTC Pending (ckt km / MVA)',   width: 80 },
+];
+
+const PROJECT_COLUMNS = [
+  { key: 'pooling', label: 'Pooling Station',     width: 80 },
+  { key: 'total',   label: 'Total Capacity (MW)', width: 48 },
+  { key: 'applied', label: 'Applied (MW)',        width: 44 },
+  { key: 'ftcOK',   label: 'FTC OK (MW)',         width: 44 },
+  { key: 'ftcPend', label: 'FTC Pend (MW)',       width: 44 },
+  { key: 'tocOK',   label: 'TOC OK (MW)',         width: 44 },
+  { key: 'tocPend', label: 'TOC Pend (MW)',       width: 44 },
+  { key: 'codOK',   label: 'COD OK (MW)',         width: 44 },
+  { key: 'codPend', label: 'COD Pend (MW)',       width: 44 },
+  { key: 'exp',     label: 'Expected (MW)',       width: 48 },
+];
+
 function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
   const isRegionPrimary = primaryKey === 'region';
   const enabled = PIPE_COLUMNS.filter(c => !cols || cols.has(c.key));
@@ -195,8 +235,10 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
 
 // ── CONTD-4 table ─────────────────────────────────────────────────────────────
 
-function Contd4Table({ contd4Study, scopeRegionCode }) {
+function Contd4Table({ contd4Study, scopeRegionCode, cols }) {
   const { rows, allMonths } = contd4Study;
+  const allCols = [...CONTD4_COLUMNS, ...allMonths.map(contd4MonthCol)];
+  const enabled = allCols.filter(c => !cols || cols.has(c.key));
   // Contd4 doesn't have All-India breakdown rows but the Grand Total label
   // should still reflect the user's region when applicable.
 
@@ -217,9 +259,8 @@ function Contd4Table({ contd4Study, scopeRegionCode }) {
         <tr>
           <th style={{ width: 60, textAlign: 'left' }}>Region</th>
           <th style={{ width: 70, textAlign: 'left' }}>Source</th>
-          <th style={{ width: 70 }}>Total Capacity (MW)</th>
-          {allMonths.map(m => (
-            <th key={m} style={{ width: 62 }}>Expected by {fmtMonth(m)}</th>
+          {enabled.map(c => (
+            <th key={c.key} style={{ width: c.width }}>{c.label}</th>
           ))}
         </tr>
       </thead>
@@ -241,9 +282,8 @@ function Contd4Table({ contd4Study, scopeRegionCode }) {
                 </td>
               )}
               <td>{label2}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(row.totalMw)}</td>
-              {allMonths.map(m => (
-                <td key={m} style={{ textAlign: 'right' }}>{fmt(row.months?.[m] ?? 0)}</td>
+              {enabled.map(c => (
+                <td key={c.key} style={{ textAlign: 'right' }}>{fmt(c.get(row))}</td>
               ))}
             </tr>
           );
@@ -264,30 +304,184 @@ const CAT_LABEL = {
   ST: 'Station Transformer',
 };
 
-function TransmissionTable({ transmissionRows }) {
+function TransmissionTable({ transmissionRows, cols }) {
+  const enabled = TX_COLUMNS.filter(c => !cols || cols.has(c.key));
+  const cell = (row, key) => {
+    const isLine = row.category?.startsWith('LINE');
+    switch (key) {
+      case 'compNo':  return row.completedCount || '—';
+      case 'compQty': return fmt(isLine ? row.completedKm : row.completedMva);
+      case 'pendNo':  return row.pendingCount || '—';
+      case 'pendQty': return fmt(isLine ? row.pendingKm : row.pendingMva);
+      default:        return '—';
+    }
+  };
   return (
     <table>
       <thead>
         <tr>
           <th style={{ width: 48, textAlign: 'left' }}>Region</th>
           <th style={{ width: 150, textAlign: 'left' }}>Element Type</th>
-          <th style={{ width: 70 }}>FTC Completed (No.)</th>
-          <th style={{ width: 80 }}>FTC Completed (ckt km / MVA)</th>
-          <th style={{ width: 70 }}>FTC Pending (No.)</th>
-          <th style={{ width: 80 }}>FTC Pending (ckt km / MVA)</th>
+          {enabled.map(c => (
+            <th key={c.key} style={{ width: c.width }}>{c.label}</th>
+          ))}
         </tr>
       </thead>
       <tbody>
-        {transmissionRows.map((row, i) => {
-          const isLine = row.category?.startsWith('LINE');
+        {transmissionRows.map((row, i) => (
+          <tr key={i} className={i % 2 === 1 ? 'stripe' : ''}>
+            <td>{row.region}</td>
+            <td>{CAT_LABEL[row.category] ?? row.category}</td>
+            {enabled.map(c => (
+              <td key={c.key} style={{ textAlign: 'right' }}>{cell(row, c.key)}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// ── Hybrid Breakdown table ────────────────────────────────────────────────────
+// Print counterpart of the dashboard's Hybrid Breakdown tab: hybrid projects
+// split by constituent source components, with per-region source subtotals,
+// region grand totals and an All India footer.
+
+const HYBRID_SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP'];
+
+function buildHybridDisplayRows(rows) {
+  const out = [];
+  const sumFields = (acc, r) => {
+    for (const f of ['totalMw','contd4Mw','appliedMw','ftcMw','tocMw','codMw','expectedMw']) {
+      acc[f] = (acc[f] || 0) + (Number(r[f]) || 0);
+    }
+    return acc;
+  };
+
+  const regions = [];
+  const byRegion = new Map();
+  for (const r of rows) {
+    if (!byRegion.has(r.region)) { byRegion.set(r.region, []); regions.push(r.region); }
+    byRegion.get(r.region).push(r);
+  }
+
+  const allIndiaBySrc = {};
+  let allIndiaGrand = {};
+
+  for (const region of regions) {
+    const regionRows = byRegion.get(region);
+
+    const types = [];
+    const byType = new Map();
+    for (const r of regionRows) {
+      if (!byType.has(r.hybridType)) { byType.set(r.hybridType, []); types.push(r.hybridType); }
+      byType.get(r.hybridType).push(r);
+    }
+    for (const ht of types) {
+      for (const r of byType.get(ht)) out.push({ kind: 'data', ...r });
+    }
+
+    const bySrc = {};
+    for (const r of regionRows) {
+      bySrc[r.sourceType] = sumFields(bySrc[r.sourceType] || {}, r);
+    }
+    const orderedSrcs = HYBRID_SRC_ORDER.filter((s) => bySrc[s])
+      .concat(Object.keys(bySrc).filter((s) => !HYBRID_SRC_ORDER.includes(s)));
+    for (const s of orderedSrcs) {
+      out.push({ kind: 'subtotal', region, label: `Total ${s.charAt(0) + s.slice(1).toLowerCase()}`, ...bySrc[s] });
+      allIndiaBySrc[s] = sumFields(allIndiaBySrc[s] || {}, bySrc[s]);
+    }
+
+    const regionGrand = regionRows.reduce(sumFields, {});
+    out.push({ kind: 'regionTotal', region, label: `${region} — Total`, ...regionGrand });
+    allIndiaGrand = sumFields(allIndiaGrand, regionGrand);
+  }
+
+  const allOrderedSrcs = HYBRID_SRC_ORDER.filter((s) => allIndiaBySrc[s])
+    .concat(Object.keys(allIndiaBySrc).filter((s) => !HYBRID_SRC_ORDER.includes(s)));
+  for (const s of allOrderedSrcs) {
+    out.push({ kind: 'allIndiaSource', label: `All India — Total ${s.charAt(0) + s.slice(1).toLowerCase()}`, ...allIndiaBySrc[s] });
+  }
+  out.push({ kind: 'allIndiaGrand', label: 'Grand Total', ...allIndiaGrand });
+
+  return out;
+}
+
+function HybridTable({ hybridRows, scopeRegionCode, cols }) {
+  if (!hybridRows?.length) {
+    return <p className="text-[8pt] text-slate-500 italic px-1 py-2">No hybrid projects in the current scope.</p>;
+  }
+  const enabled = HYBRID_COLUMNS.filter(c => !cols || cols.has(c.key));
+  // For RLDC users the data covers a single region, so the All India footer
+  // would duplicate the region totals — drop it (same as the pipeline tables).
+  const display = buildHybridDisplayRows(hybridRows)
+    .filter(r => !scopeRegionCode || (r.kind !== 'allIndiaSource' && r.kind !== 'allIndiaGrand'));
+
+  // Vertically merge the Region cell across each region's run of rows, and the
+  // Hybrid Type cell across its component rows.
+  const regionSpan = new Map();
+  const typeSpan = new Map();
+  for (let i = 0; i < display.length; i++) {
+    const r = display[i];
+    if (r.kind === 'allIndiaSource' || r.kind === 'allIndiaGrand') continue;
+    const prev = display[i - 1];
+    if (!prev || prev.region !== r.region || prev.kind === 'allIndiaSource' || prev.kind === 'allIndiaGrand') {
+      let n = 0;
+      for (let j = i; j < display.length; j++) {
+        if (display[j].region === r.region && display[j].kind !== 'allIndiaSource' && display[j].kind !== 'allIndiaGrand') n++;
+        else break;
+      }
+      regionSpan.set(i, n);
+    }
+    if (r.kind === 'data' && (!prev || prev.kind !== 'data' || prev.region !== r.region || prev.hybridType !== r.hybridType)) {
+      let n = 0;
+      for (let j = i; j < display.length; j++) {
+        if (display[j].kind === 'data' && display[j].region === r.region && display[j].hybridType === r.hybridType) n++;
+        else break;
+      }
+      typeSpan.set(i, n);
+    }
+  }
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th style={{ width: 40, textAlign: 'left' }}>Region</th>
+          <th style={{ width: 110, textAlign: 'left' }}>Hybrid Type</th>
+          <th style={{ width: 60, textAlign: 'left' }}>Source (Type)</th>
+          {enabled.map(c => (
+            <th key={c.key} style={{ width: c.width }}>{c.label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {display.map((r, i) => {
+          const numCells = enabled.map(c => (
+            <td key={c.key} style={{ textAlign: 'right' }}>{fmt(c.get(r))}</td>
+          ));
+          if (r.kind === 'data') {
+            return (
+              <tr key={i}>
+                {regionSpan.has(i) && (
+                  <td rowSpan={regionSpan.get(i)} style={{ fontWeight: 700, verticalAlign: 'middle', textAlign: 'center' }}>{r.region}</td>
+                )}
+                {typeSpan.has(i) && (
+                  <td rowSpan={typeSpan.get(i)} style={{ fontWeight: 500, verticalAlign: 'middle' }}>{r.hybridType}</td>
+                )}
+                <td>{r.sourceType}</td>
+                {numCells}
+              </tr>
+            );
+          }
+          const isGrand = r.kind === 'allIndiaGrand';
           return (
-            <tr key={i} className={i % 2 === 1 ? 'stripe' : ''}>
-              <td>{row.region}</td>
-              <td>{CAT_LABEL[row.category] ?? row.category}</td>
-              <td style={{ textAlign: 'right' }}>{row.completedCount || '—'}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(isLine ? row.completedKm : row.completedMva)}</td>
-              <td style={{ textAlign: 'right' }}>{row.pendingCount || '—'}</td>
-              <td style={{ textAlign: 'right' }}>{fmt(isLine ? row.pendingKm : row.pendingMva)}</td>
+            <tr key={i} className={isGrand ? 'total-row' : 'subtotal-row'}>
+              {regionSpan.has(i) && (
+                <td rowSpan={regionSpan.get(i)} style={{ fontWeight: 700, verticalAlign: 'middle', textAlign: 'center' }}>{r.region}</td>
+              )}
+              <td colSpan={r.kind === 'allIndiaSource' || r.kind === 'allIndiaGrand' ? 3 : 2} style={{ fontWeight: 700 }}>{r.label}</td>
+              {numCells}
             </tr>
           );
         })}
@@ -298,12 +492,16 @@ function TransmissionTable({ transmissionRows }) {
 
 // ── Per-source project detail table ──────────────────────────────────────────
 
-function SourceProjectTable({ source, projects, scopeRegionCode }) {
+function SourceProjectTable({ source, projects, scopeRegionCode, cols }) {
   const cleared = (projects ?? []).filter(p => {
     if (p.contd4?.status !== 'CLEARED') return false;
     return getProjectSource(p) === source;
   });
   if (!cleared.length) return null;
+
+  const has = (key) => !cols || cols.has(key);
+  // Sr. / Generating Station / Region identify the row and are always shown.
+  const labelColSpan = 3 + (has('pooling') ? 1 : 0);
 
   // sort by region order
   const sorted = [...cleared].sort((a, b) =>
@@ -332,17 +530,17 @@ function SourceProjectTable({ source, projects, scopeRegionCode }) {
           <tr>
             <th style={{ width: 22, textAlign: 'center' }}>Sr.</th>
             <th style={{ textAlign: 'left' }}>Generating Station</th>
-            <th style={{ width: 80, textAlign: 'left' }}>Pooling Station</th>
+            {has('pooling') && <th style={{ width: 80, textAlign: 'left' }}>Pooling Station</th>}
             <th style={{ width: 30, textAlign: 'center' }}>Rgn.</th>
-            <th style={{ width: 48 }}>Total Capacity (MW)</th>
-            <th style={{ width: 44 }}>Applied (MW)</th>
-            <th style={{ width: 44 }}>FTC OK (MW)</th>
-            <th style={{ width: 44 }}>FTC Pend (MW)</th>
-            <th style={{ width: 44 }}>TOC OK (MW)</th>
-            <th style={{ width: 44 }}>TOC Pend (MW)</th>
-            <th style={{ width: 44 }}>COD OK (MW)</th>
-            <th style={{ width: 44 }}>COD Pend (MW)</th>
-            <th style={{ width: 48 }}>Expected (MW)</th>
+            {has('total')   && <th style={{ width: 48 }}>Total Capacity (MW)</th>}
+            {has('applied') && <th style={{ width: 44 }}>Applied (MW)</th>}
+            {has('ftcOK')   && <th style={{ width: 44 }}>FTC OK (MW)</th>}
+            {has('ftcPend') && <th style={{ width: 44 }}>FTC Pend (MW)</th>}
+            {has('tocOK')   && <th style={{ width: 44 }}>TOC OK (MW)</th>}
+            {has('tocPend') && <th style={{ width: 44 }}>TOC Pend (MW)</th>}
+            {has('codOK')   && <th style={{ width: 44 }}>COD OK (MW)</th>}
+            {has('codPend') && <th style={{ width: 44 }}>COD Pend (MW)</th>}
+            {has('exp')     && <th style={{ width: 48 }}>Expected (MW)</th>}
           </tr>
         </thead>
         <tbody>
@@ -353,33 +551,33 @@ function SourceProjectTable({ source, projects, scopeRegionCode }) {
               <tr key={p.id ?? i} className={i % 2 === 1 ? 'stripe' : ''}>
                 <td style={{ textAlign: 'center', color: '#64748b' }}>{i + 1}</td>
                 <td style={{ fontWeight: 500 }}>{p.name}</td>
-                <td style={{ color: '#475569' }}>{p.poolingStation?.name ?? '—'}</td>
+                {has('pooling') && <td style={{ color: '#475569' }}>{p.poolingStation?.name ?? '—'}</td>}
                 <td style={{ textAlign: 'center', fontWeight: 700 }}>{p.region?.code}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(p.totalCapacityMw)}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.capacityAppliedMw)}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.ftcCompletedMw)}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.capacityUnderFtcMw)}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.tocIssuedMw)}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.capacityUnderTocMw)}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.codDeclaredMw)}</td>
-                <td style={{ textAlign: 'right' }}>{codPend > 0.01 ? fmt(codPend) : '—'}</td>
-                <td style={{ textAlign: 'right' }}>{fmt(ph.expectedApr26Mw)}</td>
+                {has('total')   && <td style={{ textAlign: 'right' }}>{fmt(p.totalCapacityMw)}</td>}
+                {has('applied') && <td style={{ textAlign: 'right' }}>{fmt(ph.capacityAppliedMw)}</td>}
+                {has('ftcOK')   && <td style={{ textAlign: 'right' }}>{fmt(ph.ftcCompletedMw)}</td>}
+                {has('ftcPend') && <td style={{ textAlign: 'right' }}>{fmt(ph.capacityUnderFtcMw)}</td>}
+                {has('tocOK')   && <td style={{ textAlign: 'right' }}>{fmt(ph.tocIssuedMw)}</td>}
+                {has('tocPend') && <td style={{ textAlign: 'right' }}>{fmt(ph.capacityUnderTocMw)}</td>}
+                {has('codOK')   && <td style={{ textAlign: 'right' }}>{fmt(ph.codDeclaredMw)}</td>}
+                {has('codPend') && <td style={{ textAlign: 'right' }}>{codPend > 0.01 ? fmt(codPend) : '—'}</td>}
+                {has('exp')     && <td style={{ textAlign: 'right' }}>{fmt(ph.expectedApr26Mw)}</td>}
               </tr>
             );
           })}
         </tbody>
         <tfoot>
           <tr className="subtotal-row">
-            <td colSpan={4} style={{ fontWeight: 700 }}>{scopeRegionCode ?? 'All India'} {source} Total ({sorted.length} projects)</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.total)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.applied)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.ftcOK)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.ftcPend)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.tocOK)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.tocPend)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.codOK)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.codPend > 0.01 ? total.codPend : 0)}</td>
-            <td style={{ textAlign: 'right' }}>{fmt(total.exp)}</td>
+            <td colSpan={labelColSpan} style={{ fontWeight: 700 }}>{scopeRegionCode ?? 'All India'} {source} Total ({sorted.length} projects)</td>
+            {has('total')   && <td style={{ textAlign: 'right' }}>{fmt(total.total)}</td>}
+            {has('applied') && <td style={{ textAlign: 'right' }}>{fmt(total.applied)}</td>}
+            {has('ftcOK')   && <td style={{ textAlign: 'right' }}>{fmt(total.ftcOK)}</td>}
+            {has('ftcPend') && <td style={{ textAlign: 'right' }}>{fmt(total.ftcPend)}</td>}
+            {has('tocOK')   && <td style={{ textAlign: 'right' }}>{fmt(total.tocOK)}</td>}
+            {has('tocPend') && <td style={{ textAlign: 'right' }}>{fmt(total.tocPend)}</td>}
+            {has('codOK')   && <td style={{ textAlign: 'right' }}>{fmt(total.codOK)}</td>}
+            {has('codPend') && <td style={{ textAlign: 'right' }}>{fmt(total.codPend > 0.01 ? total.codPend : 0)}</td>}
+            {has('exp')     && <td style={{ textAlign: 'right' }}>{fmt(total.exp)}</td>}
           </tr>
         </tfoot>
       </table>
@@ -431,10 +629,13 @@ function PrintToolbar({ dateLabel, panelOpen, onTogglePanel }) {
 // Lets the user drop whole tables or individual pipeline columns before
 // printing / saving to PDF. Everything is selected by default.
 
+// Section order mirrors the dashboard tab order: FTC Pipeline, CONTD-4 Study,
+// Hybrid Breakdown, Source-wise, Transmission, Project Details.
 const PRINT_TABLES = [
-  { id: 'region',       label: 'Region-wise Pipeline' },
-  { id: 'source',       label: 'Source-wise Pipeline' },
+  { id: 'region',       label: 'FTC Pipeline (Region-wise)' },
   { id: 'contd4',       label: 'CONTD-4 Study' },
+  { id: 'hybrid',       label: 'Hybrid Breakdown' },
+  { id: 'source',       label: 'Source-wise Pipeline' },
   { id: 'transmission', label: 'Transmission' },
   { id: 'sources',      label: 'Per-source Project Details' },
 ];
@@ -448,19 +649,58 @@ function CheckRow({ checked, onChange, label }) {
   );
 }
 
-function PrintControls({ tables, setTables, cols, setCols }) {
-  const toggle = (set, setter, id) => {
+function ColumnGroup({ title, columns, set, onChange }) {
+  const all = new Set(columns.map(c => c.key));
+  const sameSet = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+  const toggle = (key) => {
     const next = new Set(set);
+    next.has(key) ? next.delete(key) : next.add(key);
+    onChange(next);
+  };
+  return (
+    <div className="border border-slate-200 rounded-md p-2.5">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{title}</p>
+        <button
+          onClick={() => onChange(sameSet(set, all) ? new Set() : new Set(all))}
+          className="text-[11px] text-blue-600 hover:underline"
+        >
+          {sameSet(set, all) ? 'Clear all' : 'Select all'}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4">
+        {columns.map(c => (
+          <CheckRow key={c.key} label={c.label.replace(' (MW)', '')} checked={set.has(c.key)} onChange={() => toggle(c.key)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Per-table column groups: each visible table gets its own column picker, with
+// only the columns that table actually has.
+function PrintControls({ tables, setTables, colSets, setColSet, contd4Months }) {
+  const toggleTable = (id) => {
+    const next = new Set(tables);
     next.has(id) ? next.delete(id) : next.add(id);
-    setter(next);
+    setTables(next);
   };
   const allTables = new Set(PRINT_TABLES.map(t => t.id));
-  const allCols   = new Set(PIPE_COLUMNS.map(c => c.key));
   const sameSet = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
 
+  const contd4AllCols = [...CONTD4_COLUMNS, ...contd4Months.map(contd4MonthCol)];
+  const GROUPS = [
+    { id: 'region',       title: 'FTC Pipeline columns',       columns: PIPE_COLUMNS },
+    { id: 'contd4',       title: 'CONTD-4 Study columns',      columns: contd4AllCols },
+    { id: 'hybrid',       title: 'Hybrid Breakdown columns',   columns: HYBRID_COLUMNS },
+    { id: 'source',       title: 'Source-wise columns',        columns: PIPE_COLUMNS },
+    { id: 'transmission', title: 'Transmission columns',       columns: TX_COLUMNS },
+    { id: 'sources',      title: 'Project Details columns',    columns: PROJECT_COLUMNS },
+  ];
+
   return (
-    <div className="no-print fixed top-[52px] left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-md px-5 py-3">
-      <div className="max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
+    <div className="no-print fixed top-[52px] left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-md px-5 py-3 max-h-[70vh] overflow-y-auto">
+      <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[230px_1fr] gap-6">
         {/* Tables */}
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -473,26 +713,21 @@ function PrintControls({ tables, setTables, cols, setCols }) {
             </button>
           </div>
           {PRINT_TABLES.map(t => (
-            <CheckRow key={t.id} label={t.label} checked={tables.has(t.id)} onChange={() => toggle(tables, setTables, t.id)} />
+            <CheckRow key={t.id} label={t.label} checked={tables.has(t.id)} onChange={() => toggleTable(t.id)} />
           ))}
+          <p className="text-[10px] text-slate-400 mt-1.5">Each selected table gets its own column picker on the right. Identifying columns (Region, Source, station name…) are always included.</p>
         </div>
-        {/* Pipeline columns */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Pipeline table columns</p>
-            <button
-              onClick={() => setCols(sameSet(cols, allCols) ? new Set() : new Set(allCols))}
-              className="text-[11px] text-blue-600 hover:underline"
-            >
-              {sameSet(cols, allCols) ? 'Clear all' : 'Select all'}
-            </button>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-6">
-            {PIPE_COLUMNS.map(c => (
-              <CheckRow key={c.key} label={c.label.replace(' (MW)', '')} checked={cols.has(c.key)} onChange={() => toggle(cols, setCols, c.key)} />
-            ))}
-          </div>
-          <p className="text-[10px] text-slate-400 mt-1.5">Region &amp; Source label columns are always included. Applies to the two pipeline tables.</p>
+        {/* Per-table columns — only for tables that are switched on */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {GROUPS.filter(g => tables.has(g.id)).map(g => (
+            <ColumnGroup
+              key={g.id}
+              title={g.title}
+              columns={g.columns}
+              set={colSets[g.id]}
+              onChange={(next) => setColSet(g.id, next)}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -501,10 +736,20 @@ function PrintControls({ tables, setTables, cols, setCols }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, projects }) {
+export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [tables, setTables] = useState(() => new Set(PRINT_TABLES.map(t => t.id)));
-  const [cols, setCols]     = useState(() => new Set(PIPE_COLUMNS.map(c => c.key)));
+  // One column set per table — everything on by default.
+  const contd4Months = contd4Study?.allMonths ?? [];
+  const [colSets, setColSets] = useState(() => ({
+    region:       new Set(PIPE_COLUMNS.map(c => c.key)),
+    source:       new Set(PIPE_COLUMNS.map(c => c.key)),
+    contd4:       new Set([...CONTD4_COLUMNS, ...contd4Months.map(contd4MonthCol)].map(c => c.key)),
+    hybrid:       new Set(HYBRID_COLUMNS.map(c => c.key)),
+    transmission: new Set(TX_COLUMNS.map(c => c.key)),
+    sources:      new Set(PROJECT_COLUMNS.map(c => c.key)),
+  }));
+  const setColSet = (id, next) => setColSets(prev => ({ ...prev, [id]: next }));
 
   // No auto-print: the user lands on the page so the Customize / Print controls
   // are visible. They adjust tables & columns, then hit "Print / Save as PDF".
@@ -534,29 +779,29 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
       `}</style>
 
       <PrintToolbar dateLabel={dateLabel} panelOpen={panelOpen} onTogglePanel={togglePanel} />
-      {panelOpen && <PrintControls tables={tables} setTables={setTables} cols={cols} setCols={setCols} />}
+      {panelOpen && (
+        <PrintControls
+          tables={tables}
+          setTables={setTables}
+          colSets={colSets}
+          setColSet={setColSet}
+          contd4Months={contd4Months}
+        />
+      )}
 
       <div className="print-page">
         <div className="inner">
           <DocHeader dateLabel={dateLabel} scopeRegionCode={scopeRegionCode} scopeRegionName={scopeRegionName} />
 
-          {/* ── Region-wise Pipeline ── */}
+          {/* Sections mirror the dashboard tab order. */}
+
+          {/* ── FTC Pipeline (Region-wise) ── */}
           {tables.has('region') && (
             <div className="mb-6">
               <SectionTitle tableNo={nextNo()}>
                 Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
               </SectionTitle>
-              <PipelineTable rows={table2Rows} primaryKey="region" scopeRegionCode={scopeRegionCode} cols={cols} />
-            </div>
-          )}
-
-          {/* ── Source-wise Pipeline ── */}
-          {tables.has('source') && (
-            <div className="mb-6 page-break">
-              <SectionTitle tableNo={nextNo()}>
-                Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
-              </SectionTitle>
-              <PipelineTable rows={table5Rows} primaryKey="source" scopeRegionCode={scopeRegionCode} cols={cols} />
+              <PipelineTable rows={table2Rows} primaryKey="region" scopeRegionCode={scopeRegionCode} cols={colSets.region} />
             </div>
           )}
 
@@ -566,7 +811,27 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
               <SectionTitle tableNo={nextNo()}>
                 Total Capacity Under CONTD-4 Study (MW) — Region &amp; Source-wise
               </SectionTitle>
-              <Contd4Table contd4Study={contd4Study} scopeRegionCode={scopeRegionCode} />
+              <Contd4Table contd4Study={contd4Study} scopeRegionCode={scopeRegionCode} cols={colSets.contd4} />
+            </div>
+          )}
+
+          {/* ── Hybrid Breakdown ── */}
+          {tables.has('hybrid') && (
+            <div className="mb-6 page-break">
+              <SectionTitle tableNo={nextNo()}>
+                Total Hybrid Capacity Details Under FTC / TOC / COD (MW)
+              </SectionTitle>
+              <HybridTable hybridRows={hybridRows} scopeRegionCode={scopeRegionCode} cols={colSets.hybrid} />
+            </div>
+          )}
+
+          {/* ── Source-wise Pipeline ── */}
+          {tables.has('source') && (
+            <div className="mb-6 page-break">
+              <SectionTitle tableNo={nextNo()}>
+                Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
+              </SectionTitle>
+              <PipelineTable rows={table5Rows} primaryKey="source" scopeRegionCode={scopeRegionCode} cols={colSets.source} />
             </div>
           )}
 
@@ -576,7 +841,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
               <SectionTitle tableNo={nextNo()}>
                 Transmission Elements Under Process of FTC — Region-wise
               </SectionTitle>
-              <TransmissionTable transmissionRows={transmissionRows} />
+              <TransmissionTable transmissionRows={transmissionRows} cols={colSets.transmission} />
             </div>
           )}
 
@@ -588,7 +853,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
                 <SectionTitle tableNo={`${detailNo}.${idx + 1}`}>
                   {src} — Project-wise Generation Capacity Details Under FTC / TOC / COD
                 </SectionTitle>
-                <SourceProjectTable source={src} projects={projects} scopeRegionCode={scopeRegionCode} />
+                <SourceProjectTable source={src} projects={projects} scopeRegionCode={scopeRegionCode} cols={colSets.sources} />
               </div>
             ));
           })()}
