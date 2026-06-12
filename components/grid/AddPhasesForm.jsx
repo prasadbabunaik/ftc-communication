@@ -72,7 +72,7 @@ const EMPTY_PHASE = {
   proposedFtcDate:    '',
   capacityUnderFtcMw: '',
   capacityUnderTocMw: '',
-  expectedApr26Mw:    '',
+  expectedApr26Mw:    '0',
   expectedMonth:      '',
   delayRemarks:       '',
   otherRemarks:       '',
@@ -128,7 +128,7 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     proposedFtcDate:    ph.proposedFtcDate    ? new Date(ph.proposedFtcDate).toISOString().slice(0, 10) : '',
     capacityUnderFtcMw: ph.capacityUnderFtcMw != null ? String(Number(ph.capacityUnderFtcMw)) : '',
     capacityUnderTocMw: ph.capacityUnderTocMw != null ? String(Number(ph.capacityUnderTocMw)) : '',
-    expectedApr26Mw:    ph.expectedApr26Mw    != null ? String(Number(ph.expectedApr26Mw))    : '',
+    expectedApr26Mw:    ph.expectedApr26Mw    != null ? String(Number(ph.expectedApr26Mw))    : '0',
     expectedMonth:      ph.expectedMonth ?? defaultMonth,
     delayRemarks:       ph.delayRemarks ?? '',
     otherRemarks:       ph.otherRemarks ?? '',
@@ -780,10 +780,8 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   // nested event-array edits (add/edit/delete MW) — form.watch can miss these.
   const watchedFtcEvents = useWatch({ control: form.control, name: `${prefix}.ftcEvents` }) ?? [];
   const watchedTocEvents = useWatch({ control: form.control, name: `${prefix}.tocEvents` }) ?? [];
-  const watchedCodEvents = useWatch({ control: form.control, name: `${prefix}.codEvents` }) ?? [];
   const ftcTotal = watchedFtcEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const tocTotal = watchedTocEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
-  const codTotal = watchedCodEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
 
   const tocGated = isHybrid && srcState.ftc === 0 && ftcTotal === 0;
   const codGated = isHybrid && srcState.toc === 0 && tocTotal === 0;
@@ -805,10 +803,12 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
 
   // Auto-derive the dependent fields from the entered milestones/events so they
   // always track add/edit/delete LIVE:
-  //   Under FTC = Applied − FTC,  Under TOC = FTC − TOC,  Expected = Applied − COD.
+  //   Under FTC = Applied − FTC,  Under TOC = FTC − TOC.
   // These run on open too (not gated on dirty) so a stale stored value is
   // corrected immediately and the fields visibly follow every edit. setValue
   // uses shouldDirty off, so recomputing never marks the form dirty on its own.
+  // Expected (MW) is deliberately NOT derived — it defaults to 0 and is set
+  // manually by the operator.
   const r3 = (n) => Math.round(n * 1000) / 1000;
   const syncDerived = (field, value) => {
     const cur = parseFloat(form.getValues(`${prefix}.${field}`) || '0') || 0;
@@ -820,9 +820,6 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   useEffect(() => {
     syncDerived('capacityUnderTocMw', Math.max(0, r3(ftcTotal - tocTotal)));
   }, [ftcTotal, tocTotal]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    syncDerived('expectedApr26Mw', Math.max(0, r3(appliedMw - codTotal)));
-  }, [appliedMw, codTotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
