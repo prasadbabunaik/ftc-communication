@@ -132,6 +132,16 @@ export default async function DashboardPage({ searchParams }) {
   // tab) — the table is inherently scoped to hybrid projects, so region is the
   // only meaningful axis. Uses the unfiltered project set.
   const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
+
+  // BESS Data tab: plain BESS plants + hybrids carrying a BESS component +
+  // intra-state storage. Like the hybrid tab it ignores the source filter
+  // (the tab is source-specific already); region scope still applies.
+  const bessProjects = projects.filter((p) =>
+    p.isIntrastate ||
+    p.plantType?.code === 'BESS' ||
+    (p.plantType?.isHybrid &&
+      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS'))
+  );
   const activity         = computeMilestoneActivity(viewProjects, activityFrom, activityTo, componentSources);
 
   // Stat-card totals reuse the same milestone aggregation as the pipeline
@@ -274,6 +284,7 @@ export default async function DashboardPage({ searchParams }) {
       contd4Study={JSON.parse(JSON.stringify(contd4Study))}
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
+      bessProjects={JSON.parse(JSON.stringify(bessProjects))}
       activity={JSON.parse(JSON.stringify(activity))}
       projects={JSON.parse(JSON.stringify(viewProjects))}
       txElements={JSON.parse(JSON.stringify(txElements))}

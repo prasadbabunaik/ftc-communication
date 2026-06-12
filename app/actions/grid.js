@@ -293,6 +293,9 @@ export async function createGenerationProject(formData) {
         windCapacityMw:  parseDecimal(data.windCapacityMw),
         solarCapacityMw: parseDecimal(data.solarCapacityMw),
         bessCapacityMw:  parseDecimal(data.bessCapacityMw),
+        // Intra-state BESS only — the client gates the checkbox to the BESS
+        // plant type; mirror that here so other types can't carry the flag.
+        isIntrastate: !!data.isIntrastate && data.plantTypeCode === 'BESS',
         createdById: user.id,
         // Legacy onboarding ("Already CONTD-4 cleared") enters the project
         // straight into the FTC pipeline. A plain new CONTD-4 application
@@ -1074,7 +1077,12 @@ export async function addCommissioningPhases(projectId, formData) {
     return { error: 'Access denied.' };
   }
 
-  const parsed = createPhasesSchema.safeParse(formData);
+  // isIntrastate is server-authoritative: stamp it from the project row so a
+  // client can't bypass the COD ≤ TOC rule by sending the flag manually.
+  const parsed = createPhasesSchema.safeParse({
+    ...formData,
+    phases: (formData?.phases ?? []).map((p) => ({ ...p, isIntrastate: project.isIntrastate })),
+  });
   if (!parsed.success) return { error: parsed.error.flatten() };
 
   // Per-source capacity cap validation for hybrid projects
@@ -1201,7 +1209,11 @@ export async function upsertProjectPhases(projectId, formData) {
     return { error: 'Access denied.' };
   }
 
-  const parsed = createPhasesSchema.safeParse(formData);
+  // isIntrastate is server-authoritative (see addCommissioningPhases).
+  const parsed = createPhasesSchema.safeParse({
+    ...formData,
+    phases: (formData?.phases ?? []).map((p) => ({ ...p, isIntrastate: project.isIntrastate })),
+  });
   if (!parsed.success) return { error: parsed.error.flatten() };
 
   // Per-source capacity cap validation: only counts NEW phases (not the

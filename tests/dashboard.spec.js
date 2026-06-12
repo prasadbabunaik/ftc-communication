@@ -7,6 +7,7 @@ const TABS = [
   'Hybrid Breakdown',
   'Source-wise',
   'Transmission',
+  'BESS Data',
   'FTC/TOC/COD Activity',
   'Project Details',
   'Day-wise Changes',
@@ -35,7 +36,7 @@ test.describe('Dashboard', () => {
     }
   });
 
-  test('all eight tabs are present and switchable', async ({ page }) => {
+  test('all dashboard tabs are present and switchable', async ({ page }) => {
     for (const tab of TABS) {
       const btn = page.getByRole('button', { name: new RegExp(tab, 'i') }).first();
       await expect(btn, `tab "${tab}" should be in the nav`).toBeVisible();

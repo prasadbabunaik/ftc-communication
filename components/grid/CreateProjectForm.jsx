@@ -134,6 +134,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
       windCapacityMw: '',
       solarCapacityMw: '',
       bessCapacityMw: '',
+      isIntrastate: false,
       createContd4: false,
       contd4: {
         applicationDate: '',
@@ -185,6 +186,9 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
   useEffect(() => {
     form.setValue('plantTypeId', derived.id ?? '', { shouldValidate: true });
     form.setValue('plantTypeCode', derived.code ?? '', { shouldValidate: true });
+    // Intra-state only applies to the plain BESS type — clear the flag if the
+    // selection changes to anything else so it can't be submitted stale.
+    if (derived.code !== 'BESS') form.setValue('isIntrastate', false);
   }, [derived.id, derived.code]);
 
   useEffect(() => {
@@ -330,6 +334,21 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                     <p className="text-xs font-medium text-muted-foreground">
                       → {derived.label}{derived.isHybrid && !derived.id ? ' (new hybrid type)' : ''}
                     </p>
+                  )}
+                  {/* Intra-state BESS — only meaningful for the plain BESS type.
+                      State-network storage records COD only (no FTC/TOC). */}
+                  {derived.code === 'BESS' && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Checkbox
+                        id="isIntrastate"
+                        checked={form.watch('isIntrastate') ?? false}
+                        onCheckedChange={(v) => form.setValue('isIntrastate', !!v)}
+                      />
+                      <label htmlFor="isIntrastate" className="text-xs font-medium cursor-pointer">
+                        Intra-state BESS{' '}
+                        <span className="text-muted-foreground font-normal">(state network — only COD is recorded, no FTC/TOC)</span>
+                      </label>
+                    </div>
                   )}
                 </div>
                 <FormMessage />

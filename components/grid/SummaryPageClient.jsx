@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer } from 'lucide-react';
+import { BarChart3, BatteryCharging, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useSettings } from '@/providers/settings-provider';
 import { SnapshotCompareTab } from '@/components/grid/SnapshotCompareTab';
+import { BessDataTab } from '@/components/grid/BessDataTab';
 import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
 import { TabBreakdown } from '@/components/grid/TabBreakdown';
 import { AsOfDatePicker } from '@/components/grid/AsOfDatePicker';
@@ -1184,7 +1185,7 @@ export function SummaryPageClient({
   regions = [], selectedRegions = [], canFilterRegion = false,
   sources = [], selectedSources = [],
   stats, table2Rows, table5Rows, contd4Study,
-  transmissionRows, hybridRows, activity, projects, txElements,
+  transmissionRows, hybridRows, bessProjects = [], activity, projects, txElements,
   availableSnapshots,
 }) {
   const [activeTab, setActiveTab] = useState('pipeline');
@@ -1203,6 +1204,7 @@ export function SummaryPageClient({
     { id: 'hybrid',       label: 'Hybrid Breakdown',  icon: GitBranch,    tooltip: 'Total Hybrid Capacity Details Under FTC/TOC/COD (MW)' },
     { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3,      tooltip: 'Total Generation Capacity Details Under FTC/TOC/COD (MW) (Source-wise)' },
     { id: 'transmission', label: 'Transmission',       icon: Cable,        tooltip: 'Transmission Elements Details of FTC' },
+    { id: 'bess',         label: 'BESS Data',          icon: BatteryCharging, tooltip: 'BESS Data — Inter-state & Intra-state (MW)' },
     { id: 'activity',     label: 'FTC/TOC/COD Activity', icon: CalendarDays },
     { id: 'projects',     label: 'Project Details',   icon: ListTree     },
     { id: 'changes',      label: 'Day-wise Changes',  icon: History      },
@@ -1286,7 +1288,7 @@ export function SummaryPageClient({
           <SourcePicker
             sources={sources}
             selectedSources={selectedSources}
-            disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid'}
+            disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid' || activeTab === 'bess'}
           />
         </div>
       </div>
@@ -1339,6 +1341,14 @@ export function SummaryPageClient({
 
         {activeTab === 'transmission' && (
           <TransmissionSummaryTable transmissionRows={transmissionRows} refMonthLabel={refMonthLabel} onViewBreakup={() => setBreakdownOpen(true)} />
+        )}
+
+        {activeTab === 'bess' && (
+          <BessDataTab
+            bessProjects={bessProjects}
+            referenceMonth={settings.referenceMonth}
+            refMonthName={refMonthLabel.startsWith('Exp. ') ? refMonthLabel.slice(5) : 'reference month'}
+          />
         )}
 
         {activeTab === 'activity' && (

@@ -720,6 +720,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
               totalCapacityMw={project.totalCapacityMw}
               existingCodMw={commissionedMw}
               plantType={project.plantType}
+              isIntrastate={!!project.isIntrastate}
               windCapacityMw={project.windCapacityMw}
               solarCapacityMw={project.solarCapacityMw}
               bessCapacityMw={project.bessCapacityMw}

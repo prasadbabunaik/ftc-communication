@@ -132,6 +132,19 @@ model GenerationProject {
   // showing without a backfill gap.
   inFtcPipeline Boolean @default(false)
 
+  // Intra-state BESS: connected to a state network rather than the inter-state
+  // grid. These projects only record COD (FTC/TOC are inter-state milestones)
+  // and are listed in the BESS Data tab's intra-state section.
+  isIntrastate Boolean @default(false)
+
+  // State where the plant is situated (e.g. "Rajasthan") — the BESS Data
+  // tab's "State (situated)" column.
+  stateName String?
+
+  // Cumulative energy commissioned (MWh) — BESS-specific figure from the
+  // source sheet; display-only for now.
+  energyCommissionedMwh Decimal? @db.Decimal(12, 2)
+
   // Active period — a project is "live" on date D when:
   //     activeFrom <= D AND (activeUntil IS NULL OR activeUntil > D)
   // Soft-delete sets activeUntil = NOW(); reactivation sets it back to NULL.

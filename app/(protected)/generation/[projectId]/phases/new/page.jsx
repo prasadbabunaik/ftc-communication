@@ -80,6 +80,7 @@ export default async function AddPhasePage({ params }) {
         totalCapacityMw={Number(project.totalCapacityMw)}
         existingCodMw={existingCodMw}
         plantType={serialize(project.plantType)}
+        isIntrastate={!!project.isIntrastate}
         windCapacityMw={project.windCapacityMw ? Number(project.windCapacityMw) : null}
         solarCapacityMw={project.solarCapacityMw ? Number(project.solarCapacityMw) : null}
         bessCapacityMw={project.bessCapacityMw ? Number(project.bessCapacityMw) : null}

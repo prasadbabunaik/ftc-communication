@@ -164,6 +164,9 @@ export function AddPhasesForm({
   existingPhases = [],
   sourceUsed,
   userRole,
+  // Intra-state BESS: state-network storage that only records COD — the FTC
+  // and TOC lanes are hidden and the COD ≤ TOC rule is skipped.
+  isIntrastate = false,
   onSuccess,
   onCancel,
 }) {
@@ -274,7 +277,8 @@ export function AddPhasesForm({
     for (const ph of byType.values()) {
       rows.push(existingPhaseToFormRow(ph, defaultExpectedMonth));
     }
-    return rows;
+    // The schema needs the flag per row to skip the COD ≤ TOC rule.
+    return rows.map((r) => ({ ...r, isIntrastate }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -366,8 +370,8 @@ export function AddPhasesForm({
       if (cap != null && applied > cap + 0.01) {
         msgs.push(`Applied (${applied.toFixed(1)} MW) exceeds ${plantType.isHybrid ? `${s} ` : ''}capacity (${cap.toFixed(1)} MW)`);
       }
-      if (toc > ftc + 0.001) msgs.push(`TOC (${toc.toFixed(1)} MW) exceeds FTC (${ftc.toFixed(1)} MW)`);
-      if (cod > toc + 0.001) msgs.push(`COD (${cod.toFixed(1)} MW) exceeds TOC (${toc.toFixed(1)} MW)`);
+      if (!isIntrastate && toc > ftc + 0.001) msgs.push(`TOC (${toc.toFixed(1)} MW) exceeds FTC (${ftc.toFixed(1)} MW)`);
+      if (!isIntrastate && cod > toc + 0.001) msgs.push(`COD (${cod.toFixed(1)} MW) exceeds TOC (${toc.toFixed(1)} MW)`);
       if (msgs.length) errs[s] = msgs;
     }
     return errs;
@@ -577,6 +581,7 @@ export function AddPhasesForm({
             refMonthLabel={refMonthLabel}
             canPickExpectedMonth={canPickExpectedMonth}
             capForSource={capForSource}
+            isIntrastate={isIntrastate}
           />
         ))}
 
@@ -775,7 +780,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -860,56 +865,62 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         </div>
       </div>
 
-      {/* Proposed FTC date + Under FTC */}
-      <div className="grid grid-cols-2 gap-4">
-        <DateField prefix={prefix} name="proposedFtcDate" label="Proposed FTC Date" form={form} errors={errors} />
-        <Field prefix={prefix} name="capacityUnderFtcMw" label="Under FTC (MW)" type="number" form={form} errors={errors} />
-      </div>
+      {/* Intra-state BESS records COD only — the FTC/TOC lanes (and their
+          dependent fields) don't apply to state-network storage. */}
+      {!isIntrastate && (
+        <>
+          {/* Proposed FTC date + Under FTC */}
+          <div className="grid grid-cols-2 gap-4">
+            <DateField prefix={prefix} name="proposedFtcDate" label="Proposed FTC Date" form={form} errors={errors} />
+            <Field prefix={prefix} name="capacityUnderFtcMw" label="Under FTC (MW)" type="number" form={form} errors={errors} />
+          </div>
 
-      {/* FTC events */}
-      <EventList
-        phaseIndex={index}
-        milestone="FTC"
-        form={form}
-        gated={false}
-        refMonthLabel={refMonthLabel}
-        canPickExpectedMonth={canPickExpectedMonth}
-        limitMw={ftcLimit}
-        limitLabel="Applied capacity"
-      />
+          {/* FTC events */}
+          <EventList
+            phaseIndex={index}
+            milestone="FTC"
+            form={form}
+            gated={false}
+            refMonthLabel={refMonthLabel}
+            canPickExpectedMonth={canPickExpectedMonth}
+            limitMw={ftcLimit}
+            limitLabel="Applied capacity"
+          />
 
-      {/* TOC events */}
-      <EventList
-        phaseIndex={index}
-        milestone="TOC"
-        form={form}
-        gated={tocGated}
-        gatedMsg={`Requires ${selectedSource} FTC to be completed first`}
-        refMonthLabel={refMonthLabel}
-        canPickExpectedMonth={canPickExpectedMonth}
-        limitMw={tocLimit}
-        limitLabel="Total FTC"
-        priorEvents={watchedFtcEvents}
-        priorLabel="FTC"
-      />
+          {/* TOC events */}
+          <EventList
+            phaseIndex={index}
+            milestone="TOC"
+            form={form}
+            gated={tocGated}
+            gatedMsg={`Requires ${selectedSource} FTC to be completed first`}
+            refMonthLabel={refMonthLabel}
+            canPickExpectedMonth={canPickExpectedMonth}
+            limitMw={tocLimit}
+            limitLabel="Total FTC"
+            priorEvents={watchedFtcEvents}
+            priorLabel="FTC"
+          />
 
-      {/* Under TOC */}
-      <div className="grid grid-cols-2 gap-4">
-        <Field prefix={prefix} name="capacityUnderTocMw" label="Under TOC (MW)" type="number" form={form} errors={errors} />
-      </div>
+          {/* Under TOC */}
+          <div className="grid grid-cols-2 gap-4">
+            <Field prefix={prefix} name="capacityUnderTocMw" label="Under TOC (MW)" type="number" form={form} errors={errors} />
+          </div>
+        </>
+      )}
 
       {/* COD events */}
       <EventList
         phaseIndex={index}
         milestone="COD"
         form={form}
-        gated={codGated}
+        gated={isIntrastate ? false : codGated}
         gatedMsg={`Requires ${selectedSource} TOC to be issued first`}
         refMonthLabel={refMonthLabel}
         canPickExpectedMonth={canPickExpectedMonth}
-        limitMw={codLimit}
-        limitLabel="Total TOC"
-        priorEvents={watchedTocEvents}
+        limitMw={isIntrastate ? (appliedMw > 0 ? appliedMw : null) : codLimit}
+        limitLabel={isIntrastate ? 'Applied capacity' : 'Total TOC'}
+        priorEvents={isIntrastate ? [] : watchedTocEvents}
         priorLabel="TOC"
       />
 

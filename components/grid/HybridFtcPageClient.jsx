@@ -95,6 +95,7 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
                 totalCapacityMw={selectedProject.totalCapacityMw}
                 existingCodMw={selectedProject.phases.reduce((s, ph) => s + (ph.codDeclaredMw ?? 0), 0)}
                 plantType={selectedProject.plantType}
+                isIntrastate={!!selectedProject.isIntrastate}
                 windCapacityMw={selectedProject.windCapacityMw}
                 solarCapacityMw={selectedProject.solarCapacityMw}
                 bessCapacityMw={selectedProject.bessCapacityMw}
