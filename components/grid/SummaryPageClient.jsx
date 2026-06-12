@@ -292,7 +292,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
 
 // ── Table 1 — CONTD-4 Study ────────────────────────────────────────────────────
 
-function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, allMonths }) {
+function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, allMonths, maxTotalMw = 0 }) {
   const isTotal    = row.isTotal;
   const isSubtotal = row.isSubtotal && !isTotal;
   const isAllIndiaBreakdown = row.isAllIndiaBreakdown;
@@ -341,9 +341,29 @@ function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, all
       </td>
       <td
         style={cellStyle}
-        className={`px-3 py-2 text-right tabular-nums border-r border-gray-100 ${bg}`}
+        className={`px-3 py-2 border-r border-gray-100 ${bg}`}
       >
-        {fmt(row.totalMw)}
+        {/* Detail rows pair the value with a proportional capacity bar so the
+            wide flex column reads as a comparison chart instead of dead space.
+            Aggregate rows (subtotal / All India / Total) keep a plain number —
+            they are sums on a different scale to the per-source bars. */}
+        {isSubtotal || isTotal || isAllIndiaBreakdown ? (
+          <div className="text-right tabular-nums">{fmt(row.totalMw)}</div>
+        ) : (
+          <div className="flex items-center gap-3">
+            {/* Track only drawn for non-zero rows — all-zero regions would
+                otherwise render a column of identical empty bars. */}
+            <div className={`flex-1 h-1.5 rounded-full overflow-hidden min-w-[60px] ${Number(row.totalMw) > 0 ? 'bg-slate-100' : ''}`}>
+              {maxTotalMw > 0 && Number(row.totalMw) > 0 && (
+                <div
+                  className="h-full rounded-full bg-blue-400/80"
+                  style={{ width: `${Math.max(2, (Number(row.totalMw) / maxTotalMw) * 100)}%` }}
+                />
+              )}
+            </div>
+            <span className={`tabular-nums text-right w-24 shrink-0 ${Number(row.totalMw) > 0 ? '' : 'text-slate-300'}`}>{fmt(row.totalMw)}</span>
+          </div>
+        )}
       </td>
       {allMonths.map(m => {
         const v = row.months?.[m] ?? 0;
@@ -372,6 +392,10 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
   const totalRow     = rows.find(r => r.isTotal);
   const orderedRows  = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
 
+  // Scale for the per-row capacity bars: the largest per-source detail row
+  // (subtotals/totals are sums on another scale and don't get bars).
+  const maxTotalMw = Math.max(0, ...regionRows.filter(r => !r.isSubtotal).map(r => Number(r.totalMw) || 0));
+
   return (
     <div className="rounded-xl border shadow-sm">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-start justify-between gap-3">
@@ -396,7 +420,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
               <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
               <th className="px-3 py-2 text-right font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
               {allMonths.map(m => (
-                <th key={m} className="px-3 py-2 text-right font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700">
+                <th key={m} className="px-3 py-2 text-right font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700" style={{ width: 130, minWidth: 110 }}>
                   {fmtMonth(m)}
                 </th>
               ))}
@@ -404,7 +428,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
           </thead>
           <tbody>
             {orderedRows.map((row, i) => (
-              <Contd4Row key={i} row={row} prev={orderedRows[i - 1]} allMonths={allMonths}
+              <Contd4Row key={i} row={row} prev={orderedRows[i - 1]} allMonths={allMonths} maxTotalMw={maxTotalMw}
                 isAllIndiaSection={row.isAllIndiaBreakdown || row.isTotal}
                 isFirstAllIndiaBreakdown={row.isAllIndiaBreakdown && !orderedRows[i - 1]?.isAllIndiaBreakdown} />
             ))}
