@@ -326,14 +326,14 @@ function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, all
     <tr className={`${rowCls} ${bg}`}>
       <td
         style={cellStyle}
-        className={`px-3 py-2 sticky left-0 z-[4] border-r border-gray-200 ${bg}`}
+        className={`px-3 py-2 sticky left-0 z-[4] text-center border-r border-gray-200 ${bg}`}
       >
         {!sameRegion && !isSubtotal && !isTotal && !isAllIndiaBreakdown && <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />}
         {isFirstAllIndiaBreakdown && <span className="text-[11px] font-bold text-slate-600">All India</span>}
       </td>
       <td
         style={{ ...cellStyle, left: 76 }}
-        className={`px-3 py-2 sticky z-[4] border-r border-gray-200 ${bg}`}
+        className={`px-3 py-2 sticky z-[4] text-center border-r border-gray-200 ${bg}`}
       >
         {isSubtotal || isTotal
           ? <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
@@ -394,8 +394,8 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
-              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
-              <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-left font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
+              <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
+              <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
               <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
               {allMonths.map(m => (
                 <th key={m} className="px-3 py-2 text-center font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700" style={{ minWidth: 110 }}>
