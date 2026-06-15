@@ -37,6 +37,13 @@ function headerLabels(refMonthName) {
   ];
 }
 
+// Round to 2 decimals, returning a real Number (so Excel keeps it numeric) but
+// without floating-point noise like 245.54000000000002. Empty string for blanks.
+function round2(v) {
+  if (v == null || Number(v) === 0) return '';
+  return Math.round(Number(v) * 100) / 100;
+}
+
 // One display row → array of cell values (Sr. No prepended by the caller).
 function rowCells(row, sr) {
   return [
@@ -45,11 +52,11 @@ function rowCells(row, sr) {
     row.poolingStation,
     row.plantType,
     row.region,
-    row.totalCapacityMw || '',
+    round2(row.totalCapacityMw),
     row.stateName || '',
-    row.codDeclared || '',
-    row.energyMwh != null ? row.energyMwh : '',
-    row.codInRefMonth || '',
+    round2(row.codDeclared),
+    row.energyMwh != null ? round2(row.energyMwh) : '',
+    round2(row.codInRefMonth),
     row.codDateLines.join('\n'),
   ];
 }
@@ -57,9 +64,9 @@ function rowCells(row, sr) {
 function totalCells(label, totals) {
   return [
     label, '', '', '', '', '', '',
-    totals.codDeclared || '',
-    totals.energyMwh > 0 ? totals.energyMwh : '',
-    totals.codInRefMonth > 0 ? totals.codInRefMonth : 0,
+    round2(totals.codDeclared),
+    totals.energyMwh > 0 ? round2(totals.energyMwh) : '',
+    totals.codInRefMonth > 0 ? round2(totals.codInRefMonth) : 0,
     '',
   ];
 }
