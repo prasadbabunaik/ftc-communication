@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  BatteryCharging,
   Cable,
   FileText,
   Grid3x3,
@@ -47,6 +48,11 @@ export const MENU_SIDEBAR = [
     title: 'Source-wise Breakup',
     icon: Grid3x3,
     path: '/breakup/source-wise',
+  },
+  {
+    title: 'BESS Data',
+    icon: BatteryCharging,
+    path: '/bess-data',
   },
   {
     title: 'Bulk Import',

@@ -20,7 +20,7 @@ const REGION_BADGE = {
   NER: 'bg-lime-50 text-lime-700 border-lime-200',
 };
 
-function fmt(v) {
+export function fmt(v) {
   if (v == null || Number(v) === 0) return '';
   const n = Number(v);
   const parts = n.toFixed(2).split('.');
@@ -29,7 +29,7 @@ function fmt(v) {
   return dec ? `${parts[0]}.${dec}` : parts[0];
 }
 
-function fmtDate(d) {
+export function fmtDate(d) {
   if (!d) return null;
   try {
     const dt = new Date(d);
@@ -42,7 +42,7 @@ const inMonth = (dateStr, ym) => !!(dateStr && ym && String(dateStr).slice(0, 7)
 // One display row per project. For hybrids the BESS figures come from the
 // project's BESS component (hybridComponentsJson); for plain BESS plants from
 // the commissioning phase / COD events.
-function buildRow(p, referenceMonth) {
+export function buildRow(p, referenceMonth) {
   const isHybrid = !!p.plantType?.isHybrid;
   const bessComp = isHybrid
     ? (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS')
@@ -86,7 +86,7 @@ function buildRow(p, referenceMonth) {
   };
 }
 
-function sumRows(rows) {
+export function sumRows(rows) {
   return rows.reduce(
     (acc, r) => ({
       codDeclared: acc.codDeclared + r.codDeclared,
@@ -135,14 +135,30 @@ function TotalRow({ label, totals, grand = false }) {
   );
 }
 
-export function BessDataTab({ bessProjects, referenceMonth, refMonthName }) {
+// Shared shaping used by both the table and the Excel / PDF exporters: splits
+// the projects into inter- / intra-state sections with per-section + grand totals.
+export function prepareBessData(bessProjects, referenceMonth) {
   const rows = (bessProjects ?? []).map((p) => ({ ...buildRow(p, referenceMonth), isIntrastate: !!p.isIntrastate }));
-
   const interstate = rows.filter((r) => !r.isIntrastate);
   const intrastate = rows.filter((r) => r.isIntrastate);
-  const interTotals = sumRows(interstate);
-  const intraTotals = sumRows(intrastate);
-  const grandTotals = sumRows(rows);
+  return {
+    rows,
+    interstate,
+    intrastate,
+    interTotals: sumRows(interstate),
+    intraTotals: sumRows(intrastate),
+    grandTotals: sumRows(rows),
+  };
+}
+
+export function BessDataTab({
+  bessProjects,
+  referenceMonth,
+  refMonthName,
+  stickyTopClass = 'top-[156px] lg:top-[166px]',
+}) {
+  const { rows, interstate, intrastate, interTotals, intraTotals, grandTotals } =
+    prepareBessData(bessProjects, referenceMonth);
 
   if (!rows.length) {
     return (
@@ -163,7 +179,7 @@ export function BessDataTab({ bessProjects, referenceMonth, refMonthName }) {
       </div>
       <div>
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
+          <thead className={`sticky ${stickyTopClass} z-[8]`}>
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="px-2 py-2 text-center font-bold whitespace-nowrap w-8">Sr. No</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">Generating Station</th>
