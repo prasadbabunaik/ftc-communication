@@ -87,13 +87,22 @@ function downloadBessExcel(prepared, refMonthName) {
   aoa.push(headers);
   rowMeta.push({ kind: 'header' });
 
+  // Total rows merge their label across the first 7 columns (cols 0–6), the
+  // same span the on-screen table uses, so the label isn't crushed into the
+  // narrow Sr. No column.
+  const pushTotal = (label, totals, kind) => {
+    aoa.push(totalCells(label, totals));
+    rowMeta.push({ kind });
+    merges.push({ s: { r: aoa.length - 1, c: 0 }, e: { r: aoa.length - 1, c: 6 } });
+  };
+
   interstate.forEach((row, i) => { aoa.push(rowCells(row, i + 1)); rowMeta.push({ kind: 'data' }); });
-  aoa.push(totalCells('Total — Inter-state BESS', interTotals)); rowMeta.push({ kind: 'sub' });
+  pushTotal('Total — Inter-state BESS', interTotals, 'sub');
 
   intrastate.forEach((row, i) => { aoa.push(rowCells(row, i + 1)); rowMeta.push({ kind: 'data' }); });
-  if (intrastate.length) { aoa.push(totalCells('Total — Intra-state BESS', intraTotals)); rowMeta.push({ kind: 'sub' }); }
+  if (intrastate.length) pushTotal('Total — Intra-state BESS', intraTotals, 'sub');
 
-  aoa.push(totalCells('Total BESS', grandTotals)); rowMeta.push({ kind: 'grand' });
+  pushTotal('Total BESS', grandTotals, 'grand');
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!merges'] = merges;
@@ -135,15 +144,25 @@ function downloadBessPdf(prepared, refMonthName) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
   const headers = headerLabels(refMonthName);
 
+  // Total rows: the label spans the first 7 columns (cols 0–6) via colSpan so
+  // it gets a full-width bar instead of wrapping inside the Sr. No column.
+  const totalRow = (label, totals) => [
+    { content: label, colSpan: 7, styles: { halign: 'center', fontStyle: 'bold' } },
+    String(totals.codDeclared || ''),
+    String(totals.energyMwh > 0 ? totals.energyMwh : ''),
+    String(totals.codInRefMonth > 0 ? totals.codInRefMonth : 0),
+    '',
+  ];
+
   const body = [];
   const totalRowIdxs = [];
   const grandRowIdxs = [];
 
   interstate.forEach((row, i) => body.push(rowCells(row, i + 1).map(String)));
-  body.push(totalCells('Total — Inter-state BESS', interTotals).map(String)); totalRowIdxs.push(body.length - 1);
+  body.push(totalRow('Total — Inter-state BESS', interTotals)); totalRowIdxs.push(body.length - 1);
   intrastate.forEach((row, i) => body.push(rowCells(row, i + 1).map(String)));
-  if (intrastate.length) { body.push(totalCells('Total — Intra-state BESS', intraTotals).map(String)); totalRowIdxs.push(body.length - 1); }
-  body.push(totalCells('Total BESS', grandTotals).map(String)); grandRowIdxs.push(body.length - 1);
+  if (intrastate.length) { body.push(totalRow('Total — Intra-state BESS', intraTotals)); totalRowIdxs.push(body.length - 1); }
+  body.push(totalRow('Total BESS', grandTotals)); grandRowIdxs.push(body.length - 1);
 
   doc.setFontSize(13);
   doc.setTextColor(30, 58, 95);
