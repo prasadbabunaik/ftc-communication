@@ -130,9 +130,10 @@ function downloadBessExcel(prepared, refMonthName) {
 // ── PDF ───────────────────────────────────────────────────────────────────
 function downloadBessPdf(prepared, refMonthName) {
   const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepared;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  // A3 landscape gives the COD-Date column enough room that each
+  // "<MW> MW on <date>" entry stays on a single line instead of wrapping.
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
   const headers = headerLabels(refMonthName);
-  const colCount = headers.length;
 
   const body = [];
   const totalRowIdxs = [];
@@ -148,13 +149,30 @@ function downloadBessPdf(prepared, refMonthName) {
   doc.setTextColor(30, 58, 95);
   doc.text('BESS Data — Inter-state & Intra-state', 40, 30);
 
+  // Explicit per-column widths so the right-most COD-Date column is wide enough
+  // for "33.33 MW on 03-06-2026" without a mid-string wrap.
+  const columnStyles = {
+    0:  { cellWidth: 32, halign: 'center' },                    // Sr. No
+    1:  { cellWidth: 150, halign: 'left' },                     // Generating Station
+    2:  { cellWidth: 72 },                                      // Pooling Station
+    3:  { cellWidth: 92 },                                      // Plant Type
+    4:  { cellWidth: 40 },                                      // Region
+    5:  { cellWidth: 62 },                                      // Total Capacity
+    6:  { cellWidth: 70 },                                      // State
+    7:  { cellWidth: 74 },                                      // COD declared Capacity
+    8:  { cellWidth: 74 },                                      // Energy Commissioned
+    9:  { cellWidth: 74 },                                      // COD Declared in ref month
+    10: { cellWidth: 132, halign: 'left', fontSize: 6.5 },      // COD Date Declared
+  };
+
   autoTable(doc, {
     head: [headers],
     body,
     startY: 42,
-    styles: { fontSize: 7, cellPadding: 3, halign: 'center', valign: 'middle', lineColor: [203, 213, 225], lineWidth: 0.5 },
-    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center' },
-    columnStyles: { 1: { halign: 'left' }, 10: { halign: 'left', fontSize: 6 } },
+    tableWidth: 'wrap',
+    styles: { fontSize: 7, cellPadding: 3, halign: 'center', valign: 'middle', overflow: 'linebreak', lineColor: [203, 213, 225], lineWidth: 0.5 },
+    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle' },
+    columnStyles,
     didParseCell: (data) => {
       if (data.section !== 'body') return;
       if (grandRowIdxs.includes(data.row.index)) {
