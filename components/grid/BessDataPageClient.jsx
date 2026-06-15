@@ -164,33 +164,35 @@ function downloadBessPdf(prepared, refMonthName) {
   if (intrastate.length) { body.push(totalRow('Total — Intra-state BESS', intraTotals)); totalRowIdxs.push(body.length - 1); }
   body.push(totalRow('Total BESS', grandTotals)); grandRowIdxs.push(body.length - 1);
 
-  doc.setFontSize(13);
+  doc.setFontSize(16);
   doc.setTextColor(30, 58, 95);
-  doc.text('BESS Data — Inter-state & Intra-state', 40, 30);
+  doc.text('BESS Data — Inter-state & Intra-state', 25, 32);
 
-  // Explicit per-column widths so the right-most COD-Date column is wide enough
-  // for "33.33 MW on 03-06-2026" without a mid-string wrap.
+  // Explicit per-column widths sized to fill the full A3-landscape page width
+  // (≈1140pt usable with 25pt side margins). The right-most COD-Date column is
+  // wide enough for "33.33 MW on 03-06-2026" without a mid-string wrap.
   const columnStyles = {
-    0:  { cellWidth: 32, halign: 'center' },                    // Sr. No
-    1:  { cellWidth: 150, halign: 'left' },                     // Generating Station
-    2:  { cellWidth: 72 },                                      // Pooling Station
-    3:  { cellWidth: 92 },                                      // Plant Type
-    4:  { cellWidth: 40 },                                      // Region
-    5:  { cellWidth: 62 },                                      // Total Capacity
-    6:  { cellWidth: 70 },                                      // State
-    7:  { cellWidth: 74 },                                      // COD declared Capacity
-    8:  { cellWidth: 74 },                                      // Energy Commissioned
-    9:  { cellWidth: 74 },                                      // COD Declared in ref month
-    10: { cellWidth: 132, halign: 'left', fontSize: 6.5 },      // COD Date Declared
+    0:  { cellWidth: 40,  halign: 'center' },            // Sr. No
+    1:  { cellWidth: 205, halign: 'left' },              // Generating Station
+    2:  { cellWidth: 100 },                              // Pooling Station
+    3:  { cellWidth: 115 },                              // Plant Type
+    4:  { cellWidth: 52 },                               // Region
+    5:  { cellWidth: 82 },                               // Total Capacity
+    6:  { cellWidth: 92 },                               // State
+    7:  { cellWidth: 98 },                               // COD declared Capacity
+    8:  { cellWidth: 98 },                               // Energy Commissioned
+    9:  { cellWidth: 98 },                               // COD Declared in ref month
+    10: { cellWidth: 160, halign: 'left' },              // COD Date Declared
   };
 
   autoTable(doc, {
     head: [headers],
     body,
-    startY: 42,
-    tableWidth: 'wrap',
-    styles: { fontSize: 7, cellPadding: 3, halign: 'center', valign: 'middle', overflow: 'linebreak', lineColor: [203, 213, 225], lineWidth: 0.5 },
-    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle' },
+    startY: 44,
+    margin: { left: 25, right: 25 },
+    tableWidth: 'auto',
+    styles: { fontSize: 9, cellPadding: 4, halign: 'center', valign: 'middle', overflow: 'linebreak', lineColor: [203, 213, 225], lineWidth: 0.5 },
+    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle', fontSize: 9 },
     columnStyles,
     didParseCell: (data) => {
       if (data.section !== 'body') return;
