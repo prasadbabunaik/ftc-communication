@@ -139,9 +139,6 @@ function downloadBessExcel(prepared, refMonthName) {
 // ── PDF ───────────────────────────────────────────────────────────────────
 function downloadBessPdf(prepared, refMonthName) {
   const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepared;
-  // A3 landscape gives the COD-Date column enough room that each
-  // "<MW> MW on <date>" entry stays on a single line instead of wrapping.
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
   const headers = headerLabels(refMonthName);
 
   // Total rows: the label spans the first 7 columns (cols 0–6) via colSpan so
@@ -164,10 +161,6 @@ function downloadBessPdf(prepared, refMonthName) {
   if (intrastate.length) { body.push(totalRow('Total — Intra-state BESS', intraTotals)); totalRowIdxs.push(body.length - 1); }
   body.push(totalRow('Total BESS', grandTotals)); grandRowIdxs.push(body.length - 1);
 
-  doc.setFontSize(16);
-  doc.setTextColor(30, 58, 95);
-  doc.text('BESS Data — Inter-state & Intra-state', 25, 32);
-
   // Explicit per-column widths sized to fill the full A3-landscape page width
   // (≈1140pt usable with 25pt side margins). The right-most COD-Date column is
   // wide enough for "33.33 MW on 03-06-2026" without a mid-string wrap.
@@ -185,27 +178,50 @@ function downloadBessPdf(prepared, refMonthName) {
     10: { cellWidth: 160, halign: 'left' },              // COD Date Declared
   };
 
-  autoTable(doc, {
-    head: [headers],
-    body,
-    startY: 44,
-    margin: { left: 25, right: 25 },
-    tableWidth: 'auto',
-    styles: { fontSize: 9, cellPadding: 4, halign: 'center', valign: 'middle', overflow: 'linebreak', lineColor: [203, 213, 225], lineWidth: 0.5 },
-    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle', fontSize: 9 },
-    columnStyles,
-    didParseCell: (data) => {
-      if (data.section !== 'body') return;
-      if (grandRowIdxs.includes(data.row.index)) {
-        data.cell.styles.fillColor = [30, 58, 95];
-        data.cell.styles.textColor = 255;
-        data.cell.styles.fontStyle = 'bold';
-      } else if (totalRowIdxs.includes(data.row.index)) {
-        data.cell.styles.fillColor = [226, 232, 240];
-        data.cell.styles.fontStyle = 'bold';
-      }
-    },
-  });
+  const SIDE = 25, TOP = 44, BOTTOM = 25;
+
+  // Render the title + table into a fresh doc at the given font scale. Returns
+  // the doc and the table's final Y so we can measure whether it fit one page.
+  const render = (fontSize, cellPadding) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+    doc.setFontSize(16);
+    doc.setTextColor(30, 58, 95);
+    doc.text('BESS Data — Inter-state & Intra-state', SIDE, 32);
+    autoTable(doc, {
+      head: [headers],
+      body,
+      startY: TOP,
+      margin: { left: SIDE, right: SIDE, top: TOP, bottom: BOTTOM },
+      tableWidth: 'auto',
+      styles: { fontSize, cellPadding, halign: 'center', valign: 'middle', overflow: 'linebreak', lineColor: [203, 213, 225], lineWidth: 0.5 },
+      headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle', fontSize },
+      columnStyles,
+      didParseCell: (data) => {
+        if (data.section !== 'body') return;
+        if (grandRowIdxs.includes(data.row.index)) {
+          data.cell.styles.fillColor = [30, 58, 95];
+          data.cell.styles.textColor = 255;
+          data.cell.styles.fontStyle = 'bold';
+        } else if (totalRowIdxs.includes(data.row.index)) {
+          data.cell.styles.fillColor = [226, 232, 240];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+    return { doc, pages: doc.getNumberOfPages() };
+  };
+
+  // Auto-fit to a single page: start large and shrink font + padding until the
+  // table fits on one page, so it occupies the page without spilling onto a
+  // second one. (Page count is the reliable signal — finalY resets per page.)
+  let fontSize = 9, cellPadding = 4;
+  let out = render(fontSize, cellPadding);
+  while (out.pages > 1 && fontSize > 4) {
+    fontSize = Math.round((fontSize - 0.5) * 10) / 10;
+    cellPadding = Math.max(1.5, cellPadding - 0.25);
+    out = render(fontSize, cellPadding);
+  }
+  const doc = out.doc;
 
   const stamp = new Date().toISOString().slice(0, 10);
   doc.save(`bess-data_${stamp}.pdf`);
