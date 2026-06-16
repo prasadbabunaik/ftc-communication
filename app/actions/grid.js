@@ -446,6 +446,64 @@ export async function updateProjectCapacities(projectId, caps) {
   return { success: true };
 }
 
+// BESS Data tab — inline edit of the two columns that are NOT sourced from the
+// FTC pipeline / CONTD-4 and so have no other edit surface in the app:
+//   • State (situated)         → stateName
+//   • Energy Commissioned (MWh)→ energyCommissionedMwh
+// Everything else on that table (COD capacity / dates / ref-month) is derived
+// from CommissioningPhase + COD events and stays read-only. Passing only the
+// changed key(s) lets a single cell save touch just that column.
+export async function updateBessRowFields(projectId, fields) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+  const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
+  if (!project) return { error: 'Project not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'You cannot edit projects outside your assigned region.' };
+  }
+
+  const data = {};
+  if ('stateName' in fields) {
+    const s = typeof fields.stateName === 'string' ? fields.stateName.trim() : '';
+    data.stateName = s === '' ? null : s;
+  }
+  if ('energyCommissionedMwh' in fields) {
+    const raw = fields.energyCommissionedMwh;
+    if (raw == null || String(raw).trim() === '') {
+      data.energyCommissionedMwh = null;
+    } else {
+      const e = parseFloat(raw);
+      if (isNaN(e) || e < 0) return { error: 'Energy Commissioned must be a non-negative number.' };
+      data.energyCommissionedMwh = e;
+    }
+  }
+
+  if (Object.keys(data).length === 0) return { success: true };
+
+  await prisma.generationProject.update({ where: { id: projectId }, data });
+
+  const tracked = [];
+  if ('stateName' in data) {
+    tracked.push({ field: 'State (situated)', old: fmtStr(project.stateName), new: fmtStr(data.stateName) });
+  }
+  if ('energyCommissionedMwh' in data) {
+    tracked.push({
+      field: 'Energy Commissioned (MWh)',
+      old: fmtStr(project.energyCommissionedMwh != null ? Number(project.energyCommissionedMwh) : null),
+      new: fmtStr(data.energyCommissionedMwh),
+    });
+  }
+  const logs = diffFields(tracked, projectId, user.id);
+  if (logs.length) await prisma.projectNote.createMany({ data: logs });
+
+  revalidatePath('/bess-data');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
 // "Delete" is actually a soft-delete (deactivation) — the project stays in
 // the DB so historical / as-of-date dashboards keep showing it for the period
 // it was live. Pass { hard: true } to wipe the row entirely (admin-only).

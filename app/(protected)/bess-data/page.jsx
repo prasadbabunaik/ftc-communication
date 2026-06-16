@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope, activePeriodFilter } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, activePeriodFilter, canEditGridData } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { BessDataPageClient } from '@/components/grid/BessDataPageClient';
 
@@ -39,6 +39,7 @@ export default async function BessDataPage() {
     <BessDataPageClient
       bessProjects={JSON.parse(JSON.stringify(bessProjects))}
       regionLabel={regionLabel}
+      canEdit={canEditGridData(user.role)}
     />
   );
 }

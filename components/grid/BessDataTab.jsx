@@ -1,5 +1,8 @@
 'use client';
 
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+
 // BESS Data tab — mirrors the source sheet's "BESS data" table:
 //
 //   Sr. No | Generating Station | Pooling Station | Plant Type | Region |
@@ -97,7 +100,73 @@ export function sumRows(rows) {
   );
 }
 
-function DataRow({ row, sr, intrastate }) {
+// Inline click-to-edit cell for the two manually-maintained BESS columns
+// (State, Energy Commissioned) that aren't derived from the FTC pipeline.
+// Click → input; Enter / blur saves; Esc cancels. onSave returns the server
+// action's result so we can surface { error } without closing the editor.
+function EditableCell({ rawValue, display, type, className, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const cancelRef = useRef(false);
+
+  const start = () => {
+    setDraft(rawValue == null ? '' : String(rawValue));
+    cancelRef.current = false;
+    setEditing(true);
+  };
+
+  const commit = async () => {
+    if (saving) return;
+    setSaving(true);
+    const res = await onSave(draft);
+    setSaving(false);
+    if (res?.error) { toast.error(res.error); return; } // keep editing so the draft isn't lost
+    toast.success('Saved');
+    setEditing(false);
+  };
+
+  const handleBlur = () => {
+    if (cancelRef.current) { cancelRef.current = false; setEditing(false); return; }
+    commit();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelRef.current = true; e.currentTarget.blur(); }
+  };
+
+  if (editing) {
+    return (
+      <td className="px-2 py-1 text-center">
+        <input
+          autoFocus
+          type={type === 'number' ? 'number' : 'text'}
+          step={type === 'number' ? '0.01' : undefined}
+          min={type === 'number' ? '0' : undefined}
+          value={draft}
+          disabled={saving}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className="mx-auto block w-full max-w-[120px] rounded border border-blue-300 px-1.5 py-1 text-[11px] text-center tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-60"
+        />
+      </td>
+    );
+  }
+
+  return (
+    <td
+      onClick={start}
+      title="Click to edit"
+      className={`${className} group cursor-pointer hover:bg-blue-50/60`}
+    >
+      <span className="border-b border-dashed border-transparent group-hover:border-blue-300">{display}</span>
+    </td>
+  );
+}
+
+function DataRow({ row, sr, intrastate, editable, onSaveField }) {
   return (
     <tr className={`border-t border-gray-100 transition-colors ${intrastate ? 'bg-yellow-50/60 hover:bg-yellow-50' : 'bg-white hover:bg-blue-50/20'}`}>
       <td className="px-2 py-2 text-center text-slate-400">{sr}</td>
@@ -110,9 +179,29 @@ function DataRow({ row, sr, intrastate }) {
         </span>
       </td>
       <td className="px-3 py-2 text-center tabular-nums">{fmt(row.totalCapacityMw)}</td>
-      <td className="px-3 py-2 text-center text-slate-600">{row.stateName || '—'}</td>
+      {editable ? (
+        <EditableCell
+          type="text"
+          rawValue={row.stateName}
+          display={row.stateName || '—'}
+          className="px-3 py-2 text-center text-slate-600"
+          onSave={(v) => onSaveField(row.id, 'stateName', v)}
+        />
+      ) : (
+        <td className="px-3 py-2 text-center text-slate-600">{row.stateName || '—'}</td>
+      )}
       <td className="px-3 py-2 text-center tabular-nums font-semibold">{fmt(row.codDeclared)}</td>
-      <td className="px-3 py-2 text-center tabular-nums">{row.energyMwh != null ? fmt(row.energyMwh) : '—'}</td>
+      {editable ? (
+        <EditableCell
+          type="number"
+          rawValue={row.energyMwh}
+          display={row.energyMwh != null ? fmt(row.energyMwh) : '—'}
+          className="px-3 py-2 text-center tabular-nums"
+          onSave={(v) => onSaveField(row.id, 'energyCommissionedMwh', v)}
+        />
+      ) : (
+        <td className="px-3 py-2 text-center tabular-nums">{row.energyMwh != null ? fmt(row.energyMwh) : '—'}</td>
+      )}
       <td className="px-3 py-2 text-center tabular-nums text-violet-700 font-semibold">{fmt(row.codInRefMonth)}</td>
       <td className="px-3 py-2 text-center text-[10px] text-slate-600 leading-relaxed whitespace-nowrap">
         {row.codDateLines.length
@@ -156,6 +245,10 @@ export function BessDataTab({
   referenceMonth,
   refMonthName,
   stickyTopClass = 'top-[156px] lg:top-[166px]',
+  // When true, the State (situated) and Energy Commissioned (MWh) cells become
+  // inline-editable. onSaveField(projectId, field, value) persists one cell.
+  editable = false,
+  onSaveField,
 }) {
   const { rows, interstate, intrastate, interTotals, intraTotals, grandTotals } =
     prepareBessData(bessProjects, referenceMonth);
@@ -196,11 +289,11 @@ export function BessDataTab({
           </thead>
           <tbody>
             {interstate.map((row, i) => (
-              <DataRow key={row.id} row={row} sr={i + 1} intrastate={false} />
+              <DataRow key={row.id} row={row} sr={i + 1} intrastate={false} editable={editable} onSaveField={onSaveField} />
             ))}
             <TotalRow label="Total — Inter-state BESS" totals={interTotals} />
             {intrastate.map((row, i) => (
-              <DataRow key={row.id} row={row} sr={i + 1} intrastate />
+              <DataRow key={row.id} row={row} sr={i + 1} intrastate editable={editable} onSaveField={onSaveField} />
             ))}
             {intrastate.length > 0 && <TotalRow label="Total — Intra-state BESS" totals={intraTotals} />}
             <TotalRow label="Total BESS" totals={grandTotals} grand />
