@@ -4,14 +4,14 @@
 // here as a full sidebar page with dedicated Excel + PDF downloads. Reuses the
 // row-shaping helpers from BessDataTab so the export matches the on-screen view.
 
+import { useState } from 'react';
 import { BatteryCharging, Sheet, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useRouter } from 'next/navigation';
 import { useSettings } from '@/providers/settings-provider';
 import { BessDataTab, prepareBessData, fmt, fmtDate } from '@/components/grid/BessDataTab';
-import { updateBessRowFields } from '@/app/actions/grid';
+import { BessEditModal } from '@/components/grid/BessEditModal';
 
 function fmtRefMonthShort(ym) {
   if (!ym) return 'Expected';
@@ -238,19 +238,11 @@ function downloadBessPdf(prepared, refMonthName) {
 
 export function BessDataPageClient({ bessProjects, regionLabel, canEdit = false }) {
   const { settings } = useSettings();
-  const router = useRouter();
+  const [editRow, setEditRow] = useState(null);
   const refMonthLabel = fmtRefMonthShort(settings.referenceMonth);
   const refMonthName  = refMonthLabel.startsWith('Exp. ') ? refMonthLabel.slice(5) : 'reference month';
   const prepared = prepareBessData(bessProjects, settings.referenceMonth);
   const hasRows = prepared.rows.length > 0;
-
-  // Persist one inline-edited cell, then refresh the server component so the
-  // table (and the totals / exports derived from it) reflect the saved value.
-  async function handleSaveField(projectId, field, value) {
-    const res = await updateBessRowFields(projectId, { [field]: value });
-    if (res?.success) router.refresh();
-    return res;
-  }
 
   return (
     <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-110px)] min-h-0">
@@ -299,9 +291,17 @@ export function BessDataPageClient({ bessProjects, regionLabel, canEdit = false 
           refMonthName={refMonthName}
           stickyTopClass="top-0"
           editable={canEdit}
-          onSaveField={handleSaveField}
+          onEditRow={setEditRow}
         />
       </div>
+
+      {canEdit && (
+        <BessEditModal
+          row={editRow}
+          open={!!editRow}
+          onOpenChange={(o) => { if (!o) setEditRow(null); }}
+        />
+      )}
     </div>
   );
 }
