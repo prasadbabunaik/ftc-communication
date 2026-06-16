@@ -342,21 +342,23 @@ function TransmissionTable({ transmissionRows, cols }) {
   );
 }
 
-// ── FTC/TOC/COD Activity matrices ─────────────────────────────────────────────
-// Print counterpart of the dashboard's Activity tab. Each milestone (FTC / TOC /
-// COD) gets a Source × Region matrix of capacity whose milestone date falls in
-// the rolling 3-month window computed server-side.
+// ── Inter-State COD Activity matrix ───────────────────────────────────────────
+// Print counterpart of the dashboard's Activity tab, COD milestone only: a
+// Source × Region matrix of capacity whose COD date falls in the given month.
+// Hybrid cells show the per-component split (e.g. "180 – BESS / 211.4 – Solar").
 
-const MILE_PRINT = [
-  { key: 'ftc', label: 'FTC Approved' },
-  { key: 'toc', label: 'TOC Issued' },
-  { key: 'cod', label: 'COD Declared' },
-];
+const COMP_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP', 'COAL', 'HYDRO'];
+const COMP_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS', PSP: 'PSP', COAL: 'Coal', HYDRO: 'Hydro' };
 
-function ActivityMatrix({ activity, milestone, scopeRegionCode }) {
+function ActivityMatrix({ activity, scopeRegionCode }) {
+  const milestone = 'cod';
   const { matrix, totals } = activity ?? {};
   const regions = scopeRegionCode ? [scopeRegionCode] : REGION_ORDER;
   const cell = (src, reg) => matrix?.[`${reg}|${src}`]?.[milestone] ?? 0;
+  const comps = (reg) => {
+    const c = matrix?.[`${reg}|HYBRID`]?.components?.[milestone] ?? {};
+    return Object.entries(c).filter(([, mw]) => mw > 0).sort((a, b) => COMP_ORDER.indexOf(a[0]) - COMP_ORDER.indexOf(b[0]));
+  };
   const rowTotal = (src) => regions.reduce((s, r) => s + cell(src, r), 0);
   const colTotal = (reg) => SOURCE_ORDER.reduce((s, src) => s + cell(src, reg), 0);
   const grand = scopeRegionCode ? colTotal(scopeRegionCode) : (totals?.[milestone] ?? 0);
@@ -370,13 +372,25 @@ function ActivityMatrix({ activity, milestone, scopeRegionCode }) {
         </tr>
       </thead>
       <tbody>
-        {SOURCE_ORDER.map((src, i) => (
-          <tr key={src} className={i % 2 === 1 ? 'stripe' : ''}>
-            <td style={{ textAlign: 'left', fontWeight: 500 }}>{src}</td>
-            {regions.map((r) => <td key={r} style={{ textAlign: 'right' }}>{fmt(cell(src, r))}</td>)}
-            {!scopeRegionCode && <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(rowTotal(src))}</td>}
-          </tr>
-        ))}
+        {SOURCE_ORDER.map((src, i) => {
+          const isHybrid = src === 'HYBRID';
+          return (
+            <tr key={src} className={i % 2 === 1 ? 'stripe' : ''}>
+              <td style={{ textAlign: 'left', fontWeight: 500 }}>{src}</td>
+              {regions.map((r) => {
+                const breakdown = isHybrid ? comps(r) : [];
+                return (
+                  <td key={r} style={{ textAlign: breakdown.length ? 'center' : 'right' }}>
+                    {breakdown.length
+                      ? breakdown.map(([c, mw]) => <div key={c}>{fmt(mw)} – {COMP_LABEL[c] ?? c}</div>)
+                      : fmt(cell(src, r))}
+                  </td>
+                );
+              })}
+              {!scopeRegionCode && <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(rowTotal(src))}</td>}
+            </tr>
+          );
+        })}
         <tr className="subtotal-row">
           <td style={{ textAlign: 'left', fontWeight: 700 }}>Total</td>
           {regions.map((r) => <td key={r} style={{ textAlign: 'right' }}>{fmt(colTotal(r))}</td>)}
@@ -682,7 +696,7 @@ const PRINT_TABLES = [
   { id: 'hybrid',       label: 'Hybrid Breakdown' },
   { id: 'source',       label: 'Source-wise Pipeline' },
   { id: 'transmission', label: 'Transmission' },
-  { id: 'activity',     label: 'FTC / TOC / COD Activity (3-month)' },
+  { id: 'activity',     label: 'Inter-State COD Activity (monthly)' },
   { id: 'sources',      label: 'Per-source Project Details' },
 ];
 
@@ -725,7 +739,7 @@ function ColumnGroup({ title, columns, set, onChange }) {
 
 // Per-table column groups: each visible table gets its own column picker, with
 // only the columns that table actually has.
-function PrintControls({ tables, setTables, colSets, setColSet, contd4Months }) {
+function PrintControls({ tables, setTables, colSets, setColSet, contd4Months, activityMonths = [] }) {
   const toggleTable = (id) => {
     const next = new Set(tables);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -735,12 +749,16 @@ function PrintControls({ tables, setTables, colSets, setColSet, contd4Months }) 
   const sameSet = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
 
   const contd4AllCols = [...CONTD4_COLUMNS, ...contd4Months.map(contd4MonthCol)];
+  // Each activity month is a "column" toggle so users can exclude months they
+  // don't need from the per-month COD tables.
+  const activityMonthCols = activityMonths.map((m) => ({ key: m.key, label: m.label }));
   const GROUPS = [
     { id: 'region',       title: 'FTC Pipeline columns',       columns: PIPE_COLUMNS },
     { id: 'contd4',       title: 'CONTD-4 Study columns',      columns: contd4AllCols },
     { id: 'hybrid',       title: 'Hybrid Breakdown columns',   columns: HYBRID_COLUMNS },
     { id: 'source',       title: 'Source-wise columns',        columns: PIPE_COLUMNS },
     { id: 'transmission', title: 'Transmission columns',       columns: TX_COLUMNS },
+    { id: 'activity',     title: 'COD Activity months',        columns: activityMonthCols },
     { id: 'sources',      title: 'Project Details columns',    columns: PROJECT_COLUMNS },
   ];
 
@@ -782,7 +800,7 @@ function PrintControls({ tables, setTables, colSets, setColSet, contd4Months }) 
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects, activity = null, activityRange = '' }) {
+export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects, activityMonths = [] }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [tables, setTables] = useState(() => new Set(PRINT_TABLES.map(t => t.id)));
   // One column set per table — everything on by default.
@@ -793,6 +811,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
     contd4:       new Set([...CONTD4_COLUMNS, ...contd4Months.map(contd4MonthCol)].map(c => c.key)),
     hybrid:       new Set(HYBRID_COLUMNS.map(c => c.key)),
     transmission: new Set(TX_COLUMNS.map(c => c.key)),
+    activity:     new Set(activityMonths.map(m => m.key)),
     sources:      new Set(PROJECT_COLUMNS.map(c => c.key)),
   }));
   const setColSet = (id, next) => setColSets(prev => ({ ...prev, [id]: next }));
@@ -832,6 +851,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
           colSets={colSets}
           setColSet={setColSet}
           contd4Months={contd4Months}
+          activityMonths={activityMonths}
         />
       )}
 
@@ -891,16 +911,16 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
             </div>
           )}
 
-          {/* ── FTC / TOC / COD Activity (rolling 3-month window) ── */}
-          {tables.has('activity') && (
+          {/* ── Inter-State COD Activity — one matrix per month (last 3) ── */}
+          {tables.has('activity') && activityMonths.some((m) => colSets.activity.has(m.key)) && (
             <div className="mb-6 page-break">
               <SectionTitle tableNo={nextNo()}>
-                FTC / TOC / COD Activity (Source &times; Region) — {activityRange}
+                Inter-State COD Declared Capacity (MW) — Month-wise
               </SectionTitle>
-              {MILE_PRINT.map((m) => (
-                <div key={m.key} className="mb-3 avoid-break">
-                  <p className="text-[8pt] font-bold text-[#1e3a5f] mb-1">{m.label} Capacity (MW)</p>
-                  <ActivityMatrix activity={activity} milestone={m.key} scopeRegionCode={scopeRegionCode} />
+              {activityMonths.filter((m) => colSets.activity.has(m.key)).map((m) => (
+                <div key={m.key} className="mb-4 avoid-break">
+                  <p className="text-[8.5pt] font-bold text-[#1e3a5f] mb-1">Inter-State COD Declared Capacity (MW) in {m.label}</p>
+                  <ActivityMatrix activity={m.activity} scopeRegionCode={scopeRegionCode} />
                 </div>
               ))}
             </div>

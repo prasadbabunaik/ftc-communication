@@ -46,15 +46,26 @@ export default async function PrintSummaryPage({ searchParams }) {
   const transmissionRows = computeTransmission(txElements);
   const hybridRows       = computeHybridBreakdown(projects, asOf);
 
-  // FTC/TOC/COD Activity — a rolling 3-month window (current month + the two
-  // prior months), so June shows Apr + May + Jun. Honours an asOf cutoff.
+  // Inter-State COD Activity — one Source × Region matrix per month, for the
+  // current month + the two prior (June → Apr, May, Jun), oldest first. Each
+  // month is independently toggleable in the print Customize panel. Honours an
+  // asOf cutoff (the current month is capped at asOf / today).
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const activityEnd = asOf
     ? new Date(asOfStr + 'T23:59:59.999Z')
     : (() => { const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t; })();
-  const activityStart = new Date(Date.UTC(activityEnd.getUTCFullYear(), activityEnd.getUTCMonth() - 2, 1, 0, 0, 0, 0));
-  const activity = computeMilestoneActivity(projects, activityStart, activityEnd, []);
-  const fmtDay = (d) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const activityRange = `${fmtDay(activityStart)} → ${fmtDay(activityEnd)}`;
+  const activityMonths = [2, 1, 0].map((back) => {
+    const y = activityEnd.getUTCFullYear();
+    const m = activityEnd.getUTCMonth() - back;
+    const start = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0));
+    const endOfMonth = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
+    const end = endOfMonth.getTime() < activityEnd.getTime() ? endOfMonth : activityEnd;
+    return {
+      key: `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}`,
+      label: `${MONTH_NAMES[start.getUTCMonth()]} ${start.getUTCFullYear()}`,
+      activity: computeMilestoneActivity(projects, start, end, []),
+    };
+  });
 
   const dateLabel = asOfStr
     ? new Date(asOfStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -71,8 +82,7 @@ export default async function PrintSummaryPage({ searchParams }) {
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
       projects={JSON.parse(JSON.stringify(projects))}
-      activity={JSON.parse(JSON.stringify(activity))}
-      activityRange={activityRange}
+      activityMonths={JSON.parse(JSON.stringify(activityMonths))}
     />
   );
 }
