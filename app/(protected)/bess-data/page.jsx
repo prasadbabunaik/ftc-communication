@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope, activePeriodFilter, canEditGridData } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, activePeriodFilter, canEditGridData, getUserRegion } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { BessDataPageClient } from '@/components/grid/BessDataPageClient';
 
@@ -15,6 +15,7 @@ export default async function BessDataPage() {
   catch { redirect('/login'); }
 
   const scope = await buildRegionScope(user.role);
+  const userRegion = await getUserRegion(user.role); // null for NLDC/ADMIN
   const activeFilter = activePeriodFilter(null);
 
   const allProjects = await prisma.generationProject.findMany({
@@ -39,6 +40,8 @@ export default async function BessDataPage() {
     <BessDataPageClient
       bessProjects={JSON.parse(JSON.stringify(bessProjects))}
       regionLabel={regionLabel}
+      scopeRegionCode={userRegion?.code ?? null}
+      scopeRegionName={userRegion?.name ?? null}
       canEdit={canEditGridData(user.role)}
     />
   );

@@ -146,9 +146,71 @@ function downloadBessExcel(prepared, refMonthName) {
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────────
-function downloadBessPdf(prepared, refMonthName) {
+const NAVY_RGB = [30, 58, 95];
+const GRAY_RGB = [100, 116, 139];
+
+// Branded document header — mirrors the Dashboard print view's DocHeader:
+// issuer label, title, region-scoped subtitle, and an "As on" date box, with a
+// navy rule beneath. Drawn via autoTable's didDrawPage so it repeats per page.
+function drawDocHeader(doc, { issuerLabel, scopeLabel, dateLabel }, SIDE) {
+  const pageW = doc.internal.pageSize.getWidth();
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NAVY_RGB);
+  doc.setFontSize(8);
+  doc.text(issuerLabel.toUpperCase(), SIDE, 28, { charSpace: 1 });
+
+  doc.setFontSize(16);
+  doc.text('BESS Data — Battery Energy Storage Systems', SIDE, 50);
+
+  doc.setFontSize(11.5);
+  doc.text(`Inter-state & Intra-state — ${scopeLabel}`, SIDE, 67);
+
+  // "As on" box (top-right)
+  const boxW = 150, boxH = 34, boxX = pageW - SIDE - boxW, boxY = 22;
+  doc.setDrawColor(...NAVY_RGB);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(boxX, boxY, boxW, boxH, 3, 3);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY_RGB);
+  doc.text('AS ON', boxX + boxW / 2, boxY + 13, { align: 'center', charSpace: 1 });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...NAVY_RGB);
+  doc.text(dateLabel, boxX + boxW / 2, boxY + 27, { align: 'center' });
+
+  // Navy rule under the header band
+  doc.setLineWidth(1.5);
+  doc.setDrawColor(...NAVY_RGB);
+  doc.line(SIDE, 80, pageW - SIDE, 80);
+}
+
+// Document footer — mirrors the print view: portal/region · generated · as-on.
+function drawDocFooter(doc, { regionFooter, generatedLabel, dateLabel }, SIDE) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const y = pageH - 20;
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.5);
+  doc.line(SIDE, y - 9, pageW - SIDE, y - 9);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY_RGB);
+  doc.text(`FTC Communication Portal — ${regionFooter}`, SIDE, y);
+  doc.text(`Generated: ${generatedLabel}`, pageW / 2, y, { align: 'center' });
+  doc.text(`As on: ${dateLabel}`, pageW - SIDE, y, { align: 'right' });
+}
+
+function downloadBessPdf(prepared, refMonthName, headerInfo = {}) {
   const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepared;
   const headers = headerLabels(refMonthName);
+
+  const scopeLabel    = headerInfo.scopeLabel ?? 'All India';
+  const issuerLabel   = headerInfo.issuerLabel ?? 'National Load Despatch Centre';
+  const regionFooter  = headerInfo.regionFooter ?? 'NLDC, New Delhi';
+  const dateLabel     = headerInfo.dateLabel ?? new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const generatedLabel = new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
 
   // Total rows: the label spans the first 7 columns (cols 0–6) via colSpan so
   // it gets a full-width bar instead of wrapping inside the Sr. No column.
@@ -187,15 +249,14 @@ function downloadBessPdf(prepared, refMonthName) {
     10: { cellWidth: 160, halign: 'left' },              // COD Date Declared
   };
 
-  const SIDE = 25, TOP = 44, BOTTOM = 25;
+  // TOP leaves room for the branded header band (rule at y=80); BOTTOM clears
+  // the footer line.
+  const SIDE = 25, TOP = 92, BOTTOM = 34;
 
-  // Render the title + table into a fresh doc at the given font scale. Returns
-  // the doc and the table's final Y so we can measure whether it fit one page.
+  // Render the header + table + footer into a fresh doc at the given font scale.
+  // Returns the doc and its page count so we can shrink to a single page.
   const render = (fontSize, cellPadding) => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
-    doc.setFontSize(16);
-    doc.setTextColor(30, 58, 95);
-    doc.text('BESS Data — Inter-state & Intra-state', SIDE, 32);
     autoTable(doc, {
       head: [headers],
       body,
@@ -203,18 +264,22 @@ function downloadBessPdf(prepared, refMonthName) {
       margin: { left: SIDE, right: SIDE, top: TOP, bottom: BOTTOM },
       tableWidth: 'auto',
       styles: { fontSize, cellPadding, halign: 'center', valign: 'middle', overflow: 'linebreak', lineColor: [203, 213, 225], lineWidth: 0.5 },
-      headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle', fontSize },
+      headStyles: { fillColor: NAVY_RGB, textColor: 255, fontStyle: 'bold', halign: 'center', valign: 'middle', fontSize },
       columnStyles,
       didParseCell: (data) => {
         if (data.section !== 'body') return;
         if (grandRowIdxs.includes(data.row.index)) {
-          data.cell.styles.fillColor = [30, 58, 95];
+          data.cell.styles.fillColor = NAVY_RGB;
           data.cell.styles.textColor = 255;
           data.cell.styles.fontStyle = 'bold';
         } else if (totalRowIdxs.includes(data.row.index)) {
           data.cell.styles.fillColor = [226, 232, 240];
           data.cell.styles.fontStyle = 'bold';
         }
+      },
+      didDrawPage: () => {
+        drawDocHeader(doc, { issuerLabel, scopeLabel, dateLabel }, SIDE);
+        drawDocFooter(doc, { regionFooter, generatedLabel, dateLabel }, SIDE);
       },
     });
     return { doc, pages: doc.getNumberOfPages() };
@@ -236,13 +301,22 @@ function downloadBessPdf(prepared, refMonthName) {
   doc.save(`bess-data_${stamp}.pdf`);
 }
 
-export function BessDataPageClient({ bessProjects, regionLabel, canEdit = false }) {
+export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode = null, scopeRegionName = null, canEdit = false }) {
   const { settings } = useSettings();
   const [editRow, setEditRow] = useState(null);
   const refMonthLabel = fmtRefMonthShort(settings.referenceMonth);
   const refMonthName  = refMonthLabel.startsWith('Exp. ') ? refMonthLabel.slice(5) : 'reference month';
   const prepared = prepareBessData(bessProjects, settings.referenceMonth);
   const hasRows = prepared.rows.length > 0;
+
+  // Branded PDF header/footer info — mirrors the Dashboard print view's scope
+  // labelling (RLDC name for region users, All India / NLDC otherwise).
+  const pdfHeader = {
+    scopeLabel:   scopeRegionName ?? 'All India',
+    issuerLabel:  scopeRegionCode ? `${scopeRegionCode}LDC — Regional Load Despatch Centre` : 'National Load Despatch Centre',
+    regionFooter: scopeRegionCode ? `${scopeRegionCode}LDC` : 'NLDC, New Delhi',
+    dateLabel:    new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+  };
 
   return (
     <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-110px)] min-h-0">
@@ -272,7 +346,7 @@ export function BessDataPageClient({ bessProjects, regionLabel, canEdit = false 
             </button>
             <button
               type="button"
-              onClick={() => downloadBessPdf(prepared, refMonthName)}
+              onClick={() => downloadBessPdf(prepared, refMonthName, pdfHeader)}
               className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded px-2 py-1.5 transition-colors"
               title="Download BESS data as PDF"
               aria-label="Download BESS data as PDF"
