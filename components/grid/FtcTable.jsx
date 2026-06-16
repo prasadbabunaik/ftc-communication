@@ -14,6 +14,11 @@ function mw(val) {
   return Number(val).toFixed(1);
 }
 
+// Roll every hybrid sub-type (Hybrid (Wind+Solar), Hybrid (Solar+BESS) …) up
+// into a single "Hybrid" option in the Plant Type filter — same behaviour as
+// the CONTD-4 page; users filter "all hybrids" rather than each combination.
+const displayType = (label) => (label?.toLowerCase().startsWith('hybrid') ? 'Hybrid' : label);
+
 function SortableTh({ label, field, sortField, sortDir, onSort, className = '' }) {
   const active = sortField === field;
   return (
@@ -141,6 +146,7 @@ function StatusBadge({ status }) {
 export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected" }) {
   const [search, setSearch]             = useState('');
   const [regionFilter, setRegionFilter] = useState('All');
+  const [typeFilter, setTypeFilter]     = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortField, setSortField]       = useState('');
   const [sortDir, setSortDir]           = useState('asc');
@@ -149,6 +155,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   const PER_PAGE = 10;
 
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
+  const types   = useMemo(() => ['All', ...new Set(projects.map((p) => displayType(p.plantType.label)))], [projects]);
 
   function handleSort(field) {
     if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -200,9 +207,15 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       );
     }
     if (regionFilter !== 'All') rows = rows.filter((p) => p.region.code === regionFilter);
+    if (typeFilter !== 'All') {
+      // "Hybrid" matches every hybrid sub-type; other types match exactly.
+      rows = typeFilter === 'Hybrid'
+        ? rows.filter((p) => p.plantType.label?.toLowerCase().startsWith('hybrid'))
+        : rows.filter((p) => p.plantType.label === typeFilter);
+    }
     if (statusFilter !== 'All') rows = rows.filter((p) => p._status === statusFilter);
     return sortRows(rows, sortField, sortDir);
-  }, [enrichedRows, search, regionFilter, statusFilter, sortField, sortDir]);
+  }, [enrichedRows, search, regionFilter, typeFilter, statusFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -232,6 +245,14 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             {regions.map((r) => <option key={r}>{r}</option>)}
           </select>
         )}
+        <select
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          value={typeFilter}
+          onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+          title="Filter by plant type"
+        >
+          {types.map((t) => <option key={t} value={t}>{t === 'All' ? 'All Types' : t}</option>)}
+        </select>
         <select
           className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           value={statusFilter}
