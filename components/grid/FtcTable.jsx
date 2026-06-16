@@ -123,9 +123,25 @@ function SourceBadge({ source }) {
   );
 }
 
+// Commissioning status — Commissioned (COD declared == total capacity) vs
+// Under Process. Mirrors the dropdown filter values.
+function StatusBadge({ status }) {
+  const commissioned = status === 'Commissioned';
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border whitespace-nowrap ${
+      commissioned
+        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        : 'bg-amber-50 text-amber-700 border-amber-200'
+    }`}>
+      {status}
+    </span>
+  );
+}
+
 export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected" }) {
   const [search, setSearch]             = useState('');
   const [regionFilter, setRegionFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [sortField, setSortField]       = useState('');
   const [sortDir, setSortDir]           = useState('asc');
   const [page, setPage]                 = useState(1);
@@ -145,22 +161,31 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   }
 
   const enrichedRows = useMemo(() =>
-    projects.map((p) => ({
-      ...p,
-      _appliedMw:     p.phases.reduce((s, ph) => s + (ph.capacityAppliedMw  ?? 0), 0),
-      _approvedMw:    p.phases.reduce((s, ph) => s + (ph.ftcCompletedMw     ?? 0), 0),
-      _ftcPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderFtcMw ?? 0), 0),
-      _tocIssuedMw:   p.phases.reduce((s, ph) => s + (ph.tocIssuedMw        ?? 0), 0),
-      _tocPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderTocMw ?? 0), 0),
-      _codDeclaredMw: p.phases.reduce((s, ph) => s + (ph.codDeclaredMw      ?? 0), 0),
-      _codPendingMw:  p.phases.reduce((s, ph) => s + codPendingFromPhase(ph), 0),
-      _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
-      _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
-      _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
-      _isOverdue:     p.phases.some(ph =>
-        ph.proposedFtcDate && !ph.ftcCompletedMw && new Date(ph.proposedFtcDate) < new Date()
-      ),
-    })),
+    projects.map((p) => {
+      const codDeclaredMw = p.phases.reduce((s, ph) => s + (ph.codDeclaredMw ?? 0), 0);
+      const totalCap      = Number(p.totalCapacityMw ?? 0);
+      // Commissioned once the declared COD capacity reaches the project's total
+      // capacity (small epsilon for float / rounding). Anything short is still
+      // Under Process.
+      const status = totalCap > 0 && codDeclaredMw >= totalCap - 0.01 ? 'Commissioned' : 'Under Process';
+      return {
+        ...p,
+        _appliedMw:     p.phases.reduce((s, ph) => s + (ph.capacityAppliedMw  ?? 0), 0),
+        _approvedMw:    p.phases.reduce((s, ph) => s + (ph.ftcCompletedMw     ?? 0), 0),
+        _ftcPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderFtcMw ?? 0), 0),
+        _tocIssuedMw:   p.phases.reduce((s, ph) => s + (ph.tocIssuedMw        ?? 0), 0),
+        _tocPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderTocMw ?? 0), 0),
+        _codDeclaredMw: codDeclaredMw,
+        _codPendingMw:  p.phases.reduce((s, ph) => s + codPendingFromPhase(ph), 0),
+        _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
+        _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
+        _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
+        _status:        status,
+        _isOverdue:     p.phases.some(ph =>
+          ph.proposedFtcDate && !ph.ftcCompletedMw && new Date(ph.proposedFtcDate) < new Date()
+        ),
+      };
+    }),
   [projects]);
 
   const filtered = useMemo(() => {
@@ -175,8 +200,9 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       );
     }
     if (regionFilter !== 'All') rows = rows.filter((p) => p.region.code === regionFilter);
+    if (statusFilter !== 'All') rows = rows.filter((p) => p._status === statusFilter);
     return sortRows(rows, sortField, sortDir);
-  }, [enrichedRows, search, regionFilter, sortField, sortDir]);
+  }, [enrichedRows, search, regionFilter, statusFilter, sortField, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -206,6 +232,16 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             {regions.map((r) => <option key={r}>{r}</option>)}
           </select>
         )}
+        <select
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          title="Filter by commissioning status"
+        >
+          <option value="All">All statuses</option>
+          <option value="Under Process">Under Process</option>
+          <option value="Commissioned">Commissioned</option>
+        </select>
         <span className="text-sm text-muted-foreground self-center">
           {filtered.length} project{filtered.length !== 1 ? 's' : ''}
         </span>
@@ -305,6 +341,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                     <td className="px-3 py-2.5 min-w-[180px]">
                       <div className="font-medium text-foreground truncate max-w-[240px]" title={p.name}>{p.name}</div>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <StatusBadge status={p._status} />
                         <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 whitespace-nowrap">
                           {p.plantType.label}
                         </span>
