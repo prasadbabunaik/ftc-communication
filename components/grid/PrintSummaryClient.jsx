@@ -342,6 +342,51 @@ function TransmissionTable({ transmissionRows, cols }) {
   );
 }
 
+// ── FTC/TOC/COD Activity matrices ─────────────────────────────────────────────
+// Print counterpart of the dashboard's Activity tab. Each milestone (FTC / TOC /
+// COD) gets a Source × Region matrix of capacity whose milestone date falls in
+// the rolling 3-month window computed server-side.
+
+const MILE_PRINT = [
+  { key: 'ftc', label: 'FTC Approved' },
+  { key: 'toc', label: 'TOC Issued' },
+  { key: 'cod', label: 'COD Declared' },
+];
+
+function ActivityMatrix({ activity, milestone, scopeRegionCode }) {
+  const { matrix, totals } = activity ?? {};
+  const regions = scopeRegionCode ? [scopeRegionCode] : REGION_ORDER;
+  const cell = (src, reg) => matrix?.[`${reg}|${src}`]?.[milestone] ?? 0;
+  const rowTotal = (src) => regions.reduce((s, r) => s + cell(src, r), 0);
+  const colTotal = (reg) => SOURCE_ORDER.reduce((s, src) => s + cell(src, reg), 0);
+  const grand = scopeRegionCode ? colTotal(scopeRegionCode) : (totals?.[milestone] ?? 0);
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th style={{ width: 70, textAlign: 'left' }}>Source</th>
+          {regions.map((r) => <th key={r} style={{ width: 70 }}>{r}</th>)}
+          {!scopeRegionCode && <th style={{ width: 80 }}>All India</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {SOURCE_ORDER.map((src, i) => (
+          <tr key={src} className={i % 2 === 1 ? 'stripe' : ''}>
+            <td style={{ textAlign: 'left', fontWeight: 500 }}>{src}</td>
+            {regions.map((r) => <td key={r} style={{ textAlign: 'right' }}>{fmt(cell(src, r))}</td>)}
+            {!scopeRegionCode && <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(rowTotal(src))}</td>}
+          </tr>
+        ))}
+        <tr className="subtotal-row">
+          <td style={{ textAlign: 'left', fontWeight: 700 }}>Total</td>
+          {regions.map((r) => <td key={r} style={{ textAlign: 'right' }}>{fmt(colTotal(r))}</td>)}
+          {!scopeRegionCode && <td style={{ textAlign: 'right' }}>{fmt(grand)}</td>}
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 // ── Hybrid Breakdown table ────────────────────────────────────────────────────
 // Print counterpart of the dashboard's Hybrid Breakdown tab: hybrid projects
 // split by constituent source components, with per-region source subtotals,
@@ -637,6 +682,7 @@ const PRINT_TABLES = [
   { id: 'hybrid',       label: 'Hybrid Breakdown' },
   { id: 'source',       label: 'Source-wise Pipeline' },
   { id: 'transmission', label: 'Transmission' },
+  { id: 'activity',     label: 'FTC / TOC / COD Activity (3-month)' },
   { id: 'sources',      label: 'Per-source Project Details' },
 ];
 
@@ -736,7 +782,7 @@ function PrintControls({ tables, setTables, colSets, setColSet, contd4Months }) 
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects }) {
+export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects, activity = null, activityRange = '' }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [tables, setTables] = useState(() => new Set(PRINT_TABLES.map(t => t.id)));
   // One column set per table — everything on by default.
@@ -842,6 +888,21 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
                 Transmission Elements Under Process of FTC — Region-wise
               </SectionTitle>
               <TransmissionTable transmissionRows={transmissionRows} cols={colSets.transmission} />
+            </div>
+          )}
+
+          {/* ── FTC / TOC / COD Activity (rolling 3-month window) ── */}
+          {tables.has('activity') && (
+            <div className="mb-6 page-break">
+              <SectionTitle tableNo={nextNo()}>
+                FTC / TOC / COD Activity (Source &times; Region) — {activityRange}
+              </SectionTitle>
+              {MILE_PRINT.map((m) => (
+                <div key={m.key} className="mb-3 avoid-break">
+                  <p className="text-[8pt] font-bold text-[#1e3a5f] mb-1">{m.label} Capacity (MW)</p>
+                  <ActivityMatrix activity={activity} milestone={m.key} scopeRegionCode={scopeRegionCode} />
+                </div>
+              ))}
             </div>
           )}
 

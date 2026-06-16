@@ -5,6 +5,7 @@ import { PrintSummaryClient } from '@/components/grid/PrintSummaryClient';
 import {
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission, computeHybridBreakdown,
+  computeMilestoneActivity,
 } from '@/lib/grid-computations';
 
 export const metadata = { title: 'Print Summary — FTC Portal' };
@@ -24,7 +25,13 @@ export default async function PrintSummaryPage({ searchParams }) {
   const [projects, txElements] = await Promise.all([
     prisma.generationProject.findMany({
       where: scope,
-      include: { region: true, plantType: true, contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } }, phases: true, poolingStation: true },
+      include: {
+        region: true, plantType: true,
+        contd4: { include: { phases: { orderBy: { declaredDate: 'asc' } } } },
+        // Per-date events drive the FTC/TOC/COD Activity matrices.
+        phases: { include: { ftcEvents: true, tocEvents: true, codEvents: true } },
+        poolingStation: true,
+      },
     }),
     prisma.transmissionElement.findMany({
       where: scope,
@@ -38,6 +45,16 @@ export default async function PrintSummaryPage({ searchParams }) {
   const contd4Study      = computeContd4Study(projects);
   const transmissionRows = computeTransmission(txElements);
   const hybridRows       = computeHybridBreakdown(projects, asOf);
+
+  // FTC/TOC/COD Activity — a rolling 3-month window (current month + the two
+  // prior months), so June shows Apr + May + Jun. Honours an asOf cutoff.
+  const activityEnd = asOf
+    ? new Date(asOfStr + 'T23:59:59.999Z')
+    : (() => { const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t; })();
+  const activityStart = new Date(Date.UTC(activityEnd.getUTCFullYear(), activityEnd.getUTCMonth() - 2, 1, 0, 0, 0, 0));
+  const activity = computeMilestoneActivity(projects, activityStart, activityEnd, []);
+  const fmtDay = (d) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const activityRange = `${fmtDay(activityStart)} → ${fmtDay(activityEnd)}`;
 
   const dateLabel = asOfStr
     ? new Date(asOfStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -54,6 +71,8 @@ export default async function PrintSummaryPage({ searchParams }) {
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
       projects={JSON.parse(JSON.stringify(projects))}
+      activity={JSON.parse(JSON.stringify(activity))}
+      activityRange={activityRange}
     />
   );
 }
