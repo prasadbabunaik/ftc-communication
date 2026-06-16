@@ -159,11 +159,145 @@ export function prepareBessData(bessProjects, referenceMonth) {
   };
 }
 
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+// Cumulative + month-wise BESS COD-commissioning summary, split inter / intra
+// state and rolled up to a grand total — mirrors the source sheet's "Total BESS
+// commissioned" block. Baseline (A/B) = everything commissioned before the
+// current financial year (FY starts in April); then one inter/intra/combined
+// row-group per FY month elapsed up to `asOf`, and a grand total.
+//
+//   A   Total BESS commissioned upto <Mar YYYY> on ISTS        (inter, baseline)
+//   B   ...                                          Intra state (intra, baseline)
+//   A+B ...                              (inter + Intra state)   (subtotal)
+//   C   Total BESS commissioned in <Apr YYYY> on Inter State    …
+//   …                                                            grand total
+export function computeBessCommissioningSummary(bessProjects, asOf) {
+  const now = asOf ? new Date(asOf) : new Date();
+  const Y = now.getUTCFullYear();
+  const M = now.getUTCMonth();                 // 0-11
+  const fyStartYear = M >= 3 ? Y : Y - 1;      // FY starts April (month 3)
+  const baselineCutoff = Date.UTC(fyStartYear, 3, 1);
+  const nowMs = now.getTime();
+
+  // Collect dated COD entries (mw + inter/intra). Undated cached COD counts
+  // toward the baseline (already commissioned, timing unknown).
+  const entries = [];
+  const add = (date, mw, intra) => { if (mw > 0) entries.push({ ms: date ? new Date(date).getTime() : null, mw, intra }); };
+  for (const p of bessProjects ?? []) {
+    const intra = !!p.isIntrastate;
+    if (p.plantType?.isHybrid) {
+      const comp = (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS');
+      if (comp) add(comp.codDate ?? null, Number(comp.codMw ?? 0), intra);
+    } else {
+      const events = (p.phases ?? []).flatMap((ph) => ph.codEvents ?? []);
+      if (events.length) {
+        for (const e of events) add(e.eventDate ?? null, Number(e.capacityMw ?? 0), intra);
+      } else {
+        add(null, (p.phases ?? []).reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0), intra);
+      }
+    }
+  }
+
+  const monthIdxOf = (ms) => { const d = new Date(ms); return d.getUTCFullYear() * 12 + d.getUTCMonth(); };
+  const startIdx = fyStartYear * 12 + 3;       // April of FY start
+  const endIdx = Y * 12 + M;                    // current month
+
+  let baseInter = 0, baseIntra = 0;
+  const monthly = {};
+  for (let i = startIdx; i <= endIdx; i++) monthly[i] = { inter: 0, intra: 0 };
+
+  for (const e of entries) {
+    if (e.ms != null && e.ms > nowMs) continue;          // future COD — not yet commissioned
+    if (e.ms == null || e.ms < baselineCutoff) {
+      if (e.intra) baseIntra += e.mw; else baseInter += e.mw;
+    } else {
+      const idx = monthIdxOf(e.ms);
+      if (idx < startIdx || idx > endIdx) continue;
+      if (e.intra) monthly[idx].intra += e.mw; else monthly[idx].inter += e.mw;
+    }
+  }
+
+  // Build display rows with A / B / … keys.
+  let li = 0;
+  const letter = () => String.fromCharCode(65 + li++);
+  const monthLabel = (i) => `${MONTH_NAMES[((i % 12) + 12) % 12]} ${Math.floor(i / 12)}`;
+  const singles = [];
+  const rows = [];
+
+  const aL = letter(), bL = letter();
+  singles.push(aL, bL);
+  rows.push({ key: aL, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} on ISTS`, value: baseInter, kind: 'data' });
+  rows.push({ key: bL, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} on Intra state`, value: baseIntra, kind: 'data' });
+  rows.push({ key: `${aL}+${bL}`, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} (inter + Intra state)`, value: baseInter + baseIntra, kind: 'subtotal' });
+
+  for (let i = startIdx; i <= endIdx; i++) {
+    const iL = letter(), jL = letter();
+    singles.push(iL, jL);
+    const ml = monthLabel(i);
+    rows.push({ key: iL, label: `Total BESS commissioned in ${ml} on Inter State`, value: monthly[i].inter, kind: 'data' });
+    rows.push({ key: jL, label: `Total BESS commissioned in ${ml} on Intra State`, value: monthly[i].intra, kind: 'data' });
+    rows.push({ key: `${iL}+${jL}`, label: `Total BESS commissioned in ${ml} (inter + Intra state)`, value: monthly[i].inter + monthly[i].intra, kind: 'subtotal' });
+  }
+
+  const grand = baseInter + baseIntra + Object.values(monthly).reduce((s, m) => s + m.inter + m.intra, 0);
+  rows.push({ key: singles.length <= 16 ? singles.join('+') : 'Σ', label: 'Total BESS — All-India Commissioned', value: grand, kind: 'grand' });
+
+  return { rows, showKeys: li <= 26, grand };
+}
+
+// Renders the commissioning summary as a compact table (screen + standalone
+// page). The print view renders its own print-styled version from the same
+// computeBessCommissioningSummary output.
+export function BessCommissioningSummary({ bessProjects, asOf, dateLabel, className = '' }) {
+  const { rows, showKeys } = computeBessCommissioningSummary(bessProjects, asOf);
+  if (!rows.length) return null;
+  return (
+    <div className={`rounded-xl border shadow-sm overflow-hidden ${className}`}>
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">BESS Commissioning Summary</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          Cumulative &amp; month-wise COD-commissioned BESS capacity (inter + intra-state){dateLabel ? ` — as on ${dateLabel}` : ''}.
+        </p>
+      </div>
+      <table className="w-full border-collapse text-[11px]">
+        <thead>
+          <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
+            {showKeys && <th className="px-2 py-2 text-center font-bold w-12">Key</th>}
+            <th className="px-3 py-2 text-left font-bold">Description</th>
+            <th className="px-3 py-2 text-right font-bold w-36">Capacity (MW)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr
+              key={i}
+              className={
+                r.kind === 'grand'
+                  ? 'border-t border-slate-400 bg-slate-200 font-black'
+                  : r.kind === 'subtotal'
+                  ? 'border-t border-slate-200 bg-slate-50 font-semibold'
+                  : 'border-t border-gray-100'
+              }
+            >
+              {showKeys && <td className="px-2 py-1.5 text-center text-slate-500 font-mono text-[10px]">{r.key}</td>}
+              <td className="px-3 py-1.5 text-slate-700">{r.label}</td>
+              <td className="px-3 py-1.5 text-right tabular-nums">{fmt(r.value) || '0'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function BessDataTab({
   bessProjects,
   referenceMonth,
   refMonthName,
   stickyTopClass = 'top-[156px] lg:top-[166px]',
+  // Show the commissioning-summary block under the main table.
+  showSummary = true,
   // When true, rows are clickable and call onEditRow(row) to open the edit
   // modal (State / Energy Commissioned — the non-pipeline columns).
   editable = false,
@@ -181,6 +315,7 @@ export function BessDataTab({
   }
 
   return (
+    <div className="space-y-3">
     <div className="rounded-xl border shadow-sm">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5">
         <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">BESS Data — Inter-state &amp; Intra-state</p>
@@ -219,6 +354,8 @@ export function BessDataTab({
           </tbody>
         </table>
       </div>
+    </div>
+      {showSummary && <BessCommissioningSummary bessProjects={bessProjects} />}
     </div>
   );
 }

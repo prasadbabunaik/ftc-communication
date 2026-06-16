@@ -7,7 +7,7 @@
 // prepareBessData so the table matches the on-screen BESS table exactly.
 
 import { useState } from 'react';
-import { prepareBessData, fmt } from '@/components/grid/BessDataTab';
+import { prepareBessData, fmt, computeBessCommissioningSummary } from '@/components/grid/BessDataTab';
 
 function fmtRefMonth(ym) {
   if (!ym) return null;
@@ -128,7 +128,7 @@ function Toolbar({ dateLabel, panelOpen, onToggleCustomize }) {
   );
 }
 
-function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll }) {
+function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll, showSummary, onToggleSummary }) {
   return (
     <div className="no-print fixed top-[48px] left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-md px-5 py-3 max-h-[60vh] overflow-y-auto">
       <div className="max-w-5xl mx-auto">
@@ -147,6 +147,14 @@ function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll }) {
           ))}
         </div>
         <p className="text-[10px] text-slate-400 mt-1.5">Sr. No, Generating Station and Region are always included.</p>
+
+        <div className="mt-3 pt-2 border-t border-slate-200">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">Sections</p>
+          <label className="flex items-center gap-2 py-0.5 cursor-pointer select-none hover:text-slate-900">
+            <input type="checkbox" checked={showSummary} onChange={onToggleSummary} className="size-3.5 accent-blue-600" />
+            <span className="text-[12px] text-slate-700">BESS Commissioning Summary</span>
+          </label>
+        </div>
       </div>
     </div>
   );
@@ -162,6 +170,9 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
 
   const [enabled, setEnabled] = useState(() => new Set(allColumns.map((c) => c.key)));
   const [panelOpen, setPanelOpen] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
+
+  const summary = computeBessCommissioningSummary(bessProjects);
 
   const toggle = (key) => {
     const next = new Set(enabled);
@@ -202,7 +213,15 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
       <style>{PRINT_STYLES}</style>
       <Toolbar dateLabel={dateLabel} panelOpen={panelOpen} onToggleCustomize={() => setPanelOpen((o) => !o)} />
       {panelOpen && (
-        <ColumnPanel toggleable={toggleable} enabled={enabled} onToggle={toggle} allOn={allOn} onToggleAll={toggleAll} />
+        <ColumnPanel
+          toggleable={toggleable}
+          enabled={enabled}
+          onToggle={toggle}
+          allOn={allOn}
+          onToggleAll={toggleAll}
+          showSummary={showSummary}
+          onToggleSummary={() => setShowSummary((s) => !s)}
+        />
       )}
 
       <div className="bess-print-page">
@@ -228,6 +247,32 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
                 {totalRow('Total BESS', grandTotals, true, 'grand-total')}
               </tbody>
             </table>
+          )}
+
+          {showSummary && summary.rows.length > 0 && (
+            <div className="mt-6">
+              <div className="text-[10pt] font-bold text-[#1e3a5f] mb-1">
+                BESS Commissioning Summary <span className="font-normal text-slate-500">— as on {dateLabel}</span>
+              </div>
+              <table style={{ width: '70%' }}>
+                <thead>
+                  <tr>
+                    {summary.showKeys && <th style={{ width: 40 }}>Key</th>}
+                    <th style={{ textAlign: 'left' }}>Description</th>
+                    <th style={{ width: 110 }}>Capacity (MW)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.rows.map((r, i) => (
+                    <tr key={i} className={r.kind === 'grand' ? 'total-row' : r.kind === 'subtotal' ? 'subtotal-row' : ''}>
+                      {summary.showKeys && <td style={{ fontFamily: 'monospace', fontSize: '7pt' }}>{r.key}</td>}
+                      <td style={{ textAlign: 'left' }}>{r.label}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(r.value) || '0'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Footer */}
