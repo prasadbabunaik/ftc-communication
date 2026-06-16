@@ -5,7 +5,7 @@
 // row-shaping helpers from BessDataTab so the export matches the on-screen view.
 
 import { useState } from 'react';
-import { BatteryCharging, Sheet, FileText } from 'lucide-react';
+import { BatteryCharging, Sheet, FileText, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -78,19 +78,29 @@ const NAVY = '1E3A5F';
 const X_BORDER  = { style: 'thin', color: { rgb: 'CBD5E1' } };
 const X_BORDERS = { top: X_BORDER, bottom: X_BORDER, left: X_BORDER, right: X_BORDER };
 
-function downloadBessExcel(prepared, refMonthName) {
+function downloadBessExcel(prepared, refMonthName, headerInfo = {}) {
   const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepared;
   const headers = headerLabels(refMonthName);
   const colCount = headers.length;
+
+  const issuerLabel = headerInfo.issuerLabel ?? 'National Load Despatch Centre';
+  const scopeLabel  = headerInfo.scopeLabel ?? 'All India';
+  const asOn        = headerInfo.dateLabel ?? new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const aoa = [];
   const merges = [];
   const rowMeta = []; // { kind } per aoa row, for styling
 
-  // Title bar
-  aoa.push(['BESS Data — Inter-state & Intra-state', ...Array(colCount - 1).fill('')]);
-  merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } });
-  rowMeta.push({ kind: 'title' });
+  // Branded header block — mirrors the PDF / Dashboard print view: issuer
+  // label, title, region-scoped subtitle + as-on date. Each spans all columns.
+  const pushBanner = (text, kind) => {
+    aoa.push([text, ...Array(colCount - 1).fill('')]);
+    rowMeta.push({ kind });
+    merges.push({ s: { r: aoa.length - 1, c: 0 }, e: { r: aoa.length - 1, c: colCount - 1 } });
+  };
+  pushBanner(issuerLabel.toUpperCase(), 'issuer');
+  pushBanner('BESS Data — Battery Energy Storage Systems', 'title');
+  pushBanner(`Inter-state & Intra-state — ${scopeLabel}    ·    As on: ${asOn}`, 'subtitle');
 
   // Header
   aoa.push(headers);
@@ -125,7 +135,11 @@ function downloadBessExcel(prepared, refMonthName) {
       const cell = ws[addr];
       if (!cell) continue;
       const base = { font: { name: 'Arial', sz: 10 }, border: X_BORDERS, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } };
-      if (kind === 'title') {
+      if (kind === 'issuer') {
+        cell.s = { font: { name: 'Arial', sz: 9, bold: true, color: { rgb: NAVY } }, alignment: { horizontal: 'left', vertical: 'center' } };
+      } else if (kind === 'subtitle') {
+        cell.s = { font: { name: 'Arial', sz: 10, bold: true, color: { rgb: NAVY } }, alignment: { horizontal: 'left', vertical: 'center' } };
+      } else if (kind === 'title') {
         cell.s = { font: { name: 'Arial', sz: 13, bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: NAVY } }, alignment: { horizontal: 'center', vertical: 'center' } };
       } else if (kind === 'header') {
         cell.s = { font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: NAVY } }, border: X_BORDERS, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } };
@@ -334,9 +348,20 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
 
         {hasRows && (
           <div className="flex items-center gap-2">
+            <a
+              href={`/bess-data/print${settings.referenceMonth ? `?ref=${settings.referenceMonth}` : ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-1.5 transition-colors"
+              title="Open print / PDF view"
+              aria-label="Open print / PDF view"
+            >
+              <Printer className="size-4" strokeWidth={2} />
+              <span>Print</span>
+            </a>
             <button
               type="button"
-              onClick={() => downloadBessExcel(prepared, refMonthName)}
+              onClick={() => downloadBessExcel(prepared, refMonthName, pdfHeader)}
               className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1.5 transition-colors"
               title="Download BESS data as Excel"
               aria-label="Download BESS data as Excel"

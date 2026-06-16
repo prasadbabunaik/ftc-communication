@@ -34,8 +34,11 @@ export default async function FtcPage({ searchParams }) {
         activePeriodFilter(asOf),
         // FTC pipeline membership is independent of CONTD-4: a project shows
         // here when entered directly into FTC (inFtcPipeline) OR when its
-        // CONTD-4 cleared (the legacy bridge).
-        { OR: [{ inFtcPipeline: true }, { contd4: { status: 'CLEARED' } }] },
+        // CONTD-4 cleared (the legacy bridge). Intra-state BESS records COD
+        // only (no inter-state FTC/TOC milestones) and never clears CONTD-4,
+        // so include it explicitly — it should still surface in the tracker
+        // even though its FTC/TOC columns stay empty.
+        { OR: [{ inFtcPipeline: true }, { contd4: { status: 'CLEARED' } }, { isIntrastate: true }] },
       ],
     },
     include: {
