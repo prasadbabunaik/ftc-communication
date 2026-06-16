@@ -6,16 +6,18 @@
 // (MWh). Everything else (capacity, COD figures) is derived from the FTC
 // pipeline and shown read-only for context.
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
 import { updateBessRowFields } from '@/app/actions/grid';
 import { fmt } from '@/components/grid/BessDataTab';
+import { statesForRegion } from '@/lib/regions-states';
 
 function ReadOnlyRow({ label, value }) {
   return (
@@ -38,6 +40,13 @@ export function BessEditModal({ row, open, onOpenChange }) {
     setStateName(row.stateName ?? '');
     setEnergy(row.energyMwh != null ? String(row.energyMwh) : '');
   }, [row]);
+
+  // State options scoped to this project's region (NR/WR/SR/ER/NER); the value
+  // and label are the state name itself.
+  const stateOptions = useMemo(
+    () => statesForRegion(row?.region).map((s) => ({ value: s, label: s })),
+    [row?.region],
+  );
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -83,11 +92,16 @@ export function BessEditModal({ row, open, onOpenChange }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">State (situated)</label>
-                  <input
+                  <Combobox
+                    options={stateOptions}
                     value={stateName}
-                    onChange={(e) => setStateName(e.target.value)}
-                    placeholder="e.g. Rajasthan"
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                    onChange={setStateName}
+                    placeholder="— Select state —"
+                    searchPlaceholder={`Search ${row.region !== '—' ? row.region + ' ' : ''}states…`}
+                    emptyText="No matching state."
+                    creatable
+                    onCreate={setStateName}
+                    className="h-9"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
