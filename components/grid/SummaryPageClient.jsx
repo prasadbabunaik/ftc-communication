@@ -653,7 +653,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
               <th className="px-3 py-2 text-center font-bold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC Approved</th>
               <th className="px-3 py-2 text-center font-bold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC Issued</th>
               <th className="px-3 py-2 text-center font-bold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap">COD Completed</th>
-              <th className="px-3 py-2 text-center font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{refMonthLabel}</th>
+              <th title={`Expected Capacity (MW) to be commissioned by End of ${refMonthLabel.startsWith('Exp. ') ? refMonthLabel.slice(5) : refMonthLabel}`} className="px-3 py-2 text-center font-bold bg-amber-100 text-amber-700 whitespace-nowrap cursor-help">{refMonthLabel}</th>
             </tr>
           </thead>
           <tbody>
