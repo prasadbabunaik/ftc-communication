@@ -398,7 +398,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
               <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
               <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap">Total Cap (MW)</th>
               {allMonths.map(m => (
-                <th key={m} className="px-3 py-2 text-center font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700" style={{ minWidth: 110 }}>
+                <th key={m} title={`CONTD-4 expected to be completed in ${fmtMonth(m)}`} className="px-3 py-2 text-center font-bold border-r border-blue-200 whitespace-nowrap bg-blue-50 text-blue-700 cursor-help" style={{ minWidth: 110 }}>
                   {fmtMonth(m)}
                 </th>
               ))}
