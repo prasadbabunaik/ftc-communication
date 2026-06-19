@@ -604,6 +604,9 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                 variant={project.manuallyCommissioned ? 'outline' : 'default'}
                 disabled={commissioning}
                 onClick={handleToggleCommission}
+                className={project.manuallyCommissioned
+                  ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'}
                 title={project.manuallyCommissioned
                   ? 'Clear the manual Commissioned override'
                   : 'Mark this project Commissioned even though COD has not reached total capacity'}
