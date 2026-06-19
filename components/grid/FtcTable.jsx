@@ -144,7 +144,6 @@ function StatusBadge({ status, manual = false }) {
       }`}
     >
       {status}
-      {manual && <span className="font-bold opacity-70">·M</span>}
     </span>
   );
 }

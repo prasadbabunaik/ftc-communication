@@ -582,7 +582,6 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                       }`}
                     >
                       {isCommissioned ? 'Commissioned' : 'Under Process'}
-                      {project.manuallyCommissioned && !codComplete && <span className="font-bold opacity-70">·M</span>}
                     </span>
                   </div>
                 ) : (
