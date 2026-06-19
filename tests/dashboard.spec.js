@@ -7,7 +7,7 @@ const TABS = [
   'Hybrid Breakdown',
   'Source-wise',
   'Transmission',
-  'BESS Data',
+  // BESS Data moved to the sidebar; no longer a dashboard tab.
   'FTC/TOC/COD Activity',
   'Project Details',
   'Day-wise Changes',
