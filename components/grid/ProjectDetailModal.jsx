@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers } from 'lucide-react';
+import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers, CheckCircle2, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { setProjectCommissioned } from '@/app/actions/grid';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { ProjectPhaseTimeline } from '@/components/grid/ProjectPhaseTimeline';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
@@ -493,12 +495,29 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
   // Commissioning data has two axes: 'source' = per-component lanes (what), and
   // 'timeline' = dated FTC/TOC/COD milestones (when).
   const [detailView, setDetailView] = useState('source'); // 'source' | 'timeline'
+  const [commissioning, setCommissioning] = useState(false);
   const router = useRouter();
 
   if (!project) return null;
 
   const commissionedMw    = project.phases.reduce((s, p) => s + (p.codDeclaredMw ?? 0), 0);
   const pendingCapacityMw = project.totalCapacityMw - commissionedMw;
+
+  // Commissioning status — derived (COD reaches total) or via the manual
+  // override. The override button only appears when it's meaningful: to set it
+  // when COD hasn't reached total, or to reopen an already-overridden project.
+  const codComplete    = project.totalCapacityMw > 0 && commissionedMw >= project.totalCapacityMw - 0.01;
+  const isCommissioned = codComplete || project.manuallyCommissioned;
+
+  async function handleToggleCommission() {
+    const next = !project.manuallyCommissioned;
+    setCommissioning(true);
+    const res = await setProjectCommissioned(project.id, next);
+    setCommissioning(false);
+    if (res?.error) { toast.error(res.error); return; }
+    toast.success(next ? 'Project marked Commissioned.' : 'Commissioned status reopened.');
+    router.refresh();
+  }
 
   const sourceUsed = project.phases.reduce((acc, p) => {
     acc[p.sourceType] = (acc[p.sourceType] ?? 0) + (p.capacityAppliedMw ?? 0);
@@ -554,6 +573,17 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                         CONTD-4: {CONTD4_STATUS_LABEL[project.contd4.status] ?? project.contd4.status}
                       </span>
                     )}
+                    <span
+                      title={project.manuallyCommissioned && !codComplete ? 'Manually marked Commissioned (COD below total capacity)' : undefined}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${
+                        isCommissioned
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}
+                    >
+                      {isCommissioned ? 'Commissioned' : 'Under Process'}
+                      {project.manuallyCommissioned && !codComplete && <span className="font-bold opacity-70">·M</span>}
+                    </span>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-0.5">
@@ -565,6 +595,25 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Manual commissioning override. Shown when meaningful: "Mark
+                Commissioned" while COD is below total, or "Reopen" to clear a
+                prior override. Hidden when the project is already commissioned
+                purely from COD reaching total (nothing to override). */}
+            {view === 'detail' && canEdit && (project.manuallyCommissioned || !codComplete) && (
+              <Button
+                size="sm"
+                variant={project.manuallyCommissioned ? 'outline' : 'default'}
+                disabled={commissioning}
+                onClick={handleToggleCommission}
+                title={project.manuallyCommissioned
+                  ? 'Clear the manual Commissioned override'
+                  : 'Mark this project Commissioned even though COD has not reached total capacity'}
+              >
+                {project.manuallyCommissioned
+                  ? (<><RotateCcw className="size-3.5 mr-1.5" /> Reopen</>)
+                  : (<><CheckCircle2 className="size-3.5 mr-1.5" /> Mark Commissioned</>)}
+              </Button>
+            )}
             {view === 'detail' && canEdit && (
               <Button size="sm" onClick={() => setView('add-phase')}>
                 <Plus className="size-3.5 mr-1.5" />

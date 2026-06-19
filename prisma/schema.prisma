@@ -145,6 +145,14 @@ model GenerationProject {
   // source sheet; display-only for now.
   energyCommissionedMwh Decimal? @db.Decimal(12, 2)
 
+  // Manual commissioning override. The FTC tracker normally derives
+  // "Commissioned" from declared COD MW reaching total capacity. This flag lets
+  // an operator mark a project Commissioned even when COD < total (e.g. the
+  // capacity was revised down, or the last units were cleared off-system).
+  // commissionedAt records when the override was set; cleared on "Reopen".
+  manuallyCommissioned Boolean   @default(false)
+  commissionedAt       DateTime?
+
   // Active period — a project is "live" on date D when:
   //     activeFrom <= D AND (activeUntil IS NULL OR activeUntil > D)
   // Soft-delete sets activeUntil = NOW(); reactivation sets it back to NULL.

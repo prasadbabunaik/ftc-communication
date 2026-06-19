@@ -4,6 +4,12 @@ This file tracks notable changes to the FTC Communication Portal.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Dates use the IST calendar.
 
+## [Unreleased] — 2026-06-19
+
+### Added
+- **Financial-year date filter** on the dashboard's FTC/TOC/COD Activity tab — an Indian-FY (1 Apr → 31 Mar) dropdown plus a month selector ("Whole year" or a single month within the FY). Both write the same `from`/`to` URL params as the date picker, so the rest of the tab recomputes unchanged. See [components/grid/SummaryPageClient.jsx](components/grid/SummaryPageClient.jsx) (`ActivityDateRange`).
+- **Manual commissioning override** on the FTC tracker — operators can mark a project **Commissioned** even when declared COD MW has not reached total capacity (capacity revised down, last units cleared off-system, etc.), and **Reopen** it later. New `manuallyCommissioned` / `commissionedAt` columns on `GenerationProject` (`prisma/migrations/20260619120000_add_manual_commission`), a region-scoped, audited `setProjectCommissioned()` server action, and a "Mark Commissioned / Reopen" control in the project detail modal. The tracker's status (and the status filter) honour the override; an overridden Commissioned status carries a `·M` marker. Status remains a marker only — it creates no COD events and changes no capacity figures.
+
 ## [Unreleased] — 2026-05-17
 
 ### Added

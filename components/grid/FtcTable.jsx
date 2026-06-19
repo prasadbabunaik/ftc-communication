@@ -128,17 +128,23 @@ function SourceBadge({ source }) {
   );
 }
 
-// Commissioning status — Commissioned (COD declared == total capacity) vs
-// Under Process. Mirrors the dropdown filter values.
-function StatusBadge({ status }) {
+// Commissioning status — Commissioned (COD declared == total capacity, or a
+// manual override) vs Under Process. Mirrors the dropdown filter values.
+// `manual` flags a Commissioned status that came from the operator override
+// rather than COD reaching total, shown with a trailing "·M" marker.
+function StatusBadge({ status, manual = false }) {
   const commissioned = status === 'Commissioned';
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border whitespace-nowrap ${
-      commissioned
-        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-        : 'bg-amber-50 text-amber-700 border-amber-200'
-    }`}>
+    <span
+      title={manual ? 'Manually marked Commissioned (COD below total capacity)' : undefined}
+      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold border whitespace-nowrap ${
+        commissioned
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : 'bg-amber-50 text-amber-700 border-amber-200'
+      }`}
+    >
       {status}
+      {manual && <span className="font-bold opacity-70">·M</span>}
     </span>
   );
 }
@@ -172,9 +178,13 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       const codDeclaredMw = p.phases.reduce((s, ph) => s + (ph.codDeclaredMw ?? 0), 0);
       const totalCap      = Number(p.totalCapacityMw ?? 0);
       // Commissioned once the declared COD capacity reaches the project's total
-      // capacity (small epsilon for float / rounding). Anything short is still
-      // Under Process.
-      const status = totalCap > 0 && codDeclaredMw >= totalCap - 0.01 ? 'Commissioned' : 'Under Process';
+      // capacity (small epsilon for float / rounding), OR when an operator has
+      // manually marked it Commissioned. Anything else is still Under Process.
+      const codComplete   = totalCap > 0 && codDeclaredMw >= totalCap - 0.01;
+      const status        = (codComplete || p.manuallyCommissioned) ? 'Commissioned' : 'Under Process';
+      // True only when the Commissioned status comes from the manual override
+      // rather than COD reaching total — drives the "manual" marker on the badge.
+      const manualCommission = !!p.manuallyCommissioned && !codComplete;
       return {
         ...p,
         _appliedMw:     p.phases.reduce((s, ph) => s + (ph.capacityAppliedMw  ?? 0), 0),
@@ -188,6 +198,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
         _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
         _status:        status,
+        _manualCommission: manualCommission,
         _isOverdue:     p.phases.some(ph =>
           ph.proposedFtcDate && !ph.ftcCompletedMw && new Date(ph.proposedFtcDate) < new Date()
         ),
@@ -362,7 +373,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                     <td className="px-3 py-2.5 min-w-[180px]">
                       <div className="font-medium text-foreground truncate max-w-[240px]" title={p.name}>{p.name}</div>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <StatusBadge status={p._status} />
+                        <StatusBadge status={p._status} manual={p._manualCommission} />
                         <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 whitespace-nowrap">
                           {p.plantType.label}
                         </span>

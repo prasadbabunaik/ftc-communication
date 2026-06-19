@@ -778,27 +778,100 @@ function ActivityDateRange({ from, to }) {
     { days: 30, label: 'Last 30 days' },
   ];
 
+  // ── Financial year (India: 1 Apr → 31 Mar) ──────────────────────────────────
+  // A FY dropdown + a month dropdown. "Whole year" sets the full 1 Apr → 31 Mar
+  // window; picking a month narrows it to that calendar month. Both write the
+  // same `from`/`to` URL params the date picker uses, so the rest of the tab
+  // recomputes unchanged.
+  const pad     = (n) => String(n).padStart(2, '0');
+  const lastDay = (y, m1) => new Date(Date.UTC(y, m1, 0)).getUTCDate(); // m1 = 1-indexed month
+  const today   = new Date();
+  const curFyStart = (today.getMonth() + 1) >= 4 ? today.getFullYear() : today.getFullYear() - 1;
+  const FY_OPTIONS = [0, 1, 2, 3, 4].map((i) => curFyStart - i);
+  const fyLabel    = (s) => `FY ${s}-${String(s + 1).slice(2)}`;
+  const FY_MONTHS  = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3]; // Apr → Mar
+  const monthYear  = (s, m1) => (m1 >= 4 ? s : s + 1);        // calendar year of a FY month
+  const MONTH_LABEL = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Which FY does the current `from` fall into? Drives the FY dropdown's value.
+  const fyOf = (iso) => { const [y, m] = iso.split('-').map(Number); return m >= 4 ? y : y - 1; };
+  const selectedFy = from ? fyOf(from) : curFyStart;
+
+  // Derive the month dropdown's value from the active range so the controls
+  // mirror the URL: 'ALL' = whole FY, 'YYYY-MM' = that month, '' = custom.
+  let monthValue = '';
+  if (from === `${selectedFy}-04-01` && to === `${selectedFy + 1}-03-31`) {
+    monthValue = 'ALL';
+  } else if (from && to) {
+    const [fy, fm] = from.split('-').map(Number);
+    if (from === `${fy}-${pad(fm)}-01` && to === `${fy}-${pad(fm)}-${pad(lastDay(fy, fm))}`) {
+      monthValue = `${fy}-${pad(fm)}`;
+    }
+  }
+
+  const applyFy = (s, mv) => {
+    if (mv === 'ALL') {
+      apply({ from: `${s}-04-01`, to: `${s + 1}-03-31` });
+    } else if (mv) {
+      const [y, m] = mv.split('-').map(Number);
+      apply({ from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${pad(lastDay(y, m))}` });
+    }
+  };
+  const onFyChange = (e) => {
+    const s = Number(e.target.value);
+    // Keep the chosen month (re-anchored to the new FY) if one is selected,
+    // otherwise switch to the whole year.
+    if (monthValue && monthValue !== 'ALL') {
+      const m = Number(monthValue.split('-')[1]);
+      applyFy(s, `${monthYear(s, m)}-${pad(m)}`);
+    } else {
+      applyFy(s, 'ALL');
+    }
+  };
+  const onMonthChange = (e) => applyFy(selectedFy, e.target.value);
+
+  const selectCls = 'h-9 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200';
+
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">Date range</span>
-      <div className="flex items-center gap-1.5">
-        <div className="w-[260px]">
-          <DateRangePicker from={from ?? ''} to={to ?? ''} onChange={apply} className="h-9" />
+    <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">Date range</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-[260px]">
+            <DateRangePicker from={from ?? ''} to={to ?? ''} onChange={apply} className="h-9" />
+          </div>
+          {PRESETS.map(({ days, label }) => (
+            <button
+              key={days}
+              type="button"
+              onClick={() => apply(presetRange(days))}
+              className={`h-9 px-3 rounded-md border text-xs font-medium whitespace-nowrap transition-colors ${
+                isActivePreset(days)
+                  ? 'border-blue-300 bg-blue-50 text-blue-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-        {PRESETS.map(({ days, label }) => (
-          <button
-            key={days}
-            type="button"
-            onClick={() => apply(presetRange(days))}
-            className={`h-9 px-3 rounded-md border text-xs font-medium whitespace-nowrap transition-colors ${
-              isActivePreset(days)
-                ? 'border-blue-300 bg-blue-50 text-blue-700'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">Financial year</span>
+        <div className="flex items-center gap-1.5">
+          <select value={selectedFy} onChange={onFyChange} className={selectCls} title="Select financial year (April – March)">
+            {FY_OPTIONS.map((s) => <option key={s} value={s}>{fyLabel(s)}</option>)}
+          </select>
+          <select value={monthValue} onChange={onMonthChange} className={selectCls} title="Whole year or a single month within the financial year">
+            {monthValue === '' && <option value="" disabled>Custom range</option>}
+            <option value="ALL">Whole year</option>
+            {FY_MONTHS.map((m) => {
+              const y = monthYear(selectedFy, m);
+              return <option key={m} value={`${y}-${pad(m)}`}>{MONTH_LABEL[m]} {y}</option>;
+            })}
+          </select>
+        </div>
       </div>
     </div>
   );

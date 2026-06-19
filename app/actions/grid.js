@@ -401,6 +401,55 @@ export async function updateGenerationProject(projectId, formData) {
   return { success: true };
 }
 
+// Manual commissioning override (FTC tracker). Normally a project reads as
+// "Commissioned" once declared COD MW reaches its total capacity. This lets an
+// authorised operator force that status — or reopen it — when the derived rule
+// doesn't fit (capacity revised down, last units cleared off-system, etc.).
+// The flag is purely a status marker: it does NOT create COD events or alter
+// any capacity figures.
+export async function setProjectCommissioned(projectId, commissioned) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+  const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
+  if (!project) return { error: 'Project not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'You cannot edit projects outside your assigned region.' };
+  }
+
+  const next = !!commissioned;
+  if (project.manuallyCommissioned === next) return { success: true };
+
+  await prisma.generationProject.update({
+    where: { id: projectId },
+    data: {
+      manuallyCommissioned: next,
+      commissionedAt:       next ? new Date() : null,
+    },
+  });
+
+  await prisma.projectNote.create({
+    data: {
+      projectId,
+      projectName: project.name,
+      userId:      user.id,
+      text:        next
+        ? 'Manually marked Commissioned'
+        : 'Commissioned status reopened (manual override cleared)',
+      source:   'SYSTEM',
+      field:    'Commissioning status',
+      oldValue: next ? 'Under Process' : 'Commissioned (manual)',
+      newValue: next ? 'Commissioned (manual)' : 'Under Process',
+    },
+  });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true };
+}
+
 // Lightweight capacity-only edit used by the "Edit Sources / Components" modal
 // so an operator can correct the plant's Total Capacity (and, for hybrids, each
 // component capacity) inline while fixing an "Applied exceeds capacity"
