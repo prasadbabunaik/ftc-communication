@@ -11,11 +11,11 @@
 The **FTC Communication Portal** is a single, secure, web-based system that
 tracks every generation project and transmission element across the Indian grid
 — from connectivity clearance all the way to commercial operation — and replaces
-the manually-maintained Excel workbook we depend on today.
+the manually-maintained Google Sheet we depend on today.
 
 ---
 
-## 2. Why do we need this? (The problem today)
+## 2. The story so far — how we worked earlier
 
 The Load Despatch Centres are responsible for monitoring the commissioning of
 new capacity entering the grid — when a power plant is first energised (**First
@@ -23,37 +23,71 @@ Time Charging**), when it clears trial operation (**Transfer of Charge**), and
 when it goes commercial (**Commercial Operation Date**). This information feeds
 national capacity-addition reporting and grid-planning decisions.
 
-Until now, all of this has lived in a **single shared Excel workbook**
-(`CONTD and FTC details.xlsx`). That approach has reached its limits:
+**How it was done until now:** all of this was maintained in a **shared Google
+Sheet**, updated by **manual data entry**. Whenever a project reached a
+milestone, someone typed the new figures into the sheet by hand, and the
+region-wise / source-wise summaries were re-worked manually on top of that.
 
-- **No single source of truth.** The file is copied, emailed, and edited in
-  parallel. Different people hold different "latest" versions, and reconciling
-  them is manual and error-prone.
-- **No access control.** Anyone with the file sees and can change *everything* —
-  there is no way to give a regional centre control of only its own region while
-  protecting the rest.
-- **No history or accountability.** When a number changes, there is no record of
-  *who* changed it, *when*, or *what the old value was*. Disputes over figures
-  cannot be settled with evidence.
-- **No safety net on the data.** A mistyped figure (e.g. declaring more
-  commercial capacity than was ever charged) silently flows into reports. Excel
-  does not understand the rules of our pipeline.
-- **Manual roll-ups.** Region-wise and source-wise summaries are re-built by
-  hand each time, which is slow and a frequent source of mismatch.
-- **No "what changed since yesterday".** There is no reliable way to see the
-  day-on-day movement in the pipeline without manually comparing two files.
+It served us for a while — it was quick to start and everyone knew spreadsheets.
+But as the volume of renewable and hybrid capacity grew, the manual-sheet
+approach began to break down:
 
-In short: the data is **business-critical but ungoverned**. As the volume of
-renewable and hybrid capacity entering the grid grows, the spreadsheet approach
-is increasingly fragile.
+- **No single source of truth.** With everyone editing the same sheet (and
+  copies being exported and circulated), it became hard to be sure which version
+  was the latest, correct one. Reconciling parallel edits was manual and
+  error-prone.
+- **Everything depended on manual entry.** Every figure was typed in by hand.
+  One wrong keystroke — a misplaced decimal, a number in the wrong row — silently
+  flowed straight into national reports, with nothing to catch it.
+- **No access control.** Anyone with the link could see and change *everything*.
+  There was no way to let a regional centre manage only its own region while
+  protecting the rest of the data.
+- **No history or accountability.** When a number changed, there was no record of
+  *who* changed it, *when*, or *what the old value was*. A figure could be
+  overwritten and the previous value was simply gone — disputes couldn't be
+  settled with evidence.
+- **No validation of the rules.** A sheet doesn't understand our pipeline, so it
+  happily accepts impossible figures (e.g. more commercial capacity than was ever
+  charged). The logic lived only in people's heads.
+- **Manual roll-ups.** Region- and source-wise summaries were rebuilt by hand
+  every time — slow, repetitive, and a frequent source of mismatch.
+- **No reliable "what changed since yesterday".** Seeing day-on-day movement in
+  the pipeline meant manually comparing old copies of the sheet.
+
+In short: the data was **business-critical but ungoverned** — held together by
+manual discipline rather than by the system itself.
 
 ---
 
-## 3. What we built (The solution)
+## 3. Moving to the application — how it solved the problem
 
-A purpose-built web portal that takes the seven tables from that Excel workbook
-and turns them into an **authoritative, audited, role-controlled system**. The
-core ideas:
+We replaced the manual Google Sheet with a **purpose-built web portal** that
+takes the same seven summary tables and turns them into an **authoritative,
+audited, role-controlled system**. Each of the old pain points is directly
+addressed:
+
+| The earlier problem (Google Sheet) | How the application solves it |
+|---|---|
+| Many copies, unsure which is latest | **One live database** — everyone sees the same current data |
+| Everything typed by hand, errors slip through | **Built-in validation** — impossible figures are rejected at entry |
+| Anyone could edit anything | **Role- and region-based access**, enforced on the server |
+| No record of who changed what | **Full audit trail** — every change logged with who / when / old → new |
+| Summaries rebuilt manually | **Summaries computed automatically** and always reconcile |
+| Couldn't tell what changed day-to-day | **Daily snapshots** + a "what changed between any two dates" view |
+
+The core ideas of the new system:
+
+**A. The commissioning pipeline, modelled correctly.**
+Every project moves through the same funnel, and the system understands and
+enforces it:
+
+```
+   CONTD-4 cleared ──► Applied for FTC ──► FTC approved ──► TOC issued ──► COD declared
+   (connectivity)      (request raised)    (first charging)  (trial op.)   (commercial op.)
+```
+
+The natural rule **COD ≤ TOC ≤ FTC ≤ Applied** is enforced automatically — you
+simply cannot enter an impossible figure. "Pending" at each stage is computed,
 
 **A. The commissioning pipeline, modelled correctly.**
 Every project moves through the same funnel, and the system understands and
@@ -88,16 +122,16 @@ circulating to stakeholders.
 
 ## 4. The benefits (Why management should care)
 
-| Theme | Before (Excel) | Now (Portal) |
+| Theme | Before (Google Sheet, manual) | Now (Portal) |
 |---|---|---|
 | **Single source of truth** | Many copies, manual merge | One live database, always current |
-| **Access control** | All-or-nothing | Region-scoped, role-based, server-enforced |
+| **Access control** | Anyone with the link edits all | Region-scoped, role-based, server-enforced |
 | **Accountability** | No history | Full audit trail — who changed what, when, old → new |
-| **Data quality** | Free-form typing | Validated against pipeline rules automatically |
+| **Data quality** | Hand-typed, errors slip through | Validated against pipeline rules automatically |
 | **Roll-ups** | Re-built by hand | Computed instantly, always consistent |
-| **Change tracking** | Compare files manually | Daily snapshots + "what changed" between any two dates |
+| **Change tracking** | Compare old copies manually | Daily snapshots + "what changed" between any two dates |
 | **Awareness** | Email / phone | In-app notifications for key events |
-| **Security** | A file anyone can open | Login, encryption, rate-limiting, lockout, hardened headers |
+| **Security** | A link anyone can open | Login, encryption, rate-limiting, lockout, hardened headers |
 
 Concrete wins:
 
@@ -199,8 +233,8 @@ Practical next steps, in rough priority order:
 
 ## 9. The ask / takeaway
 
-We have replaced a fragile, ungoverned spreadsheet with a **secure, audited,
-single source of truth** for grid commissioning data — improving the
+We have replaced a fragile, manually-maintained Google Sheet with a **secure,
+audited, single source of truth** for grid commissioning data — improving the
 **trustworthiness, security, and speed** of information that feeds national
 capacity reporting.
 
@@ -212,11 +246,11 @@ that is where we recommend continued investment.
 
 ### One-slide summary (for the deck)
 
-> **FTC Communication Portal** — replaces our shared Excel workbook for tracking
-> grid commissioning (FTC → TOC → COD) with one secure, role-controlled,
-> fully-audited web system.
+> **FTC Communication Portal** — replaces our shared, manually-updated Google
+> Sheet for tracking grid commissioning (FTC → TOC → COD) with one secure,
+> role-controlled, fully-audited web system.
 >
-> **Why:** the spreadsheet has no single source of truth, no access control, no
+> **Why:** the manual sheet has no single source of truth, no access control, no
 > history, and no validation — risky for business-critical national reporting.
 >
 > **Benefits:** trustworthy numbers, region-level ownership with national
