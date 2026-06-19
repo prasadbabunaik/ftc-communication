@@ -1106,6 +1106,52 @@ function FilterBar({ asOf }) {
   );
 }
 
+// Including / Excluding Hybrid bifurcation for the FTC Pipeline tab. Writes the
+// ?hybrid=incl URL param (absent = excl, the default). "Including" folds each
+// hybrid's per-component capacity into its source bucket so a source row (e.g.
+// Wind) reflects pure-source projects PLUS the matching component of hybrids;
+// "Excluding" keeps hybrids in their own row. Scoped to the pipeline tab.
+function HybridModeToggle({ mode }) {
+  const router = useRouter();
+  const sp     = useSearchParams();
+
+  const set = (next) => {
+    const params = new URLSearchParams(sp.toString());
+    if (next === 'incl') params.set('hybrid', 'incl');
+    else params.delete('hybrid');
+    router.push(`/dashboard?${params.toString()}`);
+  };
+
+  const OPTIONS = [
+    { value: 'excl', label: 'Excl. Hybrid' },
+    { value: 'incl', label: 'Incl. Hybrid' },
+  ];
+
+  return (
+    <div
+      className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+      title="Excluding: hybrids shown in their own row. Including: each hybrid's per-component capacity is folded into its source row (e.g. Wind = pure wind + hybrid wind)."
+    >
+      <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Hybrid</span>
+      {OPTIONS.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => set(o.value)}
+          aria-pressed={mode === o.value}
+          className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+            mode === o.value
+              ? 'bg-white text-violet-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ──────────────────────────────────────────────────────────────────────────────
    Filters UI — TEMPORARILY HIDDEN. Re-enable by replacing the slim `FilterBar`
    above with this full implementation when the date filters are needed again.
@@ -1256,7 +1302,7 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
 export function SummaryPageClient({
   regionLabel, asOf, activityFrom, activityTo,
   regions = [], selectedRegions = [], canFilterRegion = false,
-  sources = [], selectedSources = [],
+  sources = [], selectedSources = [], hybridMode = 'excl',
   stats, table2Rows, table5Rows, contd4Study,
   transmissionRows, hybridRows, bessProjects = [], activity, projects, txElements,
   availableSnapshots,
@@ -1363,6 +1409,9 @@ export function SummaryPageClient({
             selectedSources={selectedSources}
             disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid' || activeTab === 'bess'}
           />
+          {/* Including / Excluding Hybrid — only the FTC Pipeline tab supports
+              the bifurcation today. */}
+          {activeTab === 'pipeline' && <HybridModeToggle mode={hybridMode} />}
         </div>
       </div>
 
@@ -1387,8 +1436,8 @@ export function SummaryPageClient({
             rows={table2Rows}
             primaryKey="region"
             refMonthLabel={refMonthLabel}
-            title="Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise"
-            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process. | ${refMonthLabel} column = expectedApr26Mw field.`}
+            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
+            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process. | ${refMonthLabel} column = expectedApr26Mw field.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
           />
         )}

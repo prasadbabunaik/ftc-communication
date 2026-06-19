@@ -124,7 +124,19 @@ export default async function DashboardPage({ searchParams }) {
     : [];
 
   const pipelineMatrix   = computePipelineMatrix(viewProjects, computeAsOf);
-  const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source', filters);
+  // FTC Pipeline tab "Including / Excluding Hybrid" bifurcation (?hybrid=incl).
+  // Excluding (default): hybrids sit in their own HYBRID row (uses the
+  // source-filtered set above). Including: hybrids' per-component figures fold
+  // into their source buckets — so e.g. the WIND row carries pure-wind plus the
+  // wind component of every hybrid. The folded matrix is built from the FULL
+  // region-scoped set (not source-filtered) so hybrids aren't dropped before
+  // folding; buildPipelineRows then narrows to the selected source(s). Scoped
+  // to this tab — stat cards, Source-wise and other tabs keep the default view.
+  const hybridMode = params.hybrid === 'incl' ? 'incl' : 'excl';
+  const pipelineMatrixForTable = hybridMode === 'incl'
+    ? computePipelineMatrix(projects, computeAsOf, { foldHybridComponents: true })
+    : pipelineMatrix;
+  const table2Rows       = buildPipelineRows(pipelineMatrixForTable, 'region', 'source', filters);
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region', filters);
   const contd4Study      = computeContd4Study(viewProjects, filters);
   const transmissionRows = computeTransmission(txElements);
@@ -278,6 +290,7 @@ export default async function DashboardPage({ searchParams }) {
       canFilterRegion={!isRegionLocked}
       sources={SOURCE_ORDER}
       selectedSources={selectedSources}
+      hybridMode={hybridMode}
       stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending }}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}
