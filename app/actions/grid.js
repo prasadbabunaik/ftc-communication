@@ -1771,6 +1771,12 @@ export async function createPoolingStation(formData) {
   const voltageKv = formData.voltageKv ? parseInt(formData.voltageKv) : null;
   if (!name || !regionId) return { error: 'Name and region are required.' };
 
+  // Region scope — an RLDC may only create pooling stations in its own region.
+  const scope = await buildRegionScope(_auth.role);
+  if (scope.regionId && scope.regionId !== regionId) {
+    return { error: 'You cannot create pooling stations outside your assigned region.' };
+  }
+
   const existing = await prisma.poolingStation.findFirst({ where: { name, regionId } });
   if (existing) return { error: 'A pooling station with this name already exists in the region.' };
 
@@ -1889,6 +1895,12 @@ export async function addProjectNote(projectId, text) {
   // Verify the project exists
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
   if (!project) return { error: 'Project not found.' };
+
+  // Region scope — an RLDC may only annotate projects in its own region.
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'You cannot add notes to projects outside your assigned region.' };
+  }
 
   await prisma.projectNote.create({
     data: { projectId, userId: user.id, text: trimmed },

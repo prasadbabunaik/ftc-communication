@@ -3,9 +3,13 @@ import { jwtVerify } from 'jose';
 import { applySecurityHeaders } from './lib/security-headers';
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/refresh', '/api/auth/logout'];
-const ACCESS_SECRET = new TextEncoder().encode(
-  process.env.JWT_ACCESS_SECRET || 'ftc-access-secret-key-minimum-32-characters-long',
-);
+// No hardcoded fallback: the signing secret must come from the environment.
+// If it is unset, verification below fails closed (requests redirect to login)
+// rather than silently trusting a well-known default secret.
+if (!process.env.JWT_ACCESS_SECRET) {
+  console.error('[middleware] JWT_ACCESS_SECRET is not set — all sessions will be rejected.');
+}
+const ACCESS_SECRET = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET || '');
 
 // Wrap a NextResponse-returning step so every response (continue / redirect)
 // uniformly carries our security headers. Keeps the auth logic below readable.
@@ -13,10 +17,26 @@ function secureResponse(response, request) {
   return applySecurityHeaders(response, request);
 }
 
+// Unauthenticated handling: API routes get a JSON 401 (so programmatic clients
+// and the security test-suite see a real auth failure, not an HTML login page),
+// while page navigations are redirected to /login.
+function rejectUnauth(request, pathname) {
+  if (pathname.startsWith('/api/')) {
+    return secureResponse(
+      NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+      request,
+    );
+  }
+  return secureResponse(NextResponse.redirect(new URL('/login', request.url)), request);
+}
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths and Next.js internals
+  // Allow public paths and Next.js internals. NOTE: the `.` check only skips
+  // genuine static assets — every API route and page in this app is dot-free,
+  // so this does not expose protected data (handlers also call
+  // requireServerUser as defense-in-depth).
   if (
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith('/_next') ||
@@ -29,9 +49,9 @@ export async function middleware(request) {
   const accessToken = request.cookies.get('access_token')?.value;
   const refreshToken = request.cookies.get('refresh_token')?.value;
 
-  // No tokens at all → redirect to login
+  // No tokens at all → reject (401 for API, redirect for pages)
   if (!accessToken && !refreshToken) {
-    return secureResponse(NextResponse.redirect(new URL('/login', request.url)), request);
+    return rejectUnauth(request, pathname);
   }
 
   // Try to verify access token
@@ -45,7 +65,7 @@ export async function middleware(request) {
       if (refreshToken) {
         return secureResponse(NextResponse.next(), request);
       }
-      return secureResponse(NextResponse.redirect(new URL('/login', request.url)), request);
+      return rejectUnauth(request, pathname);
     }
   }
 
@@ -54,7 +74,7 @@ export async function middleware(request) {
     return secureResponse(NextResponse.next(), request);
   }
 
-  return secureResponse(NextResponse.redirect(new URL('/login', request.url)), request);
+  return rejectUnauth(request, pathname);
 }
 
 export const config = {
