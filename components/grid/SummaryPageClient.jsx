@@ -1437,7 +1437,7 @@ export function SummaryPageClient({
             primaryKey="region"
             refMonthLabel={refMonthLabel}
             title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
-            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process. | ${refMonthLabel} column = expectedApr26Mw field.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
+            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
           />
         )}
