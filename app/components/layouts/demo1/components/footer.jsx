@@ -15,7 +15,7 @@ export function Footer() {
             <span className="mx-1 opacity-40">·</span>
             <span>FTC Communication Portal</span>
           </div>
-          <span>Designed and Developed by NLDC IT</span>
+          <span>Designed and Developed by NLDC COE-SW</span>
         </div>
       </Container>
     </footer>
