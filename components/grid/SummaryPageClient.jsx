@@ -922,7 +922,7 @@ function ActivityStat({ label, value, count, color, active, onClick }) {
 // Source rows × Region columns (+ All India), a Total row, and the Hybrid row
 // showing its per-component split inside each cell. A milestone selector
 // (the three cards) switches which of FTC / TOC / COD the grid shows.
-function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedRegions = [], selectedSources = [] }) {
+function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedRegions = [], selectedSources = [], hybridMode = 'excl' }) {
   const { matrix, totals } = activity ?? {};
   const [milestone, setMilestone] = useState('cod'); // default COD (matches the sheet)
   const meta   = MILESTONES.find(m => m.key === milestone);
@@ -940,9 +940,12 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
   };
 
   // Show every source row / region column by default, or narrow to the active
-  // dashboard filters so this tab honours them like the others.
+  // dashboard filters so this tab honours them like the others. In Including-
+  // Hybrid mode the HYBRID row is dropped — hybrids are folded into the source
+  // rows server-side, so the HYBRID bucket is empty.
   const regions = selectedRegions.length ? REGION_ORDER.filter(r => selectedRegions.includes(r)) : REGION_ORDER;
-  const sources = selectedSources.length ? SOURCE_ORDER.filter(s => selectedSources.includes(s)) : SOURCE_ORDER;
+  let   sources = selectedSources.length ? SOURCE_ORDER.filter(s => selectedSources.includes(s)) : SOURCE_ORDER;
+  if (hybridMode === 'incl') sources = sources.filter(s => s !== 'HYBRID');
 
   const rowTotal = (source) => regions.reduce((s, reg) => s + cell(source, reg), 0);
   const colTotal = (region) => sources.reduce((s, src) => s + cell(src, region), 0);
@@ -1409,9 +1412,11 @@ export function SummaryPageClient({
             selectedSources={selectedSources}
             disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid' || activeTab === 'bess'}
           />
-          {/* Including / Excluding Hybrid — only the FTC Pipeline tab supports
-              the bifurcation today. */}
-          {activeTab === 'pipeline' && <HybridModeToggle mode={hybridMode} />}
+          {/* Including / Excluding Hybrid — supported on the FTC Pipeline,
+              Source-wise and FTC/TOC/COD Activity tabs. */}
+          {(activeTab === 'pipeline' || activeTab === 'sourcewise' || activeTab === 'activity') && (
+            <HybridModeToggle mode={hybridMode} />
+          )}
         </div>
       </div>
 
@@ -1455,8 +1460,8 @@ export function SummaryPageClient({
             rows={table5Rows}
             primaryKey="source"
             refMonthLabel={refMonthLabel}
-            title="Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise"
-            desc="Same pipeline data pivoted: rows grouped by source type, each sub-row is a region."
+            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
+            desc={`Same pipeline data pivoted: rows grouped by source type, each sub-row is a region.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source group.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
           />
         )}
@@ -1474,7 +1479,7 @@ export function SummaryPageClient({
         )}
 
         {activeTab === 'activity' && (
-          <MilestoneActivityTable activity={activity} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} selectedRegions={selectedRegions} selectedSources={selectedSources} />
+          <MilestoneActivityTable activity={activity} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} selectedRegions={selectedRegions} selectedSources={selectedSources} hybridMode={hybridMode} />
         )}
 
         {activeTab === 'projects' && (

@@ -123,21 +123,24 @@ export default async function DashboardPage({ searchParams }) {
     ? selectedSources.filter((s) => s !== 'HYBRID')
     : [];
 
+  // Exclude-basis matrix (source-filtered) — feeds the six top stat cards so
+  // they stay stable regardless of the hybrid toggle.
   const pipelineMatrix   = computePipelineMatrix(viewProjects, computeAsOf);
-  // FTC Pipeline tab "Including / Excluding Hybrid" bifurcation (?hybrid=incl).
-  // Excluding (default): hybrids sit in their own HYBRID row (uses the
-  // source-filtered set above). Including: hybrids' per-component figures fold
-  // into their source buckets — so e.g. the WIND row carries pure-wind plus the
-  // wind component of every hybrid. The folded matrix is built from the FULL
-  // region-scoped set (not source-filtered) so hybrids aren't dropped before
-  // folding; buildPipelineRows then narrows to the selected source(s). Scoped
-  // to this tab — stat cards, Source-wise and other tabs keep the default view.
+  // "Including / Excluding Hybrid" bifurcation (?hybrid=incl), now applied to
+  // the FTC Pipeline, Source-wise and FTC/TOC/COD Activity tabs.
+  // Excluding (default): hybrids sit in their own HYBRID row.
+  // Including: each hybrid's per-component figures fold into its source bucket —
+  // so e.g. WIND carries pure-wind plus the wind component of every hybrid, and
+  // the (now-empty) HYBRID row is dropped. The folded matrix is built from the
+  // FULL region-scoped set (not source-filtered) so hybrids aren't dropped
+  // before folding; buildPipelineRows then narrows to the selected source(s).
   const hybridMode = params.hybrid === 'incl' ? 'incl' : 'excl';
-  const pipelineMatrixForTable = hybridMode === 'incl'
+  const pipelineMatrixForTables = hybridMode === 'incl'
     ? computePipelineMatrix(projects, computeAsOf, { foldHybridComponents: true })
     : pipelineMatrix;
-  const table2Rows       = buildPipelineRows(pipelineMatrixForTable, 'region', 'source', filters);
-  const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region', filters);
+  const tableFilters = hybridMode === 'incl' ? { ...filters, excludeHybrid: true } : filters;
+  const table2Rows       = buildPipelineRows(pipelineMatrixForTables, 'region', 'source', tableFilters);
+  const table5Rows       = buildPipelineRows(pipelineMatrixForTables, 'source', 'region', tableFilters);
   const contd4Study      = computeContd4Study(viewProjects, filters);
   const transmissionRows = computeTransmission(txElements);
   // Hybrid Breakdown ignores the source filter (its picker is disabled on that
@@ -154,7 +157,12 @@ export default async function DashboardPage({ searchParams }) {
     (p.plantType?.isHybrid &&
       (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS'))
   );
-  const activity         = computeMilestoneActivity(viewProjects, activityFrom, activityTo, componentSources);
+  // Activity tab honours the same hybrid bifurcation. Including: fold hybrid
+  // components into their source rows (from the full set so source-filtered
+  // hybrids aren't dropped) and constrain totals to the selected sources.
+  const activity         = hybridMode === 'incl'
+    ? computeMilestoneActivity(projects, activityFrom, activityTo, [], { foldHybridComponents: true, sources: selectedSources })
+    : computeMilestoneActivity(viewProjects, activityFrom, activityTo, componentSources);
 
   // Stat-card totals reuse the same milestone aggregation as the pipeline
   // matrix — sum across cells so values are consistent with the tables below.
