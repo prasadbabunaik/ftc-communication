@@ -208,6 +208,13 @@ export function AddPhasesForm({
   // Attach a scroll listener to the nearest scrollable ancestor (the dialog
   // body) and flag once the user has scrolled past the top, so the tracker can
   // auto-collapse out of the way.
+  //
+  // IMPORTANT: this latches one-way (only ever sets `true`). The tracker lives
+  // INSIDE the same scroll container it collapses, so a two-way toggle caused a
+  // feedback loop / flicker: collapsing removed ~250px of content, which pulled
+  // scrollTop back below the threshold, which re-expanded it, which grew the
+  // content again, and so on. Auto-collapse happens once on scroll-down;
+  // re-opening is a deliberate action via the chevron (trackerOverride).
   useEffect(() => {
     let sc = rootRef.current?.parentElement;
     while (sc && sc !== document.body) {
@@ -216,7 +223,7 @@ export function AddPhasesForm({
       sc = sc.parentElement;
     }
     if (!sc || sc === document.body) return;
-    const onScroll = () => setDialogScrolled(sc.scrollTop > 24);
+    const onScroll = () => { if (sc.scrollTop > 64) setDialogScrolled(true); };
     onScroll();
     sc.addEventListener('scroll', onScroll, { passive: true });
     return () => sc.removeEventListener('scroll', onScroll);
