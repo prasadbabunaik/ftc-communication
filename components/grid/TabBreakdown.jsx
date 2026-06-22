@@ -74,9 +74,9 @@ function contributorToRow(c, region) {
     c.contd4 || 0,
     c.applied || 0,
     c.ftc || 0,
-    flattenEventDates(c.ftcEvents, false),
+    flattenEventDates(c.ftcEvents, true),
     c.toc || 0,
-    flattenEventDates(c.tocEvents, false),
+    flattenEventDates(c.tocEvents, true),
     c.cod || 0,
     flattenEventDates(c.codEvents, true),
     c.proposedFtcDate ? new Date(c.proposedFtcDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '',
@@ -573,10 +573,10 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
 }
 
 // "MW + event-dates" stacked cell. Top line: total MW. Stack underneath:
-// "13 Mar 26" or "150 · 30 Mar 26" depending on `showMw` (used for COD
-// because partial breakdowns are common; FTC/TOC typically have one MW
-// per date so we keep them compact). Matches the Excel "FTC date if
-// completed" + "COD Date if Declared" cell formats.
+// one line per event — "150 MW · 30 Mar 26" when `showMw` is set (the
+// default for FTC / TOC / COD so partial commissioning quantum is visible
+// per date), or a bare "13 Mar 26" otherwise. Matches the Excel "FTC/TOC/COD
+// date if completed" cell formats where each partial date carries its MW.
 function EventStackCell({ total, events, showMw }) {
   const totalN = Number(total) || 0;
   const list   = (events ?? []).filter((e) => e && (e.mw > 0 || e.date));
@@ -631,7 +631,7 @@ function ContribRow({ c, cols, sub = false }) {
       <tr className="border-b border-slate-100/70 last:border-b-0 bg-slate-50/40 align-top">
         {cols.map((col) => {
           let content = null;
-          if (col.isEventStack) content = <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw={col.isEventStack === 'cod'} />;
+          if (col.isEventStack) content = <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />;
           else if (col.isNum) content = <span className={Number(c[col.key]) > 0 ? 'text-slate-600' : 'text-slate-300'}>{fmt(c[col.key])}</span>;
           else if (!firstTextDone) { firstTextDone = true; content = <span className="pl-5 text-[10px] font-medium text-slate-500">↳ {CONTD4_SOURCE_LABEL[c.component] ?? c.component}</span>; }
           return (
@@ -650,7 +650,7 @@ function ContribRow({ c, cols, sub = false }) {
               below: "150 MW · 13 Mar 26". Matches the Excel where
               partial commissioning dates are listed under the total. */}
           {col.isEventStack
-            ? <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw={col.isEventStack === 'cod'} />
+            ? <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />
             : col.isTag === 'region'
             ? (c.region ? <Chip label={c.region} cls={REGION_BADGE[c.region]} /> : <span className="text-slate-300">—</span>)
             : col.isTag === 'source'
