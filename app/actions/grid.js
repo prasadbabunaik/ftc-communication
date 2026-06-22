@@ -639,6 +639,20 @@ export async function upsertContd4(projectId, formData) {
   });
   const newRemarks = phaseCount > 0 ? null : (data.remarks?.trim() || null);
   const remarksChanged = (existing?.remarks ?? null) !== newRemarks;
+
+  // CONTD-4 Issued capacity. Editable only for single-shot declarations (no
+  // phases); when phases exist the value is their cached sum (managed by
+  // refreshContd4Cache) and any incoming value is ignored. Enforce that it
+  // never exceeds the plant's total capacity.
+  let issuedUpdate = {};
+  if (phaseCount === 0 && data.capacityApr26Mw != null && data.capacityApr26Mw !== '') {
+    const issued = parseFloat(data.capacityApr26Mw);
+    if (isNaN(issued) || issued < 0) return { error: 'CONTD-4 Issued capacity must be a non-negative number.' };
+    if (issued > Number(project.totalCapacityMw) + 0.01) {
+      return { error: `CONTD-4 Issued (${issued.toFixed(1)} MW) cannot exceed the total capacity (${Number(project.totalCapacityMw).toFixed(1)} MW).` };
+    }
+    issuedUpdate = { capacityApr26Mw: issued };
+  }
   // remarksUpdatedAt drives the date shown beside the remark in the list
   // view. Two cases bump it:
   //   1. Remark text changed → stamp to "now" (or effectiveDate if supplied).
@@ -654,6 +668,7 @@ export async function upsertContd4(projectId, formData) {
     status:          existing ? data.status : 'UNDER_PROCESS',
     remarks:         newRemarks,
     ...(shouldStampRemark ? { remarksUpdatedAt: newRemarks ? remarkStamp : null } : {}),
+    ...issuedUpdate,
   };
 
   await prisma.contd4Application.upsert({
@@ -674,9 +689,10 @@ export async function upsertContd4(projectId, formData) {
       { field: 'Proposed FTC Date', old: fmtDate(existing.proposedFtcDate), new: fmtDate(newValues.proposedFtcDate) },
       { field: 'Status', old: fmtStr(existing.status), new: fmtStr(newValues.status) },
       { field: 'Remarks', old: fmtStr(existing.remarks), new: fmtStr(newValues.remarks) },
+      ...('capacityApr26Mw' in issuedUpdate
+        ? [{ field: 'CONTD-4 Issued', old: fmtMw(existing.capacityApr26Mw), new: fmtMw(issuedUpdate.capacityApr26Mw) }]
+        : []),
     ];
-    // Mention fmtMw exists so eslint doesn't flag it — kept for future use.
-    void fmtMw;
 
     for (const t of tracked) {
       if (t.old !== t.new) {

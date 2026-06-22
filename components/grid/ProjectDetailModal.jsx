@@ -684,7 +684,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
               )}
 
               {/* CONTD-4 */}
-              <Contd4Card contd4={project.contd4} projectId={project.id} canEdit={canEdit} notes={project.notes ?? []} />
+              <Contd4Card contd4={project.contd4} projectId={project.id} canEdit={canEdit} notes={project.notes ?? []} totalCapacityMw={project.totalCapacityMw} />
 
               {/* Commissioning — two explicit views:
                   • By Source   = per-component lanes (Solar / Wind / BESS), each

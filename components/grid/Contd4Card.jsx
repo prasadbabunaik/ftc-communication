@@ -88,7 +88,7 @@ function toDateInput(date) {
   return new Date(date).toISOString().split('T')[0];
 }
 
-export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, notes, onClose }) {
+export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, notes, onClose, totalCapacityMw = null }) {
   const [editing, setEditing]         = useState(false);
   const [clearing, setClearing]       = useState(false);
   const [clearNote, setClearNote]     = useState('');
@@ -123,9 +123,11 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
     defaultValues: {
       applicationDate: toDateInput(contd4?.applicationDate),
       proposedFtcDate: toDateInput(contd4?.proposedFtcDate),
-      // Capacity is now tracked per-phase below; keep these so the schema
-      // validator stays happy but never bind them to UI inputs.
-      capacityApr26Mw: '',
+      // Capacity for single-shot declarations (no phases) is the legacy
+      // capacityApr26Mw — editable below as "CONTD-4 Issued (MW)". When phases
+      // exist it's a cached sum managed by refreshContd4Cache and the input is
+      // hidden, so the field defaults to the current value either way.
+      capacityApr26Mw: contd4?.capacityApr26Mw != null ? String(Number(contd4.capacityApr26Mw)) : '',
       capacityMonth:   '',
       status: contd4?.status ?? 'UNDER_PROCESS',
       remarks: contd4?.remarks ?? '',
@@ -189,6 +191,17 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
   const totalDeclared = phases.reduce((s, p) => s + Number(p.capacityMw || 0), 0);
 
   function onSubmit(values) {
+    // CONTD-4 Issued (MW) is only directly editable for single-shot
+    // declarations (no phases). Guard it against exceeding the plant's total
+    // capacity (server enforces this too).
+    if (phases.length === 0 && values.capacityApr26Mw !== '' && values.capacityApr26Mw != null) {
+      const issued = parseFloat(values.capacityApr26Mw);
+      if (isNaN(issued) || issued < 0) { toast.error('CONTD-4 Issued capacity must be a non-negative number.'); return; }
+      if (totalCapacityMw != null && issued > Number(totalCapacityMw) + 0.01) {
+        toast.error(`CONTD-4 Issued (${issued.toFixed(1)} MW) cannot exceed the total capacity (${Number(totalCapacityMw).toFixed(1)} MW).`);
+        return;
+      }
+    }
     startTransition(async () => {
       const result = await upsertContd4(projectId, values);
       if (result?.error) toast.error(typeof result.error === 'string' ? result.error : 'Save failed.');
@@ -259,7 +272,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
             <Detail label="Application Date"  value={toDateInput(contd4.applicationDate) || '—'} />
             <Detail label="Proposed FTC Date" value={toDateInput(contd4.proposedFtcDate) || '—'} />
             <Detail
-              label="Total Declared Capacity"
+              label="CONTD-4 Issued (MW)"
               value={(() => {
                 // Prefer the sum of dated phases when any exist (that's the
                 // "true" declaration timeline). Fall back to the application-
@@ -509,8 +522,44 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
                 <FormMessage />
               </FormItem>
             )} />
-            {/* Capacity is recorded as separate dated phases below the form
-                in the read-only view — see "Capacity Phases" section. */}
+            {/* CONTD-4 Issued capacity. Editable only for single-shot
+                declarations (no phases). Once dated phases exist, the value is
+                their sum (managed by refreshContd4Cache) and is edited by
+                adding/removing declarations below — so we show a note instead. */}
+            {phases.length === 0 ? (
+              <FormField control={form.control} name="capacityApr26Mw" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    CONTD-4 Issued (MW)
+                    {totalCapacityMw != null && (
+                      <span className="text-[10px] text-muted-foreground font-normal"> — max {Number(totalCapacityMw).toFixed(1)} MW</span>
+                    )}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max={totalCapacityMw != null ? Number(totalCapacityMw) : undefined}
+                      placeholder="Capacity for which CONTD-4 issued"
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            ) : (
+              <FormItem>
+                <FormLabel className="text-muted-foreground">CONTD-4 Issued (MW)</FormLabel>
+                <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm">
+                  <span className="font-semibold text-foreground">{totalDeclared.toFixed(1)} MW</span>
+                  <span className="text-[10px] text-muted-foreground ml-2">— sum of {phases.length} declaration{phases.length === 1 ? '' : 's'} (edit below)</span>
+                </div>
+              </FormItem>
+            )}
             {/* For a brand-new CONTD-4 application, status is locked to Under
                 Process. Existing applications can be transitioned to Cleared /
                 Rejected via this dropdown. */}
