@@ -385,6 +385,29 @@ export function AddPhasesForm({
   }, [combinedPipeline, caps, plantType.isHybrid]);
 
   const hasPipelineErrors = Object.keys(pipelineErrors).length > 0;
+
+  // Expected (MW) ceiling — per source, you can't expect to commission more
+  // than that source still has left: remaining = source TOTAL capacity − COD
+  // completed. (Bounded by total capacity, NOT by Applied/FTC/TOC — those can
+  // legitimately be below the source's full capacity.) Computed live so the
+  // inline error and the Save gate track edits to caps, COD events or Expected.
+  const expectedErrors = useMemo(() => {
+    const m = {};
+    watchedPhases.forEach((p, i) => {
+      const expected = parseFloat(p.expectedApr26Mw || '0') || 0;
+      if (expected <= 0) return;
+      const cap = capForSource(p.sourceType);
+      if (cap == null) return;
+      const cod = sumEvents(p.codEvents ?? []);
+      const remaining = cap - cod;
+      if (expected > remaining + 0.01) {
+        m[i] = `Exceeded: Expected (${expected.toFixed(1)} MW) is more than the remaining capacity (Total ${cap.toFixed(1)} − COD ${cod.toFixed(1)} = ${Math.max(0, remaining).toFixed(1)} MW)`;
+      }
+    });
+    return m;
+  }, [watchedPhases, caps, plantType.isHybrid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hasExpectedErrors = Object.keys(expectedErrors).length > 0;
+
   // Also check Zod-level errors (schema refine errors have no path set)
   const zodErrors = form.formState.errors.phases ?? [];
 
@@ -589,6 +612,7 @@ export function AddPhasesForm({
             canPickExpectedMonth={canPickExpectedMonth}
             capForSource={capForSource}
             isIntrastate={isIntrastate}
+            expectedError={expectedErrors[i]}
           />
         ))}
 
@@ -601,7 +625,7 @@ export function AddPhasesForm({
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors || !form.formState.isValid}>
+          <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid}>
             {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save'}
           </Button>
         </div>
@@ -618,7 +642,7 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
@@ -762,13 +786,11 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
               type="number"
               step="0.01"
               {...form.register(`phases.${phaseIndex}.expectedApr26Mw`)}
-              className={`h-8 text-xs ${form.formState.errors.phases?.[phaseIndex]?.expectedApr26Mw ? 'border-red-400' : ''}`}
+              className={`h-8 text-xs ${expectedError ? 'border-red-400' : ''}`}
               placeholder="Expected MW"
             />
-            {form.formState.errors.phases?.[phaseIndex]?.expectedApr26Mw && (
-              <p className="text-[10px] text-destructive mt-1">
-                {form.formState.errors.phases[phaseIndex].expectedApr26Mw.message}
-              </p>
+            {expectedError && (
+              <p className="text-[10px] text-destructive mt-1">{expectedError}</p>
             )}
           </div>
         </div>
@@ -787,7 +809,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -929,6 +951,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         limitLabel={isIntrastate ? 'Applied capacity' : 'Total TOC'}
         priorEvents={isIntrastate ? [] : watchedTocEvents}
         priorLabel="TOC"
+        expectedError={expectedError}
       />
 
       {/* Remarks */}
