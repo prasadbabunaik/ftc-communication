@@ -9,6 +9,7 @@ import { Contd4Card } from '@/components/grid/Contd4Card';
 import { AuditFeed } from '@/components/grid/AuditFeed';
 import { ProjectEditPanel } from '@/components/grid/ProjectEditPanel';
 import { serialize } from '@/lib/serialize';
+import { milestoneAsOf } from '@/lib/grid-computations';
 
 export async function generateMetadata({ params }) {
   const { projectId } = await params;
@@ -76,7 +77,10 @@ export default async function ProjectDetailPage({ params }) {
   }) : [];
 
   // Enrich with calculated fields
-  const commissionedMw    = serializedProject.phases.reduce((s, p) => s + (p.codDeclaredMw ?? 0), 0);
+  // Date-gate COD the same way the dashboard / FTC tracker do (milestoneAsOf):
+  // a future-dated COD event must not count as commissioned yet. Keeps this
+  // page's "% complete" consistent with every other surface.
+  const commissionedMw    = serializedProject.phases.reduce((s, p) => s + milestoneAsOf(p.codEvents, null, p.codDeclaredDate, p.codDeclaredMw), 0);
   const pendingCapacityMw = serializedProject.totalCapacityMw - commissionedMw;
 
   return (
