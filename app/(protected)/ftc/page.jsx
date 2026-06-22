@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { requireServerUser, buildRegionScope, activePeriodFilter, getUserRegion } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { serialize } from '@/lib/serialize';
+import { milestoneAsOf } from '@/lib/grid-computations';
 import { FtcPageClient } from '@/components/grid/FtcPageClient';
 
 export const metadata = { title: 'FTC Tracker — FTC Portal' };
@@ -125,12 +126,19 @@ export default async function FtcPage({ searchParams }) {
       solarCapacityMw:   componentCap(p, 'SOLAR'),
       bessCapacityMw:    componentCap(p, 'BESS'),
       pspCapacityMw:     componentCap(p, 'PSP'),
-      commissionedMw:    p.phases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0),
+      commissionedMw:    p.phases.reduce((s, ph) => s + milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate, ph.codDeclaredMw), 0),
       pendingCapacityMw: Number(p.totalCapacityMw) -
-                         p.phases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0),
+                         p.phases.reduce((s, ph) => s + milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate, ph.codDeclaredMw), 0),
       phases: p.phases.map((ph) => {
-        const toc = ph.tocIssuedMw  != null ? Number(ph.tocIssuedMw)  : 0;
-        const cod = ph.codDeclaredMw != null ? Number(ph.codDeclaredMw) : 0;
+        // Date-gate every milestone the SAME way the dashboard pipeline does
+        // (lib/grid-computations > milestoneAsOf): a milestone only counts once
+        // its date has arrived. Using the cached ftcCompletedMw/tocIssuedMw/
+        // codDeclaredMw directly counted future-dated events as already done,
+        // which made the tracker disagree with the dashboard (e.g. a Dec-2026
+        // FTC event showing as FTC-approved today).
+        const ftc = milestoneAsOf(ph.ftcEvents, asOf, ph.ftcCompletedDate, ph.ftcCompletedMw);
+        const toc = milestoneAsOf(ph.tocEvents, asOf, ph.tocIssuedDate,    ph.tocIssuedMw);
+        const cod = milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate,  ph.codDeclaredMw);
         const mapEvent = (e) => ({
           id: e.id,
           eventDate: e.eventDate,
@@ -145,7 +153,7 @@ export default async function FtcPage({ searchParams }) {
         return {
           ...ph,
           capacityAppliedMw:  ph.capacityAppliedMw  != null ? Number(ph.capacityAppliedMw)  : null,
-          ftcCompletedMw:     ph.ftcCompletedMw      != null ? Number(ph.ftcCompletedMw)      : null,
+          ftcCompletedMw:     ftc,
           tocIssuedMw:        toc,
           codDeclaredMw:      cod,
           capacityUnderFtcMw: ph.capacityUnderFtcMw  != null ? Number(ph.capacityUnderFtcMw)  : null,

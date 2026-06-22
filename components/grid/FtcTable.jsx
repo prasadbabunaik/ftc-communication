@@ -79,13 +79,16 @@ function sortRows(rows, field, dir) {
   });
 }
 
-// COD Pending = TOC issued − COD declared − (capacity already in TOC process)
-function codPendingFromPhase(ph) {
-  const toc      = ph.tocIssuedMw         ?? 0;
-  const cod      = ph.codDeclaredMw       ?? 0;
-  const underToc = ph.capacityUnderTocMw  ?? 0;
-  return Math.max(0, toc - cod - underToc);
-}
+// Pending columns are derived as funnel GAPS (clamped ≥ 0) from the date-gated
+// milestone totals — identical to the dashboard's computePipelineMatrix — so the
+// FTC tracker and the dashboard always reconcile:
+//   FTC Pending = Applied − FTC Approved
+//   TOC Pending = FTC Approved − TOC Issued
+//   COD Pending = TOC Issued − COD Declared
+// The milestone inputs (ftcCompletedMw / tocIssuedMw / codDeclaredMw) are
+// already date-gated server-side (ftc/page.jsx via milestoneAsOf), so a
+// future-dated event no longer inflates "approved/issued/done".
+const r3 = (x) => Math.round(x * 1000) / 1000;
 
 function aggregateBySource(phases) {
   const map = {};
@@ -100,12 +103,14 @@ function aggregateBySource(phases) {
     const r = map[ph.sourceType];
     r.applied     += ph.capacityAppliedMw  ?? 0;
     r.ftcApproved += ph.ftcCompletedMw     ?? 0;
-    r.ftcPending  += ph.capacityUnderFtcMw ?? 0;
     r.tocIssued   += ph.tocIssuedMw        ?? 0;
-    r.tocPending  += ph.capacityUnderTocMw ?? 0;
     r.codDeclared += ph.codDeclaredMw      ?? 0;
-    r.codPending  += codPendingFromPhase(ph);
     r.expected    += ph.expectedApr26Mw    ?? 0;
+  }
+  for (const r of Object.values(map)) {
+    r.ftcPending = Math.max(0, r3(r.applied     - r.ftcApproved));
+    r.tocPending = Math.max(0, r3(r.ftcApproved - r.tocIssued));
+    r.codPending = Math.max(0, r3(r.tocIssued   - r.codDeclared));
   }
   return Object.values(map);
 }
@@ -174,7 +179,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
 
   const enrichedRows = useMemo(() =>
     projects.map((p) => {
-      const codDeclaredMw = p.phases.reduce((s, ph) => s + (ph.codDeclaredMw ?? 0), 0);
+      // Milestone totals (date-gated server-side via milestoneAsOf).
+      const appliedMw     = p.phases.reduce((s, ph) => s + (ph.capacityAppliedMw ?? 0), 0);
+      const approvedMw    = p.phases.reduce((s, ph) => s + (ph.ftcCompletedMw    ?? 0), 0);
+      const tocIssuedMw   = p.phases.reduce((s, ph) => s + (ph.tocIssuedMw       ?? 0), 0);
+      const codDeclaredMw = p.phases.reduce((s, ph) => s + (ph.codDeclaredMw     ?? 0), 0);
       const totalCap      = Number(p.totalCapacityMw ?? 0);
       // Commissioned once the declared COD capacity reaches the project's total
       // capacity (small epsilon for float / rounding), OR when an operator has
@@ -186,13 +195,15 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       const manualCommission = !!p.manuallyCommissioned && !codComplete;
       return {
         ...p,
-        _appliedMw:     p.phases.reduce((s, ph) => s + (ph.capacityAppliedMw  ?? 0), 0),
-        _approvedMw:    p.phases.reduce((s, ph) => s + (ph.ftcCompletedMw     ?? 0), 0),
-        _ftcPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderFtcMw ?? 0), 0),
-        _tocIssuedMw:   p.phases.reduce((s, ph) => s + (ph.tocIssuedMw        ?? 0), 0),
-        _tocPendingMw:  p.phases.reduce((s, ph) => s + (ph.capacityUnderTocMw ?? 0), 0),
+        _appliedMw:     appliedMw,
+        _approvedMw:    approvedMw,
+        // Pending = funnel gaps (clamped ≥ 0), same derivation as the dashboard
+        // pipeline matrix — so the tracker and dashboard always reconcile.
+        _ftcPendingMw:  Math.max(0, r3(appliedMw   - approvedMw)),
+        _tocIssuedMw:   tocIssuedMw,
+        _tocPendingMw:  Math.max(0, r3(approvedMw  - tocIssuedMw)),
         _codDeclaredMw: codDeclaredMw,
-        _codPendingMw:  p.phases.reduce((s, ph) => s + codPendingFromPhase(ph), 0),
+        _codPendingMw:  Math.max(0, r3(tocIssuedMw - codDeclaredMw)),
         _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
         _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
         _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
