@@ -193,8 +193,22 @@ export function computeBessCommissioningSummary(bessProjects, asOf) {
   for (const p of bessProjects ?? []) {
     const intra = !!p.isIntrastate;
     if (p.plantType?.isHybrid) {
+      // Hybrid BESS figures: prefer the segregation JSON's BESS component
+      // (seeded data); otherwise fall back to the BESS phase's COD events
+      // (hybrids added via the UI have no JSON) — mirrors buildRow so the
+      // summary stays in step with the table.
       const comp = (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS');
-      if (comp) add(comp.codDate ?? null, Number(comp.codMw ?? 0), intra);
+      if (comp) {
+        add(comp.codDate ?? null, Number(comp.codMw ?? 0), intra);
+      } else {
+        const bessPhases = (p.phases ?? []).filter((ph) => ph.sourceType === 'BESS');
+        const events = bessPhases.flatMap((ph) => ph.codEvents ?? []);
+        if (events.length) {
+          for (const e of events) add(e.eventDate ?? null, Number(e.capacityMw ?? 0), intra);
+        } else {
+          add(null, bessPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0), intra);
+        }
+      }
     } else {
       const events = (p.phases ?? []).flatMap((ph) => ph.codEvents ?? []);
       if (events.length) {
