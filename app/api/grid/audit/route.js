@@ -28,97 +28,83 @@ export async function GET(request) {
     const fromTs = fromStr ? new Date(fromStr + 'T00:00:00.000Z') : null;
     const toTs   = toStr   ? new Date(toStr   + 'T23:59:59.999Z') : null;
 
-    // SQL-expressible version of the entry window (entry ts = effectiveDate
-    // when set, else createdAt) — used for an accurate, UNCAPPED total count so
-    // the UI shows the real number of changes, not just min(actual, limit).
+    // Entry window in SQL (entry ts = effectiveDate when set, else createdAt).
     const dwin = {};
     if (fromTs) dwin.gte = fromTs;
     if (toTs)   dwin.lte = toTs;
     const windowFilter = (fromTs || toTs)
       ? { OR: [{ effectiveDate: dwin }, { effectiveDate: null, createdAt: dwin }] }
       : {};
-    const [notesTotal, txTotal] = await Promise.all([
-      prisma.projectNote.count({
-        where: { ...(regionCode ? { project: { region: { code: regionCode } } } : {}), ...windowFilter },
-      }),
-      prisma.transmissionAuditLog.count({
-        where: { ...(regionCode ? { element: { region: { code: regionCode } } } : {}), ...windowFilter },
-      }),
-    ]);
-    const total = notesTotal + txTotal;
 
-    // We filter on COALESCE(effectiveDate, createdAt) in JS rather than SQL so
-    // the back-dating fallback is consistent with how the rest of the app
-    // resolves the "entry" timestamp. Pull a bounded superset, then filter.
+    // Pull all windowed audit rows (this app's audit volume is small). They get
+    // grouped into change EVENTS below; FETCH_CAP guards a pathological window.
+    const FETCH_CAP = 5000;
     const [notes, txLogs] = await Promise.all([
       prisma.projectNote.findMany({
-        where: regionCode ? { project: { region: { code: regionCode } } } : undefined,
+        where: { ...(regionCode ? { project: { region: { code: regionCode } } } : {}), ...windowFilter },
         select: {
-          id: true, field: true, oldValue: true, newValue: true, text: true,
-          createdAt: true, effectiveDate: true, source: true, projectName: true,
+          id: true, field: true, text: true, createdAt: true, effectiveDate: true,
+          projectName: true,
           project: { select: { name: true, region: { select: { code: true } } } },
           user:    { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: limit * 2,
+        take: FETCH_CAP,
       }),
       prisma.transmissionAuditLog.findMany({
-        where: regionCode ? { element: { region: { code: regionCode } } } : undefined,
+        where: { ...(regionCode ? { element: { region: { code: regionCode } } } : {}), ...windowFilter },
         select: {
-          id: true, action: true, field: true, oldValue: true, newValue: true,
-          elementName: true, createdAt: true, effectiveDate: true,
+          id: true, action: true, field: true, elementName: true,
+          createdAt: true, effectiveDate: true,
           element: { select: { region: { select: { code: true } } } },
           user:    { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: limit * 2,
+        take: FETCH_CAP,
       }),
     ]);
 
     const entryTs = (e) => e.effectiveDate ?? e.createdAt;
-    const inWindow = (e) => {
-      const t = entryTs(e).getTime();
-      if (fromTs && t < fromTs.getTime()) return false;
-      if (toTs   && t > toTs.getTime())   return false;
-      return true;
-    };
-
-    const rows = [
-      ...notes.filter(inWindow).map((n) => ({
-        id:           'n' + n.id,
-        kind:         'PROJECT',
-        entityName:   n.project?.name ?? n.projectName ?? '—',
-        region:       n.project?.region?.code ?? null,
-        field:        n.field,
-        oldValue:     n.oldValue,
-        newValue:     n.newValue,
-        text:         n.text,
-        userName:     n.user?.name ?? 'System',
-        createdAt:    n.createdAt,
-        effectiveDate: n.effectiveDate,
-        backDated:    !!n.effectiveDate && n.effectiveDate.getTime() < n.createdAt.getTime(),
+    const flat = [
+      ...notes.map((n) => ({
+        kind: 'PROJECT', entityName: n.project?.name ?? n.projectName ?? '—',
+        region: n.project?.region?.code ?? null, field: n.field,
+        userName: n.user?.name ?? 'System', createdAt: n.createdAt, effectiveDate: n.effectiveDate,
       })),
-      ...txLogs.filter(inWindow).map((t) => ({
-        id:           't' + t.id,
-        kind:         'TRANSMISSION',
-        entityName:   t.elementName ?? '—',
-        region:       t.element?.region?.code ?? null,
-        field:        t.field,
-        oldValue:     t.oldValue,
-        newValue:     t.newValue,
-        text:         t.action,
-        userName:     t.user?.name ?? 'System',
-        createdAt:    t.createdAt,
-        effectiveDate: t.effectiveDate,
-        backDated:    !!t.effectiveDate && t.effectiveDate.getTime() < t.createdAt.getTime(),
+      ...txLogs.map((t) => ({
+        kind: 'TRANSMISSION', entityName: t.elementName ?? '—',
+        region: t.element?.region?.code ?? null, field: t.field,
+        userName: t.user?.name ?? 'System', createdAt: t.createdAt, effectiveDate: t.effectiveDate,
       })),
-    ]
-      .sort((a, b) => entryTs(b).getTime() - entryTs(a).getTime())
-      .slice(0, limit);
+    ];
 
-    // `count` = rows returned (capped by limit); `total` = true number of
-    // changes in the window (uncapped) for the "N changes recorded" headline.
-    return NextResponse.json({ data: rows, count: rows.length, total });
+    // Group field-level rows into change EVENTS. A single save writes a summary
+    // note PLUS one row per changed field, all sharing the same entity +
+    // timestamp — so "number of changes" = distinct (entity, second), not the
+    // raw row count (which made one edit look like many).
+    const events = new Map();
+    for (const e of flat) {
+      const ts  = entryTs(e);
+      const key = `${e.kind}|${e.entityName}|${ts.toISOString().slice(0, 19)}`;
+      let g = events.get(key);
+      if (!g) {
+        g = {
+          id: key, kind: e.kind, entityName: e.entityName, region: e.region,
+          userName: e.userName, createdAt: e.createdAt, effectiveDate: e.effectiveDate,
+          backDated: !!e.effectiveDate && e.effectiveDate.getTime() < e.createdAt.getTime(),
+          changeCount: 0, fields: [],
+        };
+        events.set(key, g);
+      }
+      g.changeCount += 1;
+      if (e.field && !g.fields.includes(e.field)) g.fields.push(e.field);
+    }
+    const eventList = [...events.values()].sort((a, b) => entryTs(b).getTime() - entryTs(a).getTime());
+
+    // `total` = distinct change events in the window (the headline); `data` is
+    // the preview list (capped); `count` = rows returned.
+    const data = eventList.slice(0, limit);
+    return NextResponse.json({ data, total: eventList.length, count: data.length });
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('[audit] error:', e);

@@ -99,7 +99,15 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
             <Clock className="size-2.5 text-slate-400" />
             <span className="text-slate-500">{fmtTime(r.effectiveDate ?? r.createdAt)}</span>
             <span className="font-semibold text-slate-700">{r.entityName}</span>
-            {r.field && <span className="text-slate-500">· {r.field}</span>}
+            {/* One change event may touch several fields — show the field name
+                when it's a single field, otherwise "N changes". */}
+            {r.fields?.length === 1
+              ? <span className="text-slate-500">· {r.fields[0]}</span>
+              : r.changeCount > 1
+              ? <span className="text-slate-500">· {r.changeCount} changes</span>
+              : r.field
+              ? <span className="text-slate-500">· {r.field}</span>
+              : null}
             {r.backDated && <span className="text-[9px] px-1 rounded bg-amber-100 text-amber-700 font-semibold">back-dated</span>}
           </span>
         ))}
