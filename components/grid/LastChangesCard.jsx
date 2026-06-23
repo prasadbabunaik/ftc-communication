@@ -12,6 +12,7 @@ function fmtDate(iso) {
 
 export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDiff }) {
   const [rows,    setRows]    = useState(null);
+  const [total,   setTotal]   = useState(0);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
@@ -32,7 +33,13 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
       .then(j => {
         if (cancelled) return;
         if (j.error) setError(j.error);
-        else { setError(null); setRows(j.data ?? []); }
+        else {
+          setError(null);
+          setRows(j.data ?? []);
+          // True total (uncapped) drives the headline count; fall back to the
+          // returned row count for older API responses.
+          setTotal(j.total ?? (j.data?.length ?? 0));
+        }
       })
       .catch(e => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
@@ -58,8 +65,7 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
     );
   }
 
-  const all   = rows ?? [];
-  const total = all.length;
+  const all = rows ?? [];
 
   if (total === 0) {
     return (

@@ -28,6 +28,25 @@ export async function GET(request) {
     const fromTs = fromStr ? new Date(fromStr + 'T00:00:00.000Z') : null;
     const toTs   = toStr   ? new Date(toStr   + 'T23:59:59.999Z') : null;
 
+    // SQL-expressible version of the entry window (entry ts = effectiveDate
+    // when set, else createdAt) — used for an accurate, UNCAPPED total count so
+    // the UI shows the real number of changes, not just min(actual, limit).
+    const dwin = {};
+    if (fromTs) dwin.gte = fromTs;
+    if (toTs)   dwin.lte = toTs;
+    const windowFilter = (fromTs || toTs)
+      ? { OR: [{ effectiveDate: dwin }, { effectiveDate: null, createdAt: dwin }] }
+      : {};
+    const [notesTotal, txTotal] = await Promise.all([
+      prisma.projectNote.count({
+        where: { ...(regionCode ? { project: { region: { code: regionCode } } } : {}), ...windowFilter },
+      }),
+      prisma.transmissionAuditLog.count({
+        where: { ...(regionCode ? { element: { region: { code: regionCode } } } : {}), ...windowFilter },
+      }),
+    ]);
+    const total = notesTotal + txTotal;
+
     // We filter on COALESCE(effectiveDate, createdAt) in JS rather than SQL so
     // the back-dating fallback is consistent with how the rest of the app
     // resolves the "entry" timestamp. Pull a bounded superset, then filter.
@@ -97,7 +116,9 @@ export async function GET(request) {
       .sort((a, b) => entryTs(b).getTime() - entryTs(a).getTime())
       .slice(0, limit);
 
-    return NextResponse.json({ data: rows, count: rows.length });
+    // `count` = rows returned (capped by limit); `total` = true number of
+    // changes in the window (uncapped) for the "N changes recorded" headline.
+    return NextResponse.json({ data: rows, count: rows.length, total });
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('[audit] error:', e);
