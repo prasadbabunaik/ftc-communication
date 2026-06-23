@@ -107,6 +107,19 @@ function sumEvents(evs) {
   return (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw ?? e.capacityMw) || 0), 0);
 }
 
+// As-of-today sum: a milestone event counts only once its date has arrived —
+// the SAME rule the dashboard / FTC tracker use (milestoneAsOf). A future-dated
+// (or dateless-but-future) COD therefore isn't counted as commissioned yet, so
+// the editor's status reconciles with those views. Events with no date yet
+// (mid-entry) are counted so the badge doesn't flicker while typing.
+function sumEventsAsOf(evs, cutoff) {
+  return (evs ?? []).reduce((s, e) => {
+    const d = e.date ?? e.eventDate;
+    if (d && new Date(d) > cutoff) return s;
+    return s + (parseFloat(e.mw ?? e.capacityMw) || 0);
+  }, 0);
+}
+
 // Convert a DB-shape phase to the form's string-everywhere shape. Used
 // when the modal is opened for a project that already has phases — the
 // form pre-fills with the current state and the save handler routes to
@@ -321,7 +334,17 @@ export function AddPhasesForm({
     (s, p) => s + (watchedPhases.some((w) => w.existingId === p.id) ? 0 : Number(p.codDeclaredMw ?? 0)),
     0,
   );
+  // RAW pending — counts ALL entered COD (incl. future-dated). Drives the
+  // over-commitment guard + the Save gate (you still can't enter more COD than
+  // the plant's capacity, regardless of date).
   const pendingMw = capTotal - survivingCodMw - newCodSum;
+  // AS-OF-TODAY pending — date-gates COD the same way the dashboard / FTC tracker
+  // do, so the status badge reconciles with them. `scheduledCod` is the COD that
+  // is entered but dated after today (commissioning expected later).
+  const codCutoff = new Date(); codCutoff.setUTCHours(23, 59, 59, 999);
+  const newCodSumAsOf = watchedPhases.reduce((s, p) => s + sumEventsAsOf(p.codEvents ?? [], codCutoff), 0);
+  const pendingMwAsOf = capTotal - survivingCodMw - newCodSumAsOf;
+  const scheduledCod  = Math.max(0, newCodSum - newCodSumAsOf);
 
   const existingPipeline = useMemo(() => computePipeline(existingPhases), [existingPhases]);
 
@@ -462,19 +485,27 @@ export function AddPhasesForm({
         const trackerOpen = forcedOpen
           ? true
           : trackerOverride != null ? trackerOverride : !dialogScrolled;
+        // Over-commit uses RAW pending; the "commissioned / remaining" wording
+        // uses AS-OF-TODAY pending so it agrees with the dashboard & FTC tracker
+        // (a COD dated after today reads as remaining/scheduled, not done).
+        const overCommitted = pendingMw < -0.01;
+        const fullyAsOf     = !overCommitted && pendingMwAsOf <= 0.01;
         const remainingBadge = (
           <span className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
-            pendingMw < 0
+            overCommitted
               ? 'bg-red-50 text-red-700'
-              : pendingMw === 0
+              : fullyAsOf
               ? 'bg-emerald-50 text-emerald-700'
               : 'bg-amber-50 text-amber-700'
           }`}>
-            {pendingMw < 0
+            {overCommitted
               ? `Over-committed by ${Math.abs(pendingMw).toFixed(1)} MW`
-              : pendingMw === 0
+              : fullyAsOf
               ? 'Fully commissioned'
-              : `${pendingMw.toFixed(1)} MW remaining`}
+              : `${pendingMwAsOf.toFixed(1)} MW remaining`}
+            {!overCommitted && scheduledCod > 0.01 && (
+              <span className="ml-1 font-medium opacity-80">· {scheduledCod.toFixed(1)} MW scheduled after today</span>
+            )}
           </span>
         );
         return (
