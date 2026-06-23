@@ -431,17 +431,6 @@ export default function LoginPage() {
               />
             )}
 
-            {/* Demo credentials */}
-            <div className="mt-6 p-3.5 rounded-lg bg-slate-50 border border-slate-100">
-              <p className="text-xs font-semibold text-slate-600 mb-2">Demo credentials</p>
-              <div className="grid grid-cols-2 gap-y-1 text-xs">
-                <span className="text-muted-foreground">admin@grid-india.in</span>
-                <span className="text-right font-mono text-foreground">Admin@123</span>
-                <span className="text-muted-foreground">nldc@grid-india.in</span>
-                <span className="text-right font-mono text-foreground">Nldc@123</span>
-              </div>
-            </div>
-
             <p className="text-center text-xs text-muted-foreground mt-8">
               © {new Date().getFullYear()} Grid India · FTC Communication Portal
             </p>
