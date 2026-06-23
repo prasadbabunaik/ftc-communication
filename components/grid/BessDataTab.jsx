@@ -47,6 +47,10 @@ export function buildRow(p, referenceMonth) {
   const bessComp = isHybrid
     ? (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS')
     : null;
+  // Which phases hold the BESS figures: for a hybrid, ONLY the BESS-sourced
+  // phase(s) (so a Solar+BESS hybrid doesn't show its solar COD here); for a
+  // plain BESS plant / intra-state row, all phases (they're all BESS).
+  const codPhases = isHybrid ? (p.phases ?? []).filter((ph) => ph.sourceType === 'BESS') : (p.phases ?? []);
 
   let codDeclared = 0;
   let codInRefMonth = 0;
@@ -59,7 +63,9 @@ export function buildRow(p, referenceMonth) {
       codDateLines = [`${fmt(codDeclared)} MW on ${fmtDate(bessComp.codDate)}`];
     }
   } else {
-    const events = (p.phases ?? []).flatMap((ph) => ph.codEvents ?? []);
+    // No segregation JSON (e.g. a hybrid added via the UI) — derive the BESS
+    // figures from the BESS phase's own COD events.
+    const events = codPhases.flatMap((ph) => ph.codEvents ?? []);
     if (events.length) {
       const sorted = [...events].sort((a, b) => String(a.eventDate ?? '').localeCompare(String(b.eventDate ?? '')));
       codDeclared   = sorted.reduce((s, e) => s + Number(e.capacityMw ?? 0), 0);
@@ -67,7 +73,7 @@ export function buildRow(p, referenceMonth) {
       codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
     } else {
       // Legacy / intra-state rows: cached phase totals, no dated events.
-      codDeclared = (p.phases ?? []).reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
+      codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
     }
   }
 

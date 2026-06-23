@@ -154,8 +154,10 @@ export default async function DashboardPage({ searchParams }) {
   const bessProjects = projects.filter((p) =>
     p.isIntrastate ||
     p.plantType?.code === 'BESS' ||
-    (p.plantType?.isHybrid &&
-      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS'))
+    (p.plantType?.isHybrid && (
+      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS') ||
+      (p.phases ?? []).some((ph) => ph.sourceType === 'BESS')
+    ))
   );
   // Activity tab honours the same hybrid bifurcation. Including: fold hybrid
   // components into their source rows (from the full set so source-filtered

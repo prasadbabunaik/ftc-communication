@@ -26,12 +26,16 @@ export default async function BessDataPage() {
     },
   });
 
-  // Same membership test as the dashboard's BESS tab.
+  // BESS membership: plain BESS plants, intra-state storage, and hybrids that
+  // carry a BESS component — detected via the segregation JSON (seeded data) OR
+  // a BESS phase (hybrids added through the UI, which have no segregation JSON).
   const bessProjects = allProjects.filter((p) =>
     p.isIntrastate ||
     p.plantType?.code === 'BESS' ||
-    (p.plantType?.isHybrid &&
-      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS'))
+    (p.plantType?.isHybrid && (
+      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS') ||
+      (p.phases ?? []).some((ph) => ph.sourceType === 'BESS')
+    ))
   );
 
   const regionLabel = scope.regionId ? 'Showing your region' : 'All India';

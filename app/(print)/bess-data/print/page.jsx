@@ -28,12 +28,15 @@ export default async function BessPrintPage({ searchParams }) {
     },
   });
 
-  // Same membership test as the BESS page / dashboard BESS tab.
+  // Same membership test as the BESS page — hybrids count via the segregation
+  // JSON (seeded) OR a BESS phase (hybrids added through the UI).
   const bessProjects = allProjects.filter((p) =>
     p.isIntrastate ||
     p.plantType?.code === 'BESS' ||
-    (p.plantType?.isHybrid &&
-      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS'))
+    (p.plantType?.isHybrid && (
+      (p.hybridComponentsJson?.components ?? []).some((c) => c.sourceType === 'BESS') ||
+      (p.phases ?? []).some((ph) => ph.sourceType === 'BESS')
+    ))
   );
 
   const dateLabel = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
