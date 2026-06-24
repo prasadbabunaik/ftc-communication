@@ -68,6 +68,17 @@ export default async function DashboardPage({ searchParams }) {
     : [];
   const selectedRegionIds = selectedRegions.map(c => allRegions.find(r => r.code === c).id);
 
+  // For RLDC users the region is locked. Restrict the table scaffolds AND the
+  // Activity-tab columns to that single region so the other regions aren't
+  // rendered as empty all-zero rows/columns (the data is already scoped — this
+  // just stops the scaffold from drawing them).
+  const lockedRegionCode = isRegionLocked
+    ? (allRegions.find(r => r.id === baseScope.regionId)?.code ?? null)
+    : null;
+  const effectiveRegions = isRegionLocked
+    ? [lockedRegionCode].filter(Boolean)
+    : selectedRegions;
+
   const scope = isRegionLocked
     ? baseScope
     : (selectedRegionIds.length ? { regionId: { in: selectedRegionIds } } : {});
@@ -113,7 +124,7 @@ export default async function DashboardPage({ searchParams }) {
 
   // Filters that narrow the table scaffolds to the selected axis (so filtering
   // removes non-matching rows instead of merely zeroing them).
-  const filters = { regions: selectedRegions, sources: selectedSources };
+  const filters = { regions: effectiveRegions, sources: selectedSources };
 
   // Activity tab: when HYBRID is selected alongside specific sources, restrict
   // each hybrid's component rows to those sources (Solar+Hybrid → only the
@@ -296,7 +307,7 @@ export default async function DashboardPage({ searchParams }) {
       activityFrom={activityFromStr}
       activityTo={activityToStr}
       regions={allRegions.map(r => ({ code: r.code, name: r.name }))}
-      selectedRegions={selectedRegions}
+      selectedRegions={effectiveRegions}
       canFilterRegion={!isRegionLocked}
       sources={SOURCE_ORDER}
       selectedSources={selectedSources}
