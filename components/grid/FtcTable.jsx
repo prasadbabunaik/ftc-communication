@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Search, ChevronsUpDown, ChevronUp, ChevronDown,
-  ChevronLeft, ChevronRight, AlertCircle,
+  ChevronRight, AlertCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -160,9 +160,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortField, setSortField]       = useState('');
   const [sortDir, setSortDir]           = useState('asc');
-  const [page, setPage]                 = useState(1);
   const [expanded, setExpanded]         = useState({});
-  const PER_PAGE = 10;
 
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
   const types   = useMemo(() => ['All', ...new Set(projects.map((p) => displayType(p.plantType.label)))], [projects]);
@@ -170,7 +168,6 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   function handleSort(field) {
     if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortField(field); setSortDir('asc'); }
-    setPage(1);
   }
 
   function toggleExpand(id) {
@@ -238,10 +235,6 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
     return sortRows(rows, sortField, sortDir);
   }, [enrichedRows, search, regionFilter, typeFilter, statusFilter, sortField, sortDir]);
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const offset     = (page - 1) * PER_PAGE;
-
   const sp = { sortField, sortDir, onSort: handleSort };
 
   return (
@@ -254,14 +247,14 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             className="pl-9 h-9"
             placeholder="Search station, developer, pooling station…"
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearch(e.target.value); }}
           />
         </div>
         {(userRole === 'NLDC' || userRole === 'ADMIN') && (
           <select
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
             value={regionFilter}
-            onChange={(e) => { setRegionFilter(e.target.value); setPage(1); }}
+            onChange={(e) => { setRegionFilter(e.target.value); }}
           >
             {regions.map((r) => <option key={r}>{r}</option>)}
           </select>
@@ -269,7 +262,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         <select
           className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           value={typeFilter}
-          onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+          onChange={(e) => { setTypeFilter(e.target.value); }}
           title="Filter by plant type"
         >
           {types.map((t) => <option key={t} value={t}>{t === 'All' ? 'All Types' : t}</option>)}
@@ -277,7 +270,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         <select
           className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          onChange={(e) => { setStatusFilter(e.target.value); }}
           title="Filter by commissioning status"
         >
           <option value="All">All statuses</option>
@@ -312,9 +305,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             <col className="w-[280px]" />{/* History */}
             <col className="w-[40px]" />{/* expand */}
           </colgroup>
-          <thead className="bg-muted/30 border-b">
+          {/* Sticky header — stays frozen while the (now un-paginated) body
+              scrolls. Opaque row backgrounds so content doesn't show through. */}
+          <thead className="sticky top-0 z-20 border-b shadow-sm">
             {/* Group header row */}
-            <tr className="border-b border-border/40">
+            <tr className="bg-card border-b border-border/40">
               <th colSpan={5} className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
                 Project
               </th>
@@ -335,7 +330,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
               <th className="w-[40px]" />
             </tr>
             {/* Column labels */}
-            <tr>
+            <tr className="bg-card">
               <Th label="#"                  className="w-[44px]" />
               <SortableTh label="Station"    field="name"      className="min-w-[180px]" {...sp} />
               <SortableTh label="Region"     field="region"    className="w-[68px]"      {...sp} />
@@ -354,14 +349,14 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {paginated.length === 0 ? (
+            {filtered.length === 0 ? (
               <tr>
                 <td colSpan={15} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No cleared projects found.
                 </td>
               </tr>
             ) : (
-              paginated.flatMap((p, i) => {
+              filtered.flatMap((p, i) => {
                 const isHybrid   = p.plantType.isHybrid;
                 const hasPhases  = p.phases.length > 0;
                 const isExpanded = !!expanded[p.id];
@@ -379,7 +374,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                     onClick={() => onView?.(p)}
                     className={`hover:bg-muted/20 transition-colors cursor-pointer ${p._isOverdue ? 'bg-red-50/30' : ''}`}
                   >
-                    <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
+                    <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{i + 1}</td>
                     <td className="px-3 py-2.5 min-w-[180px]">
                       <div className="font-medium text-foreground truncate max-w-[240px]" title={p.name}>{p.name}</div>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -533,44 +528,10 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/10">
+      <div className="flex items-center px-4 py-2.5 border-t border-border bg-muted/10 shrink-0">
         <span className="text-xs text-muted-foreground">
-          {filtered.length === 0
-            ? '0 records'
-            : `${(page - 1) * PER_PAGE + 1}–${Math.min(page * PER_PAGE, filtered.length)} of ${filtered.length} records`}
+          {filtered.length} record{filtered.length === 1 ? '' : 's'}
         </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none transition-colors"
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-          {(() => {
-            const pages = [];
-            for (let i = Math.max(1, page - 1); i <= Math.min(totalPages, page + 1); i++) pages.push(i);
-            if (pages[0] > 2) pages.unshift('…');
-            if (pages[0] > 1) pages.unshift(1);
-            if (pages[pages.length - 1] < totalPages - 1) pages.push('…');
-            if (pages[pages.length - 1] < totalPages) pages.push(totalPages);
-            return pages.map((pg, idx) =>
-              typeof pg === 'string'
-                ? <span key={`e${idx}`} className="size-7 flex items-center justify-center text-xs text-muted-foreground">…</span>
-                : <button key={pg} onClick={() => setPage(pg)}
-                    className={`size-7 rounded-md border text-xs font-medium transition-colors ${pg === page ? 'border-primary bg-primary text-white' : 'border-border hover:bg-accent text-foreground'}`}>
-                    {pg}
-                  </button>
-            );
-          })()}
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages || totalPages === 0}
-            className="size-7 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none transition-colors"
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
-        </div>
       </div>
     </div>
   );
