@@ -205,7 +205,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         _codDeclaredMw: codDeclaredMw,
         _codPendingMw:  Math.max(0, r3(tocIssuedMw - codDeclaredMw)),
         _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
-        _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
+        // CONTD-4 issued capacity. Do NOT fall back to total capacity when it's
+        // unset — that wrongly implied CONTD-4 was issued for the full plant and
+        // made this column disagree with the dashboard's CONTD-4 (MW), which uses
+        // the raw value (0/blank when none). Show '—' when no CONTD-4 is issued.
+        _contd4Cap:     p.contd4?.capacityApr26Mw != null ? Number(p.contd4.capacityApr26Mw) : null,
         _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
         _status:        status,
         _manualCommission: manualCommission,
