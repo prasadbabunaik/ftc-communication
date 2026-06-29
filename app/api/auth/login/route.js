@@ -93,9 +93,12 @@ export async function POST(request) {
         entraEmail = emailFromClaims(claims) || normEmail;
       } catch (err) {
         if (err instanceof EntraAuthError) {
-          // Wrong password / unknown account → count toward the lockout; MFA /
-          // disabled are not "wrong password" so they don't increment it.
-          if (err.code === 'INVALID' || err.code === 'NOT_FOUND') {
+          // Only a wrong PASSWORD on a real account counts toward the lockout.
+          // A non-existent account (NOT_FOUND) can't be locked, so showing it a
+          // countdown is misleading; MFA / DISABLED aren't bad passwords
+          // either. Those all just return their message (per-IP and per-email
+          // rate limits still throttle blind probing).
+          if (err.code === 'INVALID') {
             const next = recordFailure(`login:fail:${normEmail}`);
             const remaining = Math.max(0, LOCKOUT_THRESHOLD - next);
             const msg = remaining > 0
