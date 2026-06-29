@@ -30,7 +30,7 @@ const SOURCE_TYPES = ['WIND', 'SOLAR', 'COAL', 'HYDRO', 'PSP', 'BESS'];
 // Mirrors EDIT_ROLES in lib/server-auth.js — drives whether the capacity
 // fields render as editable inputs. The server action re-checks this; the
 // client gate just hides the inputs from read-only viewers.
-const EDIT_ROLES_CLIENT = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
+const EDIT_ROLES_CLIENT = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
 
 // Derive valid source types from the plant type label
 function getPlantSources(plantType) {

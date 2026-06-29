@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Search, ChevronsUpDown, ChevronUp, ChevronDown,
@@ -153,7 +153,7 @@ function StatusBadge({ status, manual = false }) {
   );
 }
 
-export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected" }) {
+export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected", onVisibleChange }) {
   const [search, setSearch]             = useState('');
   const [regionFilter, setRegionFilter] = useState('All');
   const [typeFilter, setTypeFilter]     = useState('All');
@@ -241,6 +241,12 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
     if (statusFilter !== 'All') rows = rows.filter((p) => p._status === statusFilter);
     return sortRows(rows, sortField, sortDir);
   }, [enrichedRows, search, regionFilter, typeFilter, statusFilter, sortField, sortDir]);
+
+  // Report the current filtered/sorted rows up so exports (PDF / Excel) match
+  // exactly what the user is looking at — not the unfiltered project list.
+  useEffect(() => {
+    onVisibleChange?.(filtered);
+  }, [filtered, onVisibleChange]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);

@@ -8,7 +8,6 @@ import {
   LayoutGrid,
   Settings,
   Shield,
-  Upload,
   Users,
 } from 'lucide-react';
 
@@ -55,11 +54,6 @@ export const MENU_SIDEBAR = [
     path: '/bess-data',
   },
   {
-    title: 'Bulk Import',
-    icon: Upload,
-    path: '/import',
-  },
-  {
     heading: 'Administration',
     roles: ['ADMIN', 'NLDC'],
   },
@@ -79,5 +73,6 @@ export const MENU_SIDEBAR = [
     title: 'Settings',
     icon: Settings,
     path: '/dashboard/settings',
+    roles: ['ADMIN'],
   },
 ];

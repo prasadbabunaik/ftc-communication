@@ -18,7 +18,7 @@ export function HybridFtcPageClient({ projects, userRole, regionLabel }) {
   const [detailProject, setDetailProject]         = useState(null);
   const router = useRouter();
 
-  const canEdit = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
+  const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p.id === selectedProjectId) ?? null,

@@ -65,7 +65,7 @@ export default async function ProjectDetailPage({ params }) {
     redirect('/generation');
   }
 
-  const canEdit = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
+  const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
 
   // Serialize all Prisma types before passing to Client Components
   const serializedProject = serialize(project);

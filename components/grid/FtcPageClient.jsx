@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layers, Zap, Plus, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { FtcTable } from '@/components/grid/FtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
 import { CreateProjectForm } from '@/components/grid/CreateProjectForm';
-import { ExportButtons } from '@/components/grid/ExportButtons';
+import { FtcExportButtons } from '@/components/grid/FtcExportButtons';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
@@ -26,18 +26,22 @@ function fmtRefMonth(ym) {
 }
 
 export function FtcPageClient({
-  projects, allClearedProjects = [], userRole, regionLabel,
+  projects, allClearedProjects = [], userRole, regionLabel, asOf = null,
   regions = [], plantTypes = [], poolingStations = [], stations = [], lockedRegionId = null,
 }) {
   const [phaseOpen, setPhaseOpen]                 = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [mode, setMode]                           = useState('pick'); // 'pick' | 'create'
   const [detailProject, setDetailProject]         = useState(null);
+  // Rows currently visible in the table (after region/type/status/search
+  // filters) — kept in sync by FtcTable so the PDF / Excel export the same set.
+  const [visibleProjects, setVisibleProjects]     = useState(projects);
+  const handleVisibleChange = useCallback((rows) => setVisibleProjects(rows), []);
   const router = useRouter();
   const { settings } = useSettings();
   const refMonthLabel = fmtRefMonth(settings.referenceMonth);
 
-  const canEdit = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
+  const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
 
   const selectedProject = useMemo(
     () => allClearedProjects.find((p) => p.id === selectedProjectId) ?? null,
@@ -73,7 +77,13 @@ export function FtcPageClient({
               Add Source / Component
             </Button>
           )}
-          <ExportButtons size="sm" />
+          <FtcExportButtons
+            projects={visibleProjects}
+            regionLabel={regionLabel}
+            refMonthLabel={refMonthLabel}
+            asOf={asOf}
+            size="sm"
+          />
         </div>
       </div>
 
@@ -83,12 +93,16 @@ export function FtcPageClient({
           userRole={userRole}
           onView={setDetailProject}
           refMonthLabel={refMonthLabel}
+          onVisibleChange={handleVisibleChange}
         />
       </div>
 
       {/* Add Phase modal */}
       <Dialog open={phaseOpen} onOpenChange={(o) => { if (!o) handlePhaseClose(); }}>
-        <DialogContent className="max-w-4xl">
+        {/* overflow-y-visible: don't clip the project-picker dropdown (which is
+            portaled into this dialog); the scroll for tall forms lives on the
+            DialogBody below instead. */}
+        <DialogContent className="max-w-4xl overflow-y-visible">
           <DialogHeader>
             <DialogTitle>
               {mode === 'create' ? 'Create New Generating Station' : 'Add Source / Component'}
@@ -101,7 +115,7 @@ export function FtcPageClient({
               </DialogDescription>
             )}
           </DialogHeader>
-          <DialogBody>
+          <DialogBody className="max-h-[72vh] overflow-y-auto">
             {mode === 'create' ? (
               <>
                 <button

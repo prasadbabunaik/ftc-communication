@@ -16,7 +16,7 @@ export function TransmissionPageClient({ elements, regions, lockedRegionId, user
   const [viewElement, setViewElement] = useState(null);
   const router = useRouter();
 
-  const canCreate = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
+  const canCreate = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
 
   return (
     <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">

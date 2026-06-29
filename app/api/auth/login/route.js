@@ -5,7 +5,14 @@ import { verifyRecaptcha, isRecaptchaEnabled } from '@/lib/recaptcha';
 import {
   rateLimit, recordFailure, failureCount, clearFailures, getClientIp,
 } from '@/lib/rate-limit';
+import { getEntraConfig, entraPasswordLogin, emailFromClaims, EntraAuthError } from '@/lib/entra';
 import bcrypt from 'bcryptjs';
+
+// When ENTRA_ROPC_ENABLED=true, the email + password typed on the login form are
+// validated against Microsoft Entra AD (ROPC grant) instead of the local bcrypt
+// hash. The role/identity still come from the portal User table.
+const entraPasswordEnabled = () =>
+  String(process.env.ENTRA_ROPC_ENABLED).toLowerCase() === 'true';
 
 // Tunables. All durations in ms.
 const IP_THROTTLE      = { limit: 20, windowMs: 10 * 60 * 1000 };  // 20 attempts / 10 min per IP
@@ -73,31 +80,67 @@ export async function POST(request) {
       }
     }
 
-    const user = await prisma.user.findUnique({ where: { email: normEmail } });
+    // 5. Validate credentials — via Entra AD (ROPC) when enabled, else bcrypt.
+    //    Either way, the role/identity come from the portal User table.
+    const entraCfg = getEntraConfig();
+    let user;
 
-    if (!user || !user.isActive) {
-      // Count this as a failure too — otherwise an attacker who knows an
-      // address doesn't exist could probe forever without ever tripping
-      // the per-email lockout. (Per-IP and per-email throttles still apply.)
-      recordFailure(`login:fail:${normEmail}`);
-      return NextResponse.json(
-        { message: 'Invalid email or password' },
-        { status: 401 },
-      );
-    }
-
-    const passwordValid = await bcrypt.compare(password, user.password);
-    if (!passwordValid) {
-      const next = recordFailure(`login:fail:${normEmail}`);
-      const remaining = Math.max(0, LOCKOUT_THRESHOLD - next);
-      return NextResponse.json(
-        {
-          message: remaining > 0
-            ? `Invalid email or password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before lockout.`
-            : 'Invalid email or password. Account is now locked.',
-        },
-        { status: 401 },
-      );
+    if (entraPasswordEnabled() && entraCfg) {
+      // Validate the typed email + password directly against Entra AD.
+      let entraEmail;
+      try {
+        const claims = await entraPasswordLogin(entraCfg, normEmail, String(password));
+        entraEmail = emailFromClaims(claims) || normEmail;
+      } catch (err) {
+        if (err instanceof EntraAuthError) {
+          // Wrong password / unknown account → count toward the lockout; MFA /
+          // disabled are not "wrong password" so they don't increment it.
+          if (err.code === 'INVALID' || err.code === 'NOT_FOUND') {
+            const next = recordFailure(`login:fail:${normEmail}`);
+            const remaining = Math.max(0, LOCKOUT_THRESHOLD - next);
+            const msg = remaining > 0
+              ? `${err.message} ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before lockout.`
+              : `${err.message} Account is now locked.`;
+            return NextResponse.json({ message: msg }, { status: 401 });
+          }
+          return NextResponse.json({ message: err.message }, { status: 401 });
+        }
+        throw err;
+      }
+      // Entra confirmed the identity; map it to a portal account (role source).
+      user = await prisma.user.findFirst({
+        where: { email: { equals: entraEmail, mode: 'insensitive' } },
+      });
+      if (!user || !user.isActive) {
+        recordFailure(`login:fail:${normEmail}`);
+        return NextResponse.json(
+          { message: 'Your Microsoft account is not registered in this portal (or is deactivated). Contact the administrator.' },
+          { status: 401 },
+        );
+      }
+    } else {
+      // Legacy: validate against the bcrypt hash stored in the DB.
+      user = await prisma.user.findUnique({ where: { email: normEmail } });
+      if (!user || !user.isActive) {
+        // Count this as a failure too — otherwise an attacker who knows an
+        // address doesn't exist could probe forever without ever tripping
+        // the per-email lockout. (Per-IP and per-email throttles still apply.)
+        recordFailure(`login:fail:${normEmail}`);
+        return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
+      }
+      const passwordValid = await bcrypt.compare(password, user.password);
+      if (!passwordValid) {
+        const next = recordFailure(`login:fail:${normEmail}`);
+        const remaining = Math.max(0, LOCKOUT_THRESHOLD - next);
+        return NextResponse.json(
+          {
+            message: remaining > 0
+              ? `Invalid email or password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before lockout.`
+              : 'Invalid email or password. Account is now locked.',
+          },
+          { status: 401 },
+        );
+      }
     }
 
     // Successful login → reset the failure counter for this account.

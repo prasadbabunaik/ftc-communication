@@ -44,7 +44,6 @@ function getPageInfo(pathname) {
   if (pathname === '/hybrid-ftc')                            return { title: 'Hybrid FTC Tracker',       sub: 'Grid Tracker' };
   if (pathname === '/transmission')                          return { title: 'Transmission',             sub: 'Grid Tracker' };
   if (pathname === '/transmission/new')                      return { title: 'Add Transmission Element', sub: 'Grid Tracker' };
-  if (pathname === '/import')                                return { title: 'Bulk Import',              sub: 'Grid Tracker' };
 
   return { title: 'FTC Portal', sub: 'FTC Communication Portal' };
 }

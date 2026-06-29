@@ -11,6 +11,19 @@ import { z } from 'zod';
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
 const RECAPTCHA_ENABLED  = Boolean(RECAPTCHA_SITE_KEY);
+const SSO_ENABLED        = process.env.NEXT_PUBLIC_SSO_ENABLED === 'true';
+
+// Friendly messages for the ?sso_error=… returned by the Entra callback.
+const SSO_ERRORS = {
+  disabled:         'Microsoft sign-in is not configured.',
+  denied:           'Microsoft sign-in was cancelled.',
+  invalid:          'Microsoft sign-in failed (invalid response). Please try again.',
+  state:            'Microsoft sign-in expired. Please try again.',
+  token:            'Could not verify your Microsoft sign-in. Please try again.',
+  noemail:          'Your Microsoft account did not return an email address.',
+  notfound:         'No portal account exists for your Microsoft email. Contact the administrator.',
+  disabled_account: 'Your account is deactivated. Contact the administrator.',
+};
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -122,6 +135,18 @@ export default function LoginPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [ssoError, setSsoError] = useState(null);
+
+  // Surface ?sso_error=… returned by the Entra callback (then strip it from the URL).
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('sso_error');
+    if (code) {
+      setSsoError(SSO_ERRORS[code] ?? 'Microsoft sign-in failed. Please try again.');
+      const u = new URL(window.location.href);
+      u.searchParams.delete('sso_error');
+      window.history.replaceState({}, '', u.toString());
+    }
+  }, []);
 
   // reCAPTCHA v2 state. `recaptchaToken` is the g-recaptcha-response value;
   // it's required to submit when the widget is enabled. `widgetIdRef` lets us
@@ -423,6 +448,42 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
+
+            {/* ── Microsoft Entra SSO ── */}
+            {SSO_ENABLED && (
+              <div className="mt-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">or</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                {ssoError && (
+                  <div className="mb-3 flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
+                    <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                    <span>{ssoError}</span>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full gap-2"
+                  onClick={() => { window.location.href = '/api/auth/sso/login'; }}
+                >
+                  <svg viewBox="0 0 23 23" className="size-4" aria-hidden="true">
+                    <rect x="1"  y="1"  width="10" height="10" fill="#f25022" />
+                    <rect x="12" y="1"  width="10" height="10" fill="#7fba00" />
+                    <rect x="1"  y="12" width="10" height="10" fill="#00a4ef" />
+                    <rect x="12" y="12" width="10" height="10" fill="#ffb900" />
+                  </svg>
+                  Sign in with Microsoft
+                </Button>
+                <p className="mt-2.5 text-center text-[11px] leading-relaxed text-muted-foreground">
+                   Use your
+                  {' '}<span className="font-medium text-foreground">GRID-India AD</span> credentials to login.
+                </p>
+              </div>
+            )}
 
             {RECAPTCHA_ENABLED && (
               <Script

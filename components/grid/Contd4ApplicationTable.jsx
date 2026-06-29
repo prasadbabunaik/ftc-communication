@@ -80,7 +80,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
   const router = useRouter();
   const PER_PAGE = 10;
 
-  const canEdit = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
+  const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
 
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
   // Roll up every hybrid sub-type (Hybrid (Wind+Solar), Hybrid (Solar+BESS),

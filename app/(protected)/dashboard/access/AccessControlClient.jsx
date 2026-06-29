@@ -9,7 +9,7 @@ const ROLES = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
 
 const ROLE_META = {
   ADMIN:  { label: 'Administrator',      region: 'All Regions',        color: 'bg-violet-50 text-violet-700 border-violet-200', dot: 'bg-violet-400' },
-  NLDC:   { label: 'National LDC',       region: 'All Regions (read)', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-400' },
+  NLDC:   { label: 'National LDC',       region: 'All Regions',        color: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-400' },
   SRLDC:  { label: 'Southern RLDC',      region: 'SR Region only',     color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400' },
   NRLDC:  { label: 'Northern RLDC',      region: 'NR Region only',     color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400' },
   ERLDC:  { label: 'Eastern RLDC',       region: 'ER Region only',     color: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-400' },
@@ -30,20 +30,20 @@ const PERMISSIONS = [
     section: 'CONTD-4 Applications',
     items: [
       { label: 'View Applications',     ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
-      { label: 'Create Application',    ADMIN: true,   NLDC: false,  SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
-      { label: 'Edit Application',      ADMIN: true,   NLDC: false,  SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
+      { label: 'Create Application',    ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
+      { label: 'Edit Application',      ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
       { label: 'Mark as Cleared',       ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
-      { label: 'Delete Application',    ADMIN: true,   NLDC: false,  SRLDC: false,  NRLDC: false,  ERLDC: false,  WRLDC: false,  NERLDC: false },
+      { label: 'Delete Application',    ADMIN: true,   NLDC: true,   SRLDC: false,  NRLDC: false,  ERLDC: false,  WRLDC: false,  NERLDC: false },
     ],
   },
   {
     section: 'Generation Projects',
     items: [
       { label: 'View All Projects',     ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
-      { label: 'Create Project',        ADMIN: true,   NLDC: false,  SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
-      { label: 'Edit Project',          ADMIN: true,   NLDC: false,  SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
-      { label: 'Delete Project',        ADMIN: true,   NLDC: false,  SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
-      { label: 'Add Phases',            ADMIN: true,   NLDC: false,  SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
+      { label: 'Create Project',        ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
+      { label: 'Edit Project',          ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
+      { label: 'Delete Project',        ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
+      { label: 'Add Phases',            ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
       { label: 'Add Project Notes',     ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
     ],
   },
@@ -51,15 +51,9 @@ const PERMISSIONS = [
     section: 'Transmission Elements',
     items: [
       { label: 'View All Elements',     ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
-      { label: 'Create Element',        ADMIN: true,   NLDC: false,  SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
-      { label: 'Edit Element',          ADMIN: true,   NLDC: false,  SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
-      { label: 'Delete Element',        ADMIN: true,   NLDC: false,  SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
-    ],
-  },
-  {
-    section: 'Bulk Import',
-    items: [
-      { label: 'Import via Excel',      ADMIN: true,   NLDC: false,  SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
+      { label: 'Create Element',        ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
+      { label: 'Edit Element',          ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
+      { label: 'Delete Element',        ADMIN: true,   NLDC: true,   SRLDC: 'own',  NRLDC: 'own',  ERLDC: 'own',  WRLDC: 'own',  NERLDC: 'own' },
     ],
   },
   {
@@ -68,14 +62,14 @@ const PERMISSIONS = [
       { label: 'User Management',       ADMIN: true,   NLDC: false,  SRLDC: false,  NRLDC: false,  ERLDC: false,  WRLDC: false,  NERLDC: false },
       { label: 'Access Control View',   ADMIN: true,   NLDC: true,   SRLDC: false,  NRLDC: false,  ERLDC: false,  WRLDC: false,  NERLDC: false },
       { label: 'Create / Edit Users',   ADMIN: true,   NLDC: false,  SRLDC: false,  NRLDC: false,  ERLDC: false,  WRLDC: false,  NERLDC: false },
-      { label: 'Settings',              ADMIN: true,   NLDC: true,   SRLDC: true,   NRLDC: true,   ERLDC: true,   WRLDC: true,   NERLDC: true  },
+      { label: 'Settings',              ADMIN: true,   NLDC: false,  SRLDC: false,  NRLDC: false,  ERLDC: false,  WRLDC: false,  NERLDC: false },
     ],
   },
 ];
 
 const REGION_MAP = [
   { role: 'ADMIN',  region: '—',   description: 'All regions, full privileges' },
-  { role: 'NLDC',   region: '—',   description: 'National view, read-only across all regions' },
+  { role: 'NLDC',   region: '—',   description: 'National role — full edit across all regions (except administration)' },
   { role: 'SRLDC',  region: 'SR',  description: 'Southern Region data only' },
   { role: 'NRLDC',  region: 'NR',  description: 'Northern Region data only' },
   { role: 'ERLDC',  region: 'ER',  description: 'Eastern Region data only' },

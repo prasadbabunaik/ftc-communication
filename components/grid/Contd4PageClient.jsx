@@ -27,7 +27,7 @@ export function Contd4PageClient({
   const [selected, setSelected] = useState(null);
   const router = useRouter();
 
-  const canCreate = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
+  const canCreate = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
   const canEdit   = canCreate;
 
   return (

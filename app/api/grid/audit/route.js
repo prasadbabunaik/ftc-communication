@@ -46,7 +46,7 @@ export async function GET(request) {
           id: true, field: true, text: true, createdAt: true, effectiveDate: true,
           projectName: true,
           project: { select: { name: true, region: { select: { code: true } } } },
-          user:    { select: { name: true } },
+          user:    { select: { name: true, role: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: FETCH_CAP,
@@ -57,7 +57,7 @@ export async function GET(request) {
           id: true, action: true, field: true, elementName: true,
           createdAt: true, effectiveDate: true,
           element: { select: { region: { select: { code: true } } } },
-          user:    { select: { name: true } },
+          user:    { select: { name: true, role: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: FETCH_CAP,
@@ -69,12 +69,14 @@ export async function GET(request) {
       ...notes.map((n) => ({
         kind: 'PROJECT', entityName: n.project?.name ?? n.projectName ?? '—',
         region: n.project?.region?.code ?? null, field: n.field,
-        userName: n.user?.name ?? 'System', createdAt: n.createdAt, effectiveDate: n.effectiveDate,
+        userName: n.user?.name ?? 'System', userRole: n.user?.role ?? null,
+        createdAt: n.createdAt, effectiveDate: n.effectiveDate,
       })),
       ...txLogs.map((t) => ({
         kind: 'TRANSMISSION', entityName: t.elementName ?? '—',
         region: t.element?.region?.code ?? null, field: t.field,
-        userName: t.user?.name ?? 'System', createdAt: t.createdAt, effectiveDate: t.effectiveDate,
+        userName: t.user?.name ?? 'System', userRole: t.user?.role ?? null,
+        createdAt: t.createdAt, effectiveDate: t.effectiveDate,
       })),
     ];
 
@@ -90,7 +92,7 @@ export async function GET(request) {
       if (!g) {
         g = {
           id: key, kind: e.kind, entityName: e.entityName, region: e.region,
-          userName: e.userName, createdAt: e.createdAt, effectiveDate: e.effectiveDate,
+          userName: e.userName, userRole: e.userRole, createdAt: e.createdAt, effectiveDate: e.effectiveDate,
           backDated: !!e.effectiveDate && e.effectiveDate.getTime() < e.createdAt.getTime(),
           changeCount: 0, fields: [],
         };

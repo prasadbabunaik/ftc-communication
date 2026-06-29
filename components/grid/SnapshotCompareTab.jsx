@@ -535,7 +535,9 @@ function ChangeLog() {
                       ? <span><span className="text-rose-600">{r.oldValue ?? '—'}</span> → <span className="text-emerald-700 font-semibold">{r.newValue ?? '—'}</span></span>
                       : <span className="text-slate-500" title={r.text}>{r.text}</span>}
                   </td>
-                  <td className="px-3 py-1.5 text-center text-slate-600 whitespace-nowrap">{r.userName}</td>
+                  <td className="px-3 py-1.5 text-center text-slate-600 whitespace-nowrap">
+                    {r.userName}{r.userRole ? <span className="text-slate-400">, {r.userRole}</span> : ''}
+                  </td>
                 </tr>
               ))}
             </tbody>

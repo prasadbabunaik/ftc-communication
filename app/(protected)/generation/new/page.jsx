@@ -13,7 +13,7 @@ export default async function NewGenerationPage() {
     redirect('/login');
   }
 
-  const canCreate = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
+  const canCreate = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
   if (!canCreate) redirect('/generation');
 
   const [regions, plantTypes] = await Promise.all([

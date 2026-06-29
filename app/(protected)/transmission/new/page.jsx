@@ -13,7 +13,7 @@ export default async function NewTransmissionPage() {
     redirect('/login');
   }
 
-  const canCreate = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
+  const canCreate = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
   if (!canCreate) redirect('/transmission');
 
   const regions = await prisma.gridRegion.findMany({ orderBy: { code: 'asc' } });

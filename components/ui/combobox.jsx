@@ -27,10 +27,10 @@ export function Combobox({
 }) {
   const [open, setOpen]     = useState(false);
   const [search, setSearch] = useState('');
-  // When the combobox lives inside a Radix Dialog, its scroll-lock
-  // (react-remove-scroll) blocks wheel scrolling over content portaled to
-  // <body>. Portal the list into the dialog instead so it sits inside the
-  // scroll-allowed subtree; fall back to <body> when there's no dialog.
+  // A modal Radix Dialog blocks pointer events outside its subtree and traps
+  // focus, so a popover portaled to <body> would be unclickable/untypable.
+  // Portal into the dialog instead so it stays interactive; the dialog is made
+  // overflow-visible at the call site so the list isn't clipped.
   const triggerRef = useRef(null);
   const [container, setContainer] = useState(null);
 
@@ -112,10 +112,14 @@ export function Combobox({
       <Popover.Portal container={container ?? undefined}>
         <Popover.Content
           align="start"
+          side="bottom"
           sideOffset={6}
+          avoidCollisions
+          collisionPadding={12}
           onWheel={(e) => e.stopPropagation()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
           style={{ width: 'var(--radix-popover-trigger-width)' }}
-          className="z-50 rounded-xl border border-border bg-popover shadow-xl overflow-hidden
+          className="z-[60] rounded-xl border border-border bg-popover shadow-xl overflow-hidden
                      data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95
                      data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
         >
@@ -132,7 +136,7 @@ export function Combobox({
           </div>
 
           {/* Options list */}
-          <div className="max-h-[220px] overflow-y-auto py-1">
+          <div className="max-h-[320px] min-h-[120px] overflow-y-auto py-1">
             {filtered.length === 0 && !showCreate ? (
               <p className="px-3 py-3 text-sm text-muted-foreground text-center">{emptyText}</p>
             ) : (

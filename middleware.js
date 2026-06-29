@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { applySecurityHeaders } from './lib/security-headers';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/refresh', '/api/auth/logout'];
+const PUBLIC_PATHS = [
+  '/login', '/api/auth/login', '/api/auth/refresh', '/api/auth/logout',
+  // Microsoft Entra SSO round-trip — must be reachable before a session exists.
+  '/api/auth/sso', '/api/auth/callback',
+];
 // No hardcoded fallback: the signing secret must come from the environment.
 // If it is unset, verification below fails closed (requests redirect to login)
 // rather than silently trusting a well-known default secret.

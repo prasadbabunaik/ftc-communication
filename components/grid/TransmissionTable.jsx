@@ -222,7 +222,7 @@ export function TransmissionTable({ elements, userRole, onView }) {
                       {e.pendingFtc && (
                         <MarkDoneButton
                           elementId={e.id}
-                          canEdit={['ADMIN','SRLDC','NRLDC','ERLDC','WRLDC','NERLDC'].includes(userRole)}
+                          canEdit={['ADMIN','NLDC','SRLDC','NRLDC','ERLDC','WRLDC','NERLDC'].includes(userRole)}
                         />
                       )}
                     </div>

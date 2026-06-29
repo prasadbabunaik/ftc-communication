@@ -16,7 +16,7 @@ export default async function AddPhasePage({ params }) {
     redirect('/login');
   }
 
-  const canEdit = ['ADMIN', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
+  const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(user.role);
   if (!canEdit) redirect('/generation');
 
   const { projectId } = await params;
