@@ -29,6 +29,10 @@ const ROLE_META = {
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'NLDC' };
 
+// When SSO is on, login goes through Microsoft Entra, so a local password is
+// optional when creating a user.
+const SSO_ENABLED = process.env.NEXT_PUBLIC_SSO_ENABLED === 'true';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function initials(name) {
@@ -103,20 +107,28 @@ function UserFormModal({ open, onClose, editing, currentUserId }) {
             </div>
             {!editing && (
               <div>
-                <label className="text-sm font-medium text-foreground block mb-1.5">Password *</label>
+                <label className="text-sm font-medium text-foreground block mb-1.5">
+                  Password {SSO_ENABLED ? <span className="font-normal text-muted-foreground">(optional)</span> : '*'}
+                </label>
                 <div className="relative">
                   <Input
                     type={showPw ? 'text' : 'password'}
-                    placeholder="Min. 8 characters"
+                    placeholder={SSO_ENABLED ? 'Leave blank for Microsoft sign-in' : 'Min. 8 characters'}
                     value={form.password}
                     onChange={(e) => set('password', e.target.value)}
-                    required
+                    required={!SSO_ENABLED}
                   />
                   <button type="button" onClick={() => setShowPw(!showPw)}
                     className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
+                {SSO_ENABLED && (
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Sign-in is handled by Microsoft Entra — the email must be a valid GRID-India AD
+                    account. A local password is only needed if SSO is turned off.
+                  </p>
+                )}
               </div>
             )}
             <div>

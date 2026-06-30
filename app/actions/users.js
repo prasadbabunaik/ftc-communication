@@ -1,9 +1,16 @@
 'use server';
 
+import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { requireServerUser } from '@/lib/server-auth';
 import { prisma } from '@/lib/prisma';
+
+// When Entra SSO / ROPC is on, login is validated by Microsoft — the local
+// bcrypt hash is never used — so a password is optional when creating a user.
+const ssoEnabled = () =>
+  String(process.env.NEXT_PUBLIC_SSO_ENABLED).toLowerCase() === 'true' ||
+  String(process.env.ENTRA_ROPC_ENABLED).toLowerCase() === 'true';
 
 async function requireAdmin() {
   let user;
@@ -33,12 +40,17 @@ export async function createUser({ name, email, password, role }) {
 
   if (!name?.trim()) return { error: 'Name is required.' };
   if (!email?.trim()) return { error: 'Email is required.' };
-  if (!password || password.length < 8) return { error: 'Password must be at least 8 characters.' };
+  const hasPassword = typeof password === 'string' && password.length > 0;
+  if (hasPassword && password.length < 8) return { error: 'Password must be at least 8 characters.' };
+  if (!hasPassword && !ssoEnabled()) return { error: 'Password must be at least 8 characters.' };
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   if (existing) return { error: 'A user with this email already exists.' };
 
-  const hashedPassword = await bcrypt.hash(password, 12);
+  // No password supplied (SSO account) → store a random hash so the column is
+  // non-null and the bcrypt fallback still works if SSO is ever disabled.
+  const rawPassword = hasPassword ? password : crypto.randomBytes(24).toString('base64url');
+  const hashedPassword = await bcrypt.hash(rawPassword, 12);
   await prisma.user.create({
     data: { name: name.trim(), email: email.toLowerCase().trim(), password: hashedPassword, role },
   });
