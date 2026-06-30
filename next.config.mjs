@@ -16,6 +16,18 @@ const nextConfig = {
       ],
     },
   },
+  // The login page is statically prerendered, which makes Next emit
+  // `Cache-Control: s-maxage=31536000` — a shared cache (the nginx layer) would
+  // then hold it for a year. It's the auth entry point, so keep it out of shared
+  // caches (also ensures security/login changes propagate immediately).
+  async headers() {
+    return [
+      {
+        source: '/login',
+        headers: [{ key: 'Cache-Control', value: 'no-store, max-age=0, must-revalidate' }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

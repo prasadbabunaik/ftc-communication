@@ -31,7 +31,11 @@ function rejectUnauth(request, pathname) {
       request,
     );
   }
-  return secureResponse(NextResponse.redirect(new URL('/login', request.url)), request);
+  const redirect = NextResponse.redirect(new URL('/login', request.url));
+  // Redirects have no body; set an explicit Content-Type so scanners don't flag
+  // a missing one (paired with the X-Content-Type-Options: nosniff we add).
+  redirect.headers.set('Content-Type', 'text/plain; charset=utf-8');
+  return secureResponse(redirect, request);
 }
 
 export async function middleware(request) {

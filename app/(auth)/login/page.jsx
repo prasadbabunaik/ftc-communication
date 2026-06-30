@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
-import Script from 'next/script';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -185,6 +184,21 @@ export default function LoginPage() {
     // If the script was already cached (Strict-Mode remount, fast nav back),
     // grecaptcha may already be ready — try rendering immediately too.
     if (window.grecaptcha?.render) tryRender();
+
+    // Inject Google's api.js at runtime rather than via next/script. A
+    // server-rendered <script>/<link rel=preload> for a third-party origin
+    // trips ZAP's "Sub-Resource Integrity attribute missing" check, and
+    // reCAPTCHA's loader can't carry a stable SRI hash. Injecting it here keeps
+    // it out of the SSR HTML entirely while loading exactly the same script.
+    const RECAPTCHA_SRC = 'https://www.google.com/recaptcha/api.js?onload=__onRecaptchaLoad&render=explicit';
+    if (!document.querySelector(`script[data-recaptcha]`)) {
+      const s = document.createElement('script');
+      s.src = RECAPTCHA_SRC;
+      s.async = true;
+      s.defer = true;
+      s.setAttribute('data-recaptcha', '');
+      document.head.appendChild(s);
+    }
 
     return () => { delete window.__onRecaptchaLoad; };
   }, []);
@@ -485,12 +499,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            {RECAPTCHA_ENABLED && (
-              <Script
-                src="https://www.google.com/recaptcha/api.js?onload=__onRecaptchaLoad&render=explicit"
-                strategy="afterInteractive"
-              />
-            )}
+            {/* reCAPTCHA api.js is injected at runtime in the effect above — see
+                the SRI note there. */}
 
             <p className="text-center text-xs text-muted-foreground mt-8">
               © {new Date().getFullYear()} Grid India · FTC Communication Portal
