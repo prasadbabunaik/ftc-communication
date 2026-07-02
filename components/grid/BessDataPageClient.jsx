@@ -6,10 +6,14 @@
 // on-screen view.
 
 import { useState, useMemo } from 'react';
-import { BatteryCharging, Sheet, Printer, CalendarRange, X } from 'lucide-react';
+import { BatteryCharging, Sheet, Printer, CalendarRange } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { useSettings } from '@/providers/settings-provider';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { BessDataTab, prepareBessData, projectCodDates, fmt, fmtDate } from '@/components/grid/BessDataTab';
+
+const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const COD_PRESETS = [{ days: 7, label: 'Last 7 days' }, { days: 30, label: 'Last 30 days' }];
 import { BessEditModal } from '@/components/grid/BessEditModal';
 
 function fmtRefMonthShort(ym) {
@@ -176,7 +180,12 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
       projectCodDates(p).some((d) => (!fromDate || d >= fromDate) && (!toDate || d <= toDate)),
     );
   }, [bessProjects, fromDate, toDate, dateActive]);
-  const clearDates = () => { setFromDate(''); setToDate(''); };
+  const applyRange = ({ from, to }) => { setFromDate(from ?? ''); setToDate(to ?? ''); };
+  const presetRange = (days) => {
+    const now = new Date();
+    return { from: isoLocal(new Date(now.getTime() - (days - 1) * 86400000)), to: isoLocal(now) };
+  };
+  const isActivePreset = (days) => { const p = presetRange(days); return fromDate === p.from && toDate === p.to; };
 
   const prepared = prepareBessData(filteredProjects, settings.referenceMonth);
   const hasRows = prepared.rows.length > 0;
@@ -240,39 +249,31 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
         <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
           <CalendarRange className="size-4" /> COD Declared
         </span>
-        <label className="inline-flex items-center gap-1 text-muted-foreground">
-          From
-          <input
-            type="date"
-            value={fromDate}
-            max={toDate || undefined}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
-          />
-        </label>
-        <label className="inline-flex items-center gap-1 text-muted-foreground">
-          To
-          <input
-            type="date"
-            value={toDate}
-            min={fromDate || undefined}
-            onChange={(e) => setToDate(e.target.value)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
-          />
-        </label>
+        <DateRangePicker
+          from={fromDate}
+          to={toDate}
+          onChange={applyRange}
+          placeholder="Pick a COD date range"
+          className="h-9"
+        />
+        {COD_PRESETS.map(({ days, label }) => (
+          <button
+            key={days}
+            type="button"
+            onClick={() => applyRange(presetRange(days))}
+            className={`h-9 px-3 rounded-md border text-xs font-medium whitespace-nowrap transition-colors ${
+              isActivePreset(days)
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-input text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
         {dateActive && (
-          <>
-            <button
-              type="button"
-              onClick={clearDates}
-              className="inline-flex items-center gap-1 rounded-md border border-input px-2 h-8 text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <X className="size-3.5" /> Clear
-            </button>
-            <span className="text-muted-foreground">
-              {prepared.rows.length} project{prepared.rows.length === 1 ? '' : 's'} with COD in range
-            </span>
-          </>
+          <span className="text-muted-foreground">
+            {prepared.rows.length} project{prepared.rows.length === 1 ? '' : 's'} with COD in range
+          </span>
         )}
       </div>
 
