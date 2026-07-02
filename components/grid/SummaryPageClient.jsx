@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer, Sheet, FileText } from 'lucide-react';
+import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer, Sheet, FileText, ChevronRight } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useSettings } from '@/providers/settings-provider';
@@ -135,10 +135,11 @@ function PipelineHead({ isRegionPrimary, refMonthLabel }) {
   );
 }
 
-function PipelineRow({ row, i, rows, isRegionPrimary }) {
+function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expanded = false, onToggle }) {
   const isTotal          = row.isTotal;
   const isSubtotal       = row.isSubtotal && !isTotal;
   const isAllIndia       = row.isAllIndiaBreakdown;
+  const isHybridComp     = row.isHybridComponent;   // an indented hybrid-component breakup row
   const primary    = isRegionPrimary ? row.region : row.source;
   const secondary  = isRegionPrimary ? row.source : row.region;
 
@@ -175,6 +176,8 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
     ? 'bg-slate-50'
     : isSubtotal
     ? 'bg-slate-50/80'
+    : isHybridComp
+    ? 'bg-teal-50/40'
     : 'bg-white';
 
   const rowCls = isTotal
@@ -239,6 +242,18 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
           ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
           : isSubtotal
           ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Subtotal</span>
+          : isHybridComp
+          ? <span className="inline-flex items-center gap-1 pl-4 text-teal-700">
+              <span className="text-teal-400">↳</span>
+              {row.source === 'HYBRID'
+                ? <Chip label="Unsplit" colorCls="bg-slate-100 text-slate-500" />
+                : <Chip label={row.source} colorCls={SOURCE_BADGE[row.source]} />}
+            </span>
+          : expandable
+          ? <button type="button" onClick={onToggle} className="inline-flex items-center gap-1 group" title={expanded ? 'Hide hybrid breakup' : 'Show hybrid breakup (Wind / Solar / BESS parts)'}>
+              <ChevronRight className={`size-3.5 text-slate-400 group-hover:text-slate-600 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+              <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />
+            </button>
           : <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />}
       </td>
       <N v={row.totalCapacityMw}  cls="border-r border-gray-100" />
@@ -257,16 +272,39 @@ function PipelineRow({ row, i, rows, isRegionPrimary }) {
 
 // ── Table 2 / 5 — FTC Pipeline ────────────────────────────────────────────────
 
-function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup }) {
+function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {} }) {
+  const [expanded, setExpanded] = useState(() => new Set());
   if (!rows?.length) return <Empty />;
   const isRegionPrimary = primaryKey === 'region';
+  const toggle = (region) => setExpanded((prev) => {
+    const next = new Set(prev);
+    next.has(region) ? next.delete(region) : next.add(region);
+    return next;
+  });
 
   // Order: per-region detail first, then the All India summary, then the grand
   // total — everything in one naturally-scrolling body.
   const regionRows   = rows.filter((r) => !r.isAllIndiaBreakdown && !r.isTotal);
   const allIndiaRows  = rows.filter((r) => r.isAllIndiaBreakdown);
   const totalRow      = rows.find((r) => r.isTotal);
-  const orderedRows   = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
+  const baseRows      = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
+
+  // A per-region HYBRID leaf row is expandable when there's a component split
+  // for that region (region-wise view only). Expanding inserts the Wind / Solar
+  // / BESS breakup rows right below it (they sum back to the HYBRID row).
+  const compsFor = (row) =>
+    (isRegionPrimary && row.source === 'HYBRID' && !row.isHybridComponent && !row.isSubtotal && !row.isTotal && !row.isAllIndiaBreakdown)
+      ? (hybridBreakup[row.region] ?? []).filter((c) => c.totalCapacityMw > 0 || c.appliedMw > 0)
+      : [];
+
+  const orderedRows = [];
+  for (const row of baseRows) {
+    orderedRows.push(row);
+    const comps = compsFor(row);
+    if (comps.length && expanded.has(row.region)) {
+      for (const c of comps) orderedRows.push({ ...c, region: row.region, isHybridComponent: true });
+    }
+  }
 
   return (
     <div className="rounded-xl border shadow-sm">
@@ -284,7 +322,12 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
             {orderedRows.map((row, i) => (
-              <PipelineRow key={i} row={row} i={i} rows={orderedRows} isRegionPrimary={isRegionPrimary} />
+              <PipelineRow
+                key={i} row={row} i={i} rows={orderedRows} isRegionPrimary={isRegionPrimary}
+                expandable={compsFor(row).length > 0}
+                expanded={expanded.has(row.region)}
+                onToggle={() => toggle(row.region)}
+              />
             ))}
           </tbody>
         </table>
@@ -1409,7 +1452,7 @@ export function SummaryPageClient({
   regions = [], selectedRegions = [], canFilterRegion = false,
   sources = [], selectedSources = [], hybridMode = 'excl',
   stats, table2Rows, table5Rows, contd4Study,
-  transmissionRows, hybridRows, bessProjects = [], activity, projects, txElements,
+  transmissionRows, hybridRows, hybridBreakup = {}, bessProjects = [], activity, projects, txElements,
   availableSnapshots,
 }) {
   const [activeTab, setActiveTab] = useState('pipeline');
@@ -1545,6 +1588,7 @@ export function SummaryPageClient({
             title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Hybrid Split by Source' : ''}`}
             desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Hybrid Split by Source: each hybrid’s capacity is split into its component source rows.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
+            hybridBreakup={hybridBreakup}
           />
         )}
 

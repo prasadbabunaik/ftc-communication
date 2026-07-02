@@ -6,7 +6,7 @@ import {
   n,
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission,
-  computeHybridBreakdown, computeMilestoneActivity,
+  computeHybridBreakdown, computeMilestoneActivity, computeHybridComponentBreakup,
   getProjectSource, SOURCE_ORDER,
 } from '@/lib/grid-computations';
 
@@ -158,6 +158,9 @@ export default async function DashboardPage({ searchParams }) {
   // tab) — the table is inherently scoped to hybrid projects, so region is the
   // only meaningful axis. Uses the unfiltered project set.
   const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
+  // Per-region hybrid component split — drives the expandable breakup under each
+  // HYBRID row in the FTC-pipeline table (Grouped mode).
+  const hybridBreakup    = computeHybridComponentBreakup(projects, computeAsOf);
 
   // BESS Data tab: plain BESS plants + hybrids carrying a BESS component +
   // intra-state storage. Like the hybrid tab it ignores the source filter
@@ -318,6 +321,7 @@ export default async function DashboardPage({ searchParams }) {
       contd4Study={JSON.parse(JSON.stringify(contd4Study))}
       transmissionRows={JSON.parse(JSON.stringify(transmissionRows))}
       hybridRows={JSON.parse(JSON.stringify(hybridRows))}
+      hybridBreakup={JSON.parse(JSON.stringify(hybridBreakup))}
       bessProjects={JSON.parse(JSON.stringify(bessProjects))}
       activity={JSON.parse(JSON.stringify(activity))}
       projects={JSON.parse(JSON.stringify(viewProjects))}
