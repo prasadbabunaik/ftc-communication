@@ -1021,32 +1021,87 @@ function buildContd4Groups(projects) {
 }
 
 function buildHybridGroups(projects, asOf = null) {
-  // Mirror computeHybridBreakdown EXACTLY: per-component from hybridComponentsJson,
-  // date-gated, de-duped by project name — so the breakup equals the matrix.
-  const hybrids = projects.filter(p => p.plantType?.isHybrid && isInFtcPipeline(p) && p.hybridComponentsJson);
+  // Mirror computeHybridBreakdown EXACTLY — same attribution ladder, so the
+  // breakup equals the matrix: 1. commissioning PHASES (live tracker data),
+  // 2. segregation JSON (legacy phaseless seeds, deduped by name),
+  // 3. per-source capacity columns (totals only).
+  const hybrids = projects.filter(p => p.plantType?.isHybrid && isInFtcPipeline(p));
   let cutoff = asOf; if (!cutoff) { cutoff = new Date(); cutoff.setUTCHours(23, 59, 59, 999); }
   const gate = (mw, date) => { const m = Number(mw) || 0; if (!date) return m; return new Date(date) <= cutoff ? m : 0; };
+  const N = (v) => Number(v) || 0;
   const groups = {};
-  const seen = new Set();
-  for (const p of hybrids) {
-    if (seen.has(p.name)) continue;
-    seen.add(p.name);
-    const region = p.region.code;
-    const data   = p.hybridComponentsJson;
-    const ht     = data?.hybridType || p.plantType.label;
+  const seenJson = new Set();
+  const push = (region, ht, contrib) => {
     const key = `${region}|${ht}`;
     if (!groups[key]) groups[key] = { region, source: ht, contributors: [] };
-    for (const c of (data?.components || [])) {
-      groups[key].contributors.push({
-        id: `${p.id}|${c.sourceType}`, name: p.name, plantType: ht, region,
-        component: c.sourceType,
-        total:   Number(c.totalMw) || 0,
-        applied: Number(c.appliedMw) || 0,
-        ftc:     gate(c.ftcMw, c.ftcDate),
-        toc:     gate(c.tocMw, c.tocDate),
-        cod:     gate(c.codMw, c.codDate),
-        exp:     Number(c.expectedMw) || 0,
+    groups[key].contributors.push(contrib);
+  };
+  const CAP_COL = { WIND: 'windCapacityMw', SOLAR: 'solarCapacityMw', BESS: 'bessCapacityMw' };
+
+  for (const p of hybrids) {
+    const region = p.region.code;
+    const phases = p.phases ?? [];
+
+    // 1. Phase-level split.
+    if (phases.length) {
+      const ht = p.plantType.label;
+      const bySource = {};
+      for (const ph of phases) {
+        const acc = (bySource[ph.sourceType] ??= { applied: 0, ftc: 0, toc: 0, cod: 0, exp: 0 });
+        acc.applied += N(ph.capacityAppliedMw);
+        acc.ftc     += milestoneAsOf(ph.ftcEvents, asOf, ph.ftcCompletedDate, ph.ftcCompletedMw);
+        acc.toc     += milestoneAsOf(ph.tocEvents, asOf, ph.tocIssuedDate,    ph.tocIssuedMw);
+        acc.cod     += milestoneAsOf(ph.codEvents, asOf, ph.codDeclaredDate,  ph.codDeclaredMw);
+        acc.exp     += N(ph.expectedApr26Mw);
+      }
+      const sources = Object.keys(bySource);
+      let weights = sources.map((s) => bySource[s].applied);
+      if (!weights.some((w) => w > 0)) weights = sources.map((s) => N(p[CAP_COL[s]]));
+      if (!weights.some((w) => w > 0)) weights = sources.map(() => 1);
+      const wBase = weights.reduce((a, b) => a + b, 0);
+      const totalCap = N(p.totalCapacityMw);
+      sources.forEach((s, i) => {
+        push(region, ht, {
+          id: `${p.id}|${s}`, name: p.name, plantType: ht, region, component: s,
+          total:   totalCap * (weights[i] / wBase),
+          applied: bySource[s].applied,
+          ftc: bySource[s].ftc, toc: bySource[s].toc, cod: bySource[s].cod,
+          exp: bySource[s].exp,
+        });
       });
+      continue;
+    }
+
+    // 2. Segregation JSON (phaseless legacy).
+    const data = p.hybridComponentsJson;
+    if ((data?.components ?? []).length) {
+      if (seenJson.has(p.name)) continue;
+      seenJson.add(p.name);
+      const ht = data.hybridType || p.plantType.label;
+      for (const c of data.components) {
+        push(region, ht, {
+          id: `${p.id}|${c.sourceType}`, name: p.name, plantType: ht, region,
+          component: c.sourceType,
+          total:   N(c.totalMw),
+          applied: N(c.appliedMw),
+          ftc: gate(c.ftcMw, c.ftcDate), toc: gate(c.tocMw, c.tocDate), cod: gate(c.codMw, c.codDate),
+          exp: N(c.expectedMw),
+        });
+      }
+      continue;
+    }
+
+    // 3. Capacity-column split (totals only).
+    const capSplit = [['WIND', N(p.windCapacityMw)], ['SOLAR', N(p.solarCapacityMw)], ['BESS', N(p.bessCapacityMw)]].filter(([, v]) => v > 0);
+    if (capSplit.length) {
+      const base = capSplit.reduce((s, [, v]) => s + v, 0);
+      const ht = p.plantType.label;
+      for (const [s, v] of capSplit) {
+        push(region, ht, {
+          id: `${p.id}|${s}`, name: p.name, plantType: ht, region, component: s,
+          total: N(p.totalCapacityMw) * (v / base), applied: 0, ftc: 0, toc: 0, cod: 0, exp: 0,
+        });
+      }
     }
   }
   return Object.values(groups).sort((a, b) =>
