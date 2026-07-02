@@ -259,7 +259,9 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
           : <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />}
       </td>
       <N v={row.totalCapacityMw}  cls="border-r border-gray-100" />
-      <N v={row.contd4CapacityMw} cls="border-r border-gray-100 text-slate-400" />
+      {/* CONTD-4 is issued at PLANT level — a hybrid-component sub-row has no
+          real per-source figure, so show “—” instead of a prorated number. */}
+      <N v={isHybridComp ? null : row.contd4CapacityMw} cls="border-r border-gray-100 text-slate-400" />
       <N v={row.appliedMw}        cls="border-r border-slate-200" />
       <N v={row.ftcApprovedMw}    cls="border-r border-blue-100 bg-blue-50/30 text-blue-800" />
       <N v={row.ftcPendingMw}     cls="border-r border-slate-200 bg-blue-50/10 text-amber-700" />
