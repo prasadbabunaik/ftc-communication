@@ -1187,13 +1187,16 @@ const COLUMNS = {
     { key: 'pendLen',  label: 'Pend km',     align: 'right', flex: 'w-24', isNum: true },
     { key: 'pending',  label: 'Pend FTC',    align: 'left',  flex: 'w-16' },
   ],
+  // `w` (fixed column width) is set on every activity column so the modal
+  // renders with `table-fixed` — otherwise each group's own <table> auto-sizes
+  // to its content and the columns don't line up vertically across groups.
   activity: [
-    { key: 'name',         label: 'Project',     align: 'left',  flex: 'min-w-[200px]' },
-    { key: 'poolingStation', label: 'Pooling Stn', align: 'left', flex: 'min-w-[100px]' },
-    { key: 'plantType',    label: 'Plant Type',  align: 'left',  flex: 'min-w-[130px]' },
-    { key: 'ftc',          label: 'FTC + Dates', align: 'right', flex: 'min-w-[150px]', isNum: true, isEventStack: 'ftc' },
-    { key: 'toc',          label: 'TOC + Dates', align: 'right', flex: 'min-w-[150px]', isNum: true, isEventStack: 'toc' },
-    { key: 'cod',          label: 'COD + Dates', align: 'right', flex: 'min-w-[150px]', isNum: true, isEventStack: 'cod' },
+    { key: 'name',         label: 'Project',     align: 'left',  flex: 'min-w-[200px]', w: '24%' },
+    { key: 'poolingStation', label: 'Pooling Stn', align: 'left', flex: 'min-w-[100px]', w: '13%' },
+    { key: 'plantType',    label: 'Plant Type',  align: 'left',  flex: 'min-w-[130px]', w: '15%' },
+    { key: 'ftc',          label: 'FTC + Dates', align: 'right', flex: 'min-w-[150px]', w: '16%', isNum: true, isEventStack: 'ftc' },
+    { key: 'toc',          label: 'TOC + Dates', align: 'right', flex: 'min-w-[150px]', w: '16%', isNum: true, isEventStack: 'toc' },
+    { key: 'cod',          label: 'COD + Dates', align: 'right', flex: 'min-w-[150px]', w: '16%', isNum: true, isEventStack: 'cod' },
   ],
 };
 
@@ -1642,7 +1645,15 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                 {isOpen && (
                   <div className="bg-white">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-[11px]">
+                      <table className={`w-full text-[11px] ${cols.every((c) => c.w) ? 'table-fixed' : ''}`}>
+                        {/* Fixed column widths (when defined) so every group's
+                            table lines up vertically instead of auto-sizing to
+                            its own content. */}
+                        {cols.every((c) => c.w) && (
+                          <colgroup>
+                            {cols.map((c) => <col key={c.key} style={{ width: c.w }} />)}
+                          </colgroup>
+                        )}
                         <thead>
                           <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
                             {cols.map(c => (

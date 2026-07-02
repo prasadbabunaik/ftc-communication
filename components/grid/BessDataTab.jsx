@@ -12,6 +12,11 @@
 // via isIntrastate; records COD only). Each section gets a totals row, plus
 // a grand Total BESS footer.
 
+// Pure helpers live in a non-'use client' module so the server print page can
+// call projectCodDates too; re-export them here for this file's client consumers.
+import { projectCodDates, monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
+export { projectCodDates, monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
+
 const REGION_BADGE = {
   NR: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   WR: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -43,39 +48,10 @@ const inMonth = (dateStr, ym) => !!(dateStr && ym && String(dateStr).slice(0, 7)
 // same sources buildRow uses (hybrid BESS component date, else BESS-phase COD
 // events). Legacy rows with only cached totals have no date → []. Used by the
 // BESS page's COD-date-range filter.
-// Normalise a Date object (server/print context) or an ISO string (serialised
-// client props) to a comparable YYYY-MM-DD string. Returns null if unparseable.
-function toYmd(v) {
-  if (!v) return null;
-  const d = v instanceof Date ? v : new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
-}
-
-export function projectCodDates(p) {
-  const isHybrid = !!p.plantType?.isHybrid;
-  const bessComp = isHybrid
-    ? (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS')
-    : null;
-  const codPhases = isHybrid ? (p.phases ?? []).filter((ph) => ph.sourceType === 'BESS') : (p.phases ?? []);
-  const dates = [];
-  if (isHybrid && bessComp) {
-    const ymd = toYmd(bessComp.codDate);
-    if (ymd && Number(bessComp.codMw ?? 0) > 0) dates.push(ymd);
-  } else {
-    for (const ph of codPhases) {
-      for (const e of ph.codEvents ?? []) {
-        const ymd = toYmd(e.eventDate);
-        if (ymd && Number(e.capacityMw ?? 0) > 0) dates.push(ymd);
-      }
-    }
-  }
-  return dates;
-}
-
 // One display row per project. For hybrids the BESS figures come from the
 // project's BESS component (hybridComponentsJson); for plain BESS plants from
 // the commissioning phase / COD events.
-export function buildRow(p, referenceMonth) {
+export function buildRow(p, referenceMonth, range = null) {
   const isHybrid = !!p.plantType?.isHybrid;
   const bessComp = isHybrid
     ? (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS')
@@ -88,12 +64,16 @@ export function buildRow(p, referenceMonth) {
   let codDeclared = 0;
   let codInRefMonth = 0;
   let codDateLines = [];
+  // Normalised dated COD contributions (MW on a specific date) — drives both
+  // the reference-month cell and the COD-date-range breakdown.
+  let codDated = [];
 
   if (isHybrid && bessComp) {
     codDeclared = Number(bessComp.codMw ?? 0);
     if (inMonth(bessComp.codDate, referenceMonth)) codInRefMonth = codDeclared;
     if (bessComp.codDate && codDeclared > 0) {
       codDateLines = [`${fmt(codDeclared)} MW on ${fmtDate(bessComp.codDate)}`];
+      codDated = [{ mw: codDeclared, date: bessComp.codDate }];
     }
   } else {
     // No segregation JSON (e.g. a hybrid added via the UI) — derive the BESS
@@ -104,9 +84,27 @@ export function buildRow(p, referenceMonth) {
       codDeclared   = sorted.reduce((s, e) => s + Number(e.capacityMw ?? 0), 0);
       codInRefMonth = sorted.reduce((s, e) => s + (inMonth(e.eventDate, referenceMonth) ? Number(e.capacityMw ?? 0) : 0), 0);
       codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
+      codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate }));
     } else {
       // Legacy / intra-state rows: cached phase totals, no dated events.
       codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
+    }
+  }
+
+  // COD declared WITHIN the active date-range filter, split by calendar month
+  // (so a range spanning e.g. Jun→Jul reports each month separately).
+  let codRangeMonths = null;
+  let codInRange = 0;
+  if (range && (range.from || range.to)) {
+    codRangeMonths = {};
+    for (const e of codDated) {
+      if (!e.date) continue;
+      const d = String(e.date).slice(0, 10);
+      if (range.from && d < range.from) continue;
+      if (range.to && d > range.to) continue;
+      const ym = d.slice(0, 7);
+      codRangeMonths[ym] = (codRangeMonths[ym] ?? 0) + e.mw;
+      codInRange += e.mw;
     }
   }
 
@@ -121,25 +119,60 @@ export function buildRow(p, referenceMonth) {
     codDeclared,
     energyMwh: p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null,
     codInRefMonth,
+    codRangeMonths,
+    codInRange,
     codDateLines,
   };
 }
 
 export function sumRows(rows) {
+  const codRangeMonths = {};
+  let anyRange = false;
+  for (const r of rows) {
+    if (r.codRangeMonths) {
+      anyRange = true;
+      for (const [ym, mw] of Object.entries(r.codRangeMonths)) codRangeMonths[ym] = (codRangeMonths[ym] ?? 0) + mw;
+    }
+  }
   return rows.reduce(
     (acc, r) => ({
       codDeclared: acc.codDeclared + r.codDeclared,
       energyMwh: acc.energyMwh + (r.energyMwh ?? 0),
       codInRefMonth: acc.codInRefMonth + r.codInRefMonth,
+      codInRange: acc.codInRange + (r.codInRange ?? 0),
+      codRangeMonths: acc.codRangeMonths,
     }),
-    { codDeclared: 0, energyMwh: 0, codInRefMonth: 0 },
+    { codDeclared: 0, energyMwh: 0, codInRefMonth: 0, codInRange: 0, codRangeMonths: anyRange ? codRangeMonths : null },
   );
 }
+
 
 // When `editable`, the whole row is a click target that opens the BESS edit
 // modal (same interaction as the FTC tracker's clickable rows). The modal —
 // not the row — owns which fields can be changed (State, Energy Commissioned).
-function DataRow({ row, sr, intrastate, editable, onEdit }) {
+// The "COD Declared in <month>" cell: the reference-month total by default, or
+// — when a COD date-range filter is active — the in-range COD, broken down per
+// calendar month when the range spans more than one (rangeMonths.length > 1).
+function CodMonthCell({ row, rangeMonths }) {
+  if (!rangeMonths) return <>{fmt(row.codInRefMonth)}</>;
+  if (rangeMonths.length <= 1) {
+    const ym = rangeMonths[0];
+    return <>{fmt(row.codRangeMonths?.[ym] ?? 0)}</>;
+  }
+  const present = rangeMonths.filter((ym) => (row.codRangeMonths?.[ym] ?? 0) > 0);
+  if (!present.length) return <span className="text-slate-300">0</span>;
+  return (
+    <div className="flex flex-col items-center gap-0.5 leading-tight">
+      {present.map((ym) => (
+        <span key={ym} className="whitespace-nowrap text-[10px]">
+          <span className="text-slate-400">{bMonthLabel(ym)}:</span> {fmt(row.codRangeMonths[ym])}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function DataRow({ row, sr, intrastate, editable, onEdit, rangeMonths = null }) {
   const clickable = editable && !!onEdit;
   return (
     <tr
@@ -160,7 +193,7 @@ function DataRow({ row, sr, intrastate, editable, onEdit }) {
       <td className="px-3 py-2 text-center text-slate-600">{row.stateName || '—'}</td>
       <td className="px-3 py-2 text-center tabular-nums font-semibold">{fmt(row.codDeclared)}</td>
       <td className="px-3 py-2 text-center tabular-nums">{row.energyMwh != null ? fmt(row.energyMwh) : '—'}</td>
-      <td className="px-3 py-2 text-center tabular-nums text-violet-700 font-semibold">{fmt(row.codInRefMonth)}</td>
+      <td className="px-3 py-2 text-center tabular-nums text-violet-700 font-semibold"><CodMonthCell row={row} rangeMonths={rangeMonths} /></td>
       <td className="px-3 py-2 text-center text-[10px] text-slate-600 leading-relaxed whitespace-nowrap">
         {row.codDateLines.length
           ? row.codDateLines.map((l, i) => <div key={i}>{l}</div>)
@@ -170,13 +203,15 @@ function DataRow({ row, sr, intrastate, editable, onEdit }) {
   );
 }
 
-function TotalRow({ label, totals, grand = false }) {
+function TotalRow({ label, totals, grand = false, rangeMonths = null }) {
   return (
     <tr className={`border-t ${grand ? 'border-slate-400 bg-slate-200 font-black' : 'border-slate-300 bg-slate-100 font-bold'}`}>
       <td colSpan={7} className="px-3 py-2 text-center text-[10px] uppercase tracking-widest text-slate-600">{label}</td>
       <td className="px-3 py-2 text-center tabular-nums">{fmt(totals.codDeclared)}</td>
       <td className="px-3 py-2 text-center tabular-nums">{totals.energyMwh > 0 ? fmt(totals.energyMwh) : '—'}</td>
-      <td className="px-3 py-2 text-center tabular-nums text-violet-800">{totals.codInRefMonth > 0 ? fmt(totals.codInRefMonth) : '0'}</td>
+      <td className="px-3 py-2 text-center tabular-nums text-violet-800">
+        <CodMonthCell row={{ codInRefMonth: totals.codInRefMonth, codRangeMonths: totals.codRangeMonths }} rangeMonths={rangeMonths} />
+      </td>
       <td className="px-3 py-2" />
     </tr>
   );
@@ -184,8 +219,8 @@ function TotalRow({ label, totals, grand = false }) {
 
 // Shared shaping used by both the table and the Excel / PDF exporters: splits
 // the projects into inter- / intra-state sections with per-section + grand totals.
-export function prepareBessData(bessProjects, referenceMonth) {
-  const rows = (bessProjects ?? []).map((p) => ({ ...buildRow(p, referenceMonth), isIntrastate: !!p.isIntrastate }));
+export function prepareBessData(bessProjects, referenceMonth, range = null) {
+  const rows = (bessProjects ?? []).map((p) => ({ ...buildRow(p, referenceMonth, range), isIntrastate: !!p.isIntrastate }));
   const interstate = rows.filter((r) => !r.isIntrastate);
   const intrastate = rows.filter((r) => r.isIntrastate);
   return {
@@ -355,9 +390,25 @@ export function BessDataTab({
   // modal (State / Energy Commissioned — the non-pipeline columns).
   editable = false,
   onEditRow,
+  // Active COD-declared date-range filter (YYYY-MM-DD | ''). When set, the
+  // "COD Declared in <month>" column follows the filter instead of the global
+  // reference month, and breaks the value out per calendar month for a
+  // multi-month range.
+  fromDate = '',
+  toDate = '',
 }) {
+  const range = (fromDate || toDate) ? { from: fromDate, to: toDate } : null;
+  const rangeMonths = range ? monthsInRange(fromDate, toDate) : null;
   const { rows, interstate, intrastate, interTotals, intraTotals, grandTotals } =
-    prepareBessData(bessProjects, referenceMonth);
+    prepareBessData(bessProjects, referenceMonth, range);
+
+  // Column header: the filtered month when a single-month range is active, a
+  // generic "by Month" when it spans several, else the global reference month.
+  const codMonthHeader = !rangeMonths
+    ? `COD Declared in ${refMonthName} (BESS)`
+    : rangeMonths.length <= 1
+      ? `COD Declared in ${bMonthLabel(rangeMonths[0])} (BESS)`
+      : 'COD Declared by Month (BESS)';
 
   if (!rows.length) {
     return (
@@ -390,20 +441,20 @@ export function BessDataTab({
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">State (situated)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD declared Capacity (MW)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">Energy Commissioned (MWh)</th>
-              <th className="px-3 py-2 text-center font-bold whitespace-nowrap bg-violet-50 text-violet-700">COD Declared in {refMonthName} (BESS)</th>
+              <th className="px-3 py-2 text-center font-bold whitespace-nowrap bg-violet-50 text-violet-700">{codMonthHeader}</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD Date Declared</th>
             </tr>
           </thead>
           <tbody>
             {interstate.map((row, i) => (
-              <DataRow key={row.id} row={row} sr={i + 1} intrastate={false} editable={editable} onEdit={onEditRow} />
+              <DataRow key={row.id} row={row} sr={i + 1} intrastate={false} editable={editable} onEdit={onEditRow} rangeMonths={rangeMonths} />
             ))}
-            <TotalRow label="Total — Inter-state BESS" totals={interTotals} />
+            <TotalRow label="Total — Inter-state BESS" totals={interTotals} rangeMonths={rangeMonths} />
             {intrastate.map((row, i) => (
-              <DataRow key={row.id} row={row} sr={i + 1} intrastate editable={editable} onEdit={onEditRow} />
+              <DataRow key={row.id} row={row} sr={i + 1} intrastate editable={editable} onEdit={onEditRow} rangeMonths={rangeMonths} />
             ))}
-            {intrastate.length > 0 && <TotalRow label="Total — Intra-state BESS" totals={intraTotals} />}
-            <TotalRow label="Total BESS" totals={grandTotals} grand />
+            {intrastate.length > 0 && <TotalRow label="Total — Intra-state BESS" totals={intraTotals} rangeMonths={rangeMonths} />}
+            <TotalRow label="Total BESS" totals={grandTotals} grand rangeMonths={rangeMonths} />
           </tbody>
         </table>
       </div>

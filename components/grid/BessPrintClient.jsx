@@ -7,7 +7,7 @@
 // prepareBessData so the table matches the on-screen BESS table exactly.
 
 import { useState } from 'react';
-import { prepareBessData, fmt, computeBessCommissioningSummary } from '@/components/grid/BessDataTab';
+import { prepareBessData, fmt, computeBessCommissioningSummary, monthsInRange, bMonthLabel } from '@/components/grid/BessDataTab';
 
 function fmtRefMonth(ym) {
   if (!ym) return null;
@@ -44,7 +44,7 @@ const PRINT_STYLES = `
 // total rows span across all visible ones); `group: 'value'` columns carry the
 // numeric figures and a per-column total renderer. `always` columns can't be
 // switched off. `short` is the label shown in the column picker.
-function buildColumns(refColLabel) {
+function buildColumns(refColLabel, useRange = false) {
   return [
     { key: 'sr',      label: 'Sr.',                        group: 'label', always: true, width: 26,  align: 'center',
       render: (row, sr) => sr, cellStyle: { color: '#64748b' } },
@@ -67,8 +67,8 @@ function buildColumns(refColLabel) {
       render: (row) => (row.energyMwh != null ? fmt(row.energyMwh) : '—'), cellStyle: { textAlign: 'right' },
       total: (t) => (t.energyMwh > 0 ? fmt(t.energyMwh) : '—') },
     { key: 'codRef',  label: refColLabel,                  group: 'value', width: 78, short: 'COD in ref. month',
-      render: (row) => fmt(row.codInRefMonth), cellStyle: { textAlign: 'right', color: '#6d28d9', fontWeight: 600 },
-      total: (t) => (t.codInRefMonth > 0 ? fmt(t.codInRefMonth) : '0') },
+      render: (row) => fmt(useRange ? row.codInRange : row.codInRefMonth), cellStyle: { textAlign: 'right', color: '#6d28d9', fontWeight: 600 },
+      total: (t) => ((useRange ? t.codInRange : t.codInRefMonth) > 0 ? fmt(useRange ? t.codInRange : t.codInRefMonth) : '0') },
     { key: 'codDates', label: 'COD Date Declared',         group: 'value', width: 130, align: 'left', short: 'COD Date Declared',
       render: (row) => (row.codDateLines.length ? row.codDateLines.map((l, i) => <div key={i}>{l}</div>) : ''),
       cellStyle: { textAlign: 'left', fontSize: '7pt' }, total: () => '' },
@@ -160,12 +160,21 @@ function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll, showSu
   );
 }
 
-export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode = null, scopeRegionName = null, dateLabel }) {
-  const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepareBessData(bessProjects, referenceMonth);
+export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode = null, scopeRegionName = null, dateLabel, codFrom = '', codTo = '' }) {
+  // COD date-range filter (passed from the BESS page via ?codFrom/?codTo). When
+  // present, the "COD in month" column follows the filter rather than the
+  // reference month — matching the on-screen table.
+  const range = (codFrom || codTo) ? { from: codFrom, to: codTo } : null;
+  const rangeMonths = range ? monthsInRange(codFrom, codTo) : null;
+  const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepareBessData(bessProjects, referenceMonth, range);
   const refMonthName = fmtRefMonth(referenceMonth);
-  const refColLabel = refMonthName ? `COD Declared in ${refMonthName} (BESS)` : 'COD Declared in ref. month (BESS)';
+  const refColLabel = !rangeMonths
+    ? (refMonthName ? `COD Declared in ${refMonthName} (BESS)` : 'COD Declared in ref. month (BESS)')
+    : rangeMonths.length <= 1
+      ? `COD Declared in ${bMonthLabel(rangeMonths[0])} (BESS)`
+      : 'COD Declared in Range (BESS)';
 
-  const allColumns = buildColumns(refColLabel);
+  const allColumns = buildColumns(refColLabel, !!range);
   const toggleable = allColumns.filter((c) => !c.always);
 
   const [enabled, setEnabled] = useState(() => new Set(allColumns.map((c) => c.key)));

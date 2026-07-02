@@ -10,7 +10,7 @@ import { BatteryCharging, Sheet, Printer, CalendarRange } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { useSettings } from '@/providers/settings-provider';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { BessDataTab, prepareBessData, projectCodDates, fmt, fmtDate } from '@/components/grid/BessDataTab';
+import { BessDataTab, prepareBessData, projectCodDates, monthsInRange, bMonthLabel, fmt, fmtDate } from '@/components/grid/BessDataTab';
 
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const COD_PRESETS = [{ days: 7, label: 'Last 7 days' }, { days: 30, label: 'Last 30 days' }];
@@ -26,7 +26,7 @@ function fmtRefMonthShort(ym) {
 
 // Display column headers, in order. `{ref}` placeholder is filled with the
 // reference-month label so the export header matches the table header.
-function headerLabels(refMonthName) {
+function headerLabels(codColLabel) {
   return [
     'Sr. No',
     'Generating Station',
@@ -37,7 +37,7 @@ function headerLabels(refMonthName) {
     'State (situated)',
     'COD declared Capacity (MW)',
     'Energy Commissioned (MWh)',
-    `COD Declared in ${refMonthName} (BESS)`,
+    codColLabel,
     'COD Date Declared',
   ];
 }
@@ -50,7 +50,8 @@ function round2(v) {
 }
 
 // One display row → array of cell values (Sr. No prepended by the caller).
-function rowCells(row, sr) {
+// `useRange` swaps the "COD in month" column for the in-filter-range COD.
+function rowCells(row, sr, useRange = false) {
   return [
     sr,
     row.name,
@@ -61,17 +62,18 @@ function rowCells(row, sr) {
     row.stateName || '',
     round2(row.codDeclared),
     row.energyMwh != null ? round2(row.energyMwh) : '',
-    round2(row.codInRefMonth),
+    round2(useRange ? row.codInRange : row.codInRefMonth),
     row.codDateLines.join('\n'),
   ];
 }
 
-function totalCells(label, totals) {
+function totalCells(label, totals, useRange = false) {
+  const codMonth = useRange ? totals.codInRange : totals.codInRefMonth;
   return [
     label, '', '', '', '', '', '',
     round2(totals.codDeclared),
     totals.energyMwh > 0 ? round2(totals.energyMwh) : '',
-    totals.codInRefMonth > 0 ? round2(totals.codInRefMonth) : 0,
+    codMonth > 0 ? round2(codMonth) : 0,
     '',
   ];
 }
@@ -81,9 +83,9 @@ const NAVY = '1E3A5F';
 const X_BORDER  = { style: 'thin', color: { rgb: 'CBD5E1' } };
 const X_BORDERS = { top: X_BORDER, bottom: X_BORDER, left: X_BORDER, right: X_BORDER };
 
-function downloadBessExcel(prepared, refMonthName, headerInfo = {}) {
+function downloadBessExcel(prepared, codColLabel, useRange, headerInfo = {}) {
   const { interstate, intrastate, interTotals, intraTotals, grandTotals } = prepared;
-  const headers = headerLabels(refMonthName);
+  const headers = headerLabels(codColLabel);
   const colCount = headers.length;
 
   const issuerLabel = headerInfo.issuerLabel ?? 'National Load Despatch Centre';
@@ -113,15 +115,15 @@ function downloadBessExcel(prepared, refMonthName, headerInfo = {}) {
   // same span the on-screen table uses, so the label isn't crushed into the
   // narrow Sr. No column.
   const pushTotal = (label, totals, kind) => {
-    aoa.push(totalCells(label, totals));
+    aoa.push(totalCells(label, totals, useRange));
     rowMeta.push({ kind });
     merges.push({ s: { r: aoa.length - 1, c: 0 }, e: { r: aoa.length - 1, c: 6 } });
   };
 
-  interstate.forEach((row, i) => { aoa.push(rowCells(row, i + 1)); rowMeta.push({ kind: 'data' }); });
+  interstate.forEach((row, i) => { aoa.push(rowCells(row, i + 1, useRange)); rowMeta.push({ kind: 'data' }); });
   pushTotal('Total — Inter-state BESS', interTotals, 'sub');
 
-  intrastate.forEach((row, i) => { aoa.push(rowCells(row, i + 1)); rowMeta.push({ kind: 'data' }); });
+  intrastate.forEach((row, i) => { aoa.push(rowCells(row, i + 1, useRange)); rowMeta.push({ kind: 'data' }); });
   if (intrastate.length) pushTotal('Total — Intra-state BESS', intraTotals, 'sub');
 
   pushTotal('Total BESS', grandTotals, 'grand');
@@ -187,7 +189,17 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
   };
   const isActivePreset = (days) => { const p = presetRange(days); return fromDate === p.from && toDate === p.to; };
 
-  const prepared = prepareBessData(filteredProjects, settings.referenceMonth);
+  // The "COD in month" column follows the filter: single filtered month → that
+  // month; multi-month range → total in range; no filter → the reference month.
+  const range = dateActive ? { from: fromDate, to: toDate } : null;
+  const rangeMonthsArr = range ? monthsInRange(fromDate, toDate) : null;
+  const codColLabel = !rangeMonthsArr
+    ? `COD Declared in ${refMonthName} (BESS)`
+    : rangeMonthsArr.length <= 1
+      ? `COD Declared in ${bMonthLabel(rangeMonthsArr[0])} (BESS)`
+      : 'COD Declared in Range (BESS)';
+
+  const prepared = prepareBessData(filteredProjects, settings.referenceMonth, range);
   const hasRows = prepared.rows.length > 0;
 
   // Branded export header info — mirrors the Dashboard print view's scope
@@ -232,7 +244,7 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
             </a>
             <button
               type="button"
-              onClick={() => downloadBessExcel(prepared, refMonthName, brandHeader)}
+              onClick={() => downloadBessExcel(prepared, codColLabel, dateActive, brandHeader)}
               className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1.5 transition-colors"
               title="Download BESS data as Excel"
               aria-label="Download BESS data as Excel"
@@ -290,6 +302,8 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
             stickyTopClass="top-0"
             editable={canEdit}
             onEditRow={setEditRow}
+            fromDate={fromDate}
+            toDate={toDate}
           />
         )}
       </div>

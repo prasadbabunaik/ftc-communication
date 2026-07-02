@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { requireServerUser, buildRegionScope, activePeriodFilter, getUserRegion } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { BessPrintClient } from '@/components/grid/BessPrintClient';
-import { projectCodDates } from '@/components/grid/BessDataTab';
+import { projectCodDates } from '@/lib/bess-helpers';
 
 export const metadata = { title: 'BESS Data — Print — FTC Portal' };
 
@@ -59,6 +59,8 @@ export default async function BessPrintPage({ searchParams }) {
       scopeRegionCode={userRegion?.code ?? null}
       scopeRegionName={userRegion?.name ?? null}
       dateLabel={dateLabel}
+      codFrom={codFrom ?? ''}
+      codTo={codTo ?? ''}
     />
   );
 }
