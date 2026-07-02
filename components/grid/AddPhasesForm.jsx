@@ -333,6 +333,16 @@ export function AddPhasesForm({
     mode: 'onChange',
   });
 
+  // In edit mode, validate immediately on open — mount only computes isValid
+  // without populating per-field errors, so without this a legacy-hydrated
+  // event with a missing date would silently disable Save with no red
+  // highlight under the offending field. (Create mode starts intentionally
+  // blank; painting it red on open would be noise.)
+  useEffect(() => {
+    if (isEditMode) form.trigger();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Single-phase-per-project: we only need `fields` for iteration. There's
   // no append/remove from the outer phase array (auto-populated per source
   // for hybrids, otherwise one row). Event-level append/remove still works
@@ -674,20 +684,6 @@ export function AddPhasesForm({
             partial commissioning is captured as FTC / TOC / COD events
             within that phase, not as new phases. */}
 
-        {/* When Save is disabled by validation, say WHY — the offending event
-            fields are highlighted in red above. */}
-        {!isPending && (pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid) && (
-          <p className="text-[11px] text-red-600 text-right pt-1">
-            ⚠ Save is disabled —{' '}
-            {!form.formState.isValid
-              ? 'fix the fields underlined in red above (every event needs a MW value and a date).'
-              : hasPipelineErrors
-              ? 'a source exceeds its capacity limit (see the red pipeline card above).'
-              : hasExpectedErrors
-              ? 'fix the Expected (MW) errors above.'
-              : 'the phases exceed the remaining plant capacity.'}
-          </p>
-        )}
         <div className="flex gap-3 justify-end pt-2">
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
