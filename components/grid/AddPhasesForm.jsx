@@ -674,6 +674,20 @@ export function AddPhasesForm({
             partial commissioning is captured as FTC / TOC / COD events
             within that phase, not as new phases. */}
 
+        {/* When Save is disabled by validation, say WHY — the offending event
+            fields are highlighted in red above. */}
+        {!isPending && (pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid) && (
+          <p className="text-[11px] text-red-600 text-right pt-1">
+            ⚠ Save is disabled —{' '}
+            {!form.formState.isValid
+              ? 'fix the fields underlined in red above (every event needs a MW value and a date).'
+              : hasPipelineErrors
+              ? 'a source exceeds its capacity limit (see the red pipeline card above).'
+              : hasExpectedErrors
+              ? 'fix the Expected (MW) errors above.'
+              : 'the phases exceed the remaining plant capacity.'}
+          </p>
+        )}
         <div className="flex gap-3 justify-end pt-2">
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
@@ -769,18 +783,25 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
           <div className="grid grid-cols-[1fr_140px_1fr_28px] gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5">
             <span>MW</span><span>Date</span><span>Remarks</span><span />
           </div>
-          {fields.map((field, ei) => (
+          {fields.map((field, ei) => {
+            // Per-row validation errors ("phases.<i>.<milestone>Events.<ei>")
+            // — highlight the offending field so it's obvious why Save is
+            // disabled (e.g. a legacy-hydrated event still missing its date).
+            const [, pIdx, evKey] = prefix.split('.');
+            const rowErr = form.formState.errors?.phases?.[pIdx]?.[evKey]?.[ei];
+            return (
             <div key={field.id} className="grid grid-cols-[1fr_140px_1fr_28px] gap-1 items-center px-2 py-1.5 border-b last:border-b-0">
               <Input
                 type="number"
                 step="0.01"
                 placeholder="e.g. 66.66"
                 {...form.register(`${prefix}.${ei}.mw`)}
-                className="h-8 text-xs font-mono"
+                className={`h-8 text-xs font-mono ${rowErr?.mw ? 'border-red-400 ring-1 ring-red-300' : ''}`}
               />
               <DatePicker
                 value={form.watch(`${prefix}.${ei}.date`) ?? ''}
                 onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
+                className={rowErr?.date ? 'border-red-400 ring-1 ring-red-300' : undefined}
               />
               <Input
                 type="text"
@@ -795,8 +816,14 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
               >
                 <Trash2 className="size-3.5" />
               </button>
+              {rowErr && (
+                <p className="col-span-4 text-[11px] text-red-600 pt-0.5">
+                  ⚠ {[rowErr.mw?.message, rowErr.date?.message && `${rowErr.date.message} — pick the actual ${milestone} date for this ${form.watch(`${prefix}.${ei}.mw`) || ''} MW entry`].filter(Boolean).join(' · ')}
+                </p>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
