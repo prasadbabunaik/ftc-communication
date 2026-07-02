@@ -366,8 +366,17 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={15} className="px-4 py-12 text-center text-muted-foreground text-sm">
-                  No cleared projects found.
+                <td colSpan={15} className="px-4 py-12 text-center text-sm">
+                  <p className="text-muted-foreground font-medium">
+                    {search || regionFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All'
+                      ? 'No FTC-pipeline projects match your search / filters.'
+                      : 'No projects in the FTC pipeline yet.'}
+                  </p>
+                  <p className="text-xs text-muted-foreground/80 mt-1.5 max-w-xl mx-auto">
+                    This tracker lists only projects that have entered the FTC process. A newly created
+                    project appears here once its first FTC / TOC / COD data is recorded — use{' '}
+                    <span className="font-semibold text-foreground/70">Add Source / Component</span> (top right) to bring it in.
+                  </p>
                 </td>
               </tr>
             ) : (
