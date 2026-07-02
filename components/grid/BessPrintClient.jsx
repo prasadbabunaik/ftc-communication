@@ -129,7 +129,7 @@ function Toolbar({ dateLabel, panelOpen, onToggleCustomize }) {
   );
 }
 
-function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll, showSummary, onToggleSummary }) {
+function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll, showSummary, onToggleSummary, summaryMonths = [], hiddenMonths, onToggleMonth }) {
   return (
     <div className="no-print fixed top-[48px] left-0 right-0 z-40 bg-white border-b border-slate-200 shadow-md px-5 py-3 max-h-[60vh] overflow-y-auto">
       <div className="max-w-5xl mx-auto">
@@ -156,12 +156,33 @@ function ColumnPanel({ toggleable, enabled, onToggle, allOn, onToggleAll, showSu
             <span className="text-[12px] text-slate-700">BESS Commissioning Summary</span>
           </label>
         </div>
+
+        {/* Month filter for the Commissioning Summary — choose which month
+            groups appear in the printed summary. */}
+        {showSummary && summaryMonths.length > 0 && (
+          <div className="mt-3 pt-2 border-t border-slate-200">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">Commissioning Summary — months</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-x-6 gap-y-1">
+              {summaryMonths.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 py-0.5 cursor-pointer select-none hover:text-slate-900">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenMonths?.has(m.id)}
+                    onChange={() => onToggleMonth?.(m.id)}
+                    className="size-3.5 accent-blue-600"
+                  />
+                  <span className="text-[12px] text-slate-700">{m.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode = null, scopeRegionName = null, dateLabel, codFrom = '', codTo = '' }) {
+export function BessPrintClient({ bessProjects, summaryProjects, referenceMonth, scopeRegionCode = null, scopeRegionName = null, dateLabel, codFrom = '', codTo = '' }) {
   // COD date-range filter (passed from the BESS page via ?codFrom/?codTo). When
   // present, the "COD in month" column follows the filter rather than the
   // reference month — matching the on-screen table.
@@ -182,7 +203,19 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
   const [panelOpen, setPanelOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
 
-  const summary = computeBessCommissioningSummary(bessProjects, undefined, range);
+  // Summary is computed from the FULL BESS set (not the date-filtered table set)
+  // and filtered only by the month multi-select in the Customize panel.
+  const summary = computeBessCommissioningSummary(summaryProjects ?? bessProjects, undefined);
+  const [hiddenMonths, setHiddenMonths] = useState(() => new Set());
+  const toggleMonth = (id) => setHiddenMonths((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const shownSummaryRows = summary.rows.filter((r) => r.kind === 'grand' || !hiddenMonths.has(r.month));
+  const shownSummaryGrand = summary.rows
+    .filter((r) => r.kind === 'subtotal' && !hiddenMonths.has(r.month))
+    .reduce((s, r) => s + r.value, 0);
 
   const toggle = (key) => {
     const next = new Set(enabled);
@@ -231,6 +264,9 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
           onToggleAll={toggleAll}
           showSummary={showSummary}
           onToggleSummary={() => setShowSummary((s) => !s)}
+          summaryMonths={summary.months}
+          hiddenMonths={hiddenMonths}
+          onToggleMonth={toggleMonth}
         />
       )}
 
@@ -273,11 +309,11 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
                   </tr>
                 </thead>
                 <tbody>
-                  {summary.rows.map((r, i) => (
+                  {shownSummaryRows.map((r, i) => (
                     <tr key={i} className={r.kind === 'grand' ? 'total-row' : r.kind === 'subtotal' ? 'subtotal-row' : ''}>
                       {summary.showKeys && <td style={{ fontFamily: 'monospace', fontSize: '7pt' }}>{r.key}</td>}
                       <td style={{ textAlign: 'left' }}>{r.label}</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(r.value) || '0'}</td>
+                      <td style={{ textAlign: 'right' }}>{fmt(r.kind === 'grand' ? shownSummaryGrand : r.value) || '0'}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -33,7 +33,7 @@ export default async function BessPrintPage({ searchParams }) {
 
   // Same membership test as the BESS page — hybrids count via the segregation
   // JSON (seeded) OR a BESS phase (hybrids added through the UI).
-  let bessProjects = allProjects.filter((p) =>
+  const allBess = allProjects.filter((p) =>
     p.isIntrastate ||
     p.plantType?.code === 'BESS' ||
     (p.plantType?.isHybrid && (
@@ -42,10 +42,12 @@ export default async function BessPrintPage({ searchParams }) {
     ))
   );
 
-  // Honour the COD-declared date range passed from the BESS page so the PDF
-  // matches the on-screen filtered view.
+  // Table honours the COD-declared date range passed from the BESS page (so the
+  // PDF table matches the on-screen filtered view); the Commissioning Summary
+  // is always computed from the full set (its own month multi-select filters it).
+  let bessProjects = allBess;
   if (codFrom || codTo) {
-    bessProjects = bessProjects.filter((p) =>
+    bessProjects = allBess.filter((p) =>
       projectCodDates(p).some((d) => (!codFrom || d >= codFrom) && (!codTo || d <= codTo)),
     );
   }
@@ -55,6 +57,7 @@ export default async function BessPrintPage({ searchParams }) {
   return (
     <BessPrintClient
       bessProjects={JSON.parse(JSON.stringify(bessProjects))}
+      summaryProjects={JSON.parse(JSON.stringify(allBess))}
       referenceMonth={referenceMonth}
       scopeRegionCode={userRegion?.code ?? null}
       scopeRegionName={userRegion?.name ?? null}
