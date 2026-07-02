@@ -185,6 +185,28 @@ function validateSourceCap(project, newPhases) {
   }
 }
 
+// ── Duplicate-name guard ─────────────────────────────────────────────────────
+// One generating station = one row. A double-submitted form (or a re-entry of
+// an existing station) used to create silent duplicate projects that then
+// showed twice in pickers and double-counted once data was added. Reject any
+// create/rename that collides (case-insensitive, whitespace-trimmed) with an
+// ACTIVE project in the same region.
+async function duplicateNameError(name, regionId, excludeId = null) {
+  const clean = (name ?? '').trim();
+  if (!clean) return null;
+  const dupe = await prisma.generationProject.findFirst({
+    where: {
+      name: { equals: clean, mode: 'insensitive' },
+      regionId,
+      activeUntil: null,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    select: { name: true },
+  });
+  if (!dupe) return null;
+  return `A project named “${dupe.name}” already exists in this region. Open the existing project instead of creating a duplicate — or, if this really is a different plant, add a distinguishing suffix (e.g. “… Phase-II”).`;
+}
+
 // ── Hybrid source-split guard ────────────────────────────────────────────────
 // The Including-Hybrid dashboard views must be able to attribute every pipeline
 // hybrid to its component sources. A hybrid is splittable when it has a
@@ -255,6 +277,10 @@ export async function createGenerationProject(formData) {
   const requestedStatus = data.contd4?.status ?? 'UNDER_PROCESS';
   const contd4Status = canBackdate(user.role) ? requestedStatus : 'UNDER_PROCESS';
 
+  // Strict duplicate guard — one station, one row (also absorbs double-submits).
+  const dupErr = await duplicateNameError(data.name, data.regionId);
+  if (dupErr) return { error: { fieldErrors: { name: [dupErr] } } };
+
   // Resolve pooling station: prefer the explicit id; otherwise, when a master
   // station auto-filled a pooling-station NAME, find-or-create that
   // PoolingStation in the project's region (the row may not exist yet).
@@ -316,7 +342,7 @@ export async function createGenerationProject(formData) {
     project = await prisma.generationProject.create({
       include: { region: { select: { code: true } }, plantType: { select: { label: true } } },
       data: {
-        name: data.name,
+        name: data.name.trim(),
         regionId: data.regionId,
         plantTypeId,
         poolingStationId,
@@ -405,10 +431,14 @@ export async function updateGenerationProject(projectId, formData) {
     return { error: 'You cannot edit projects outside your assigned region.' };
   }
 
+  // Strict duplicate guard — renaming must not collide with another project.
+  const dupErr = await duplicateNameError(formData.name, project.regionId, projectId);
+  if (dupErr) return { error: dupErr };
+
   await prisma.generationProject.update({
     where: { id: projectId },
     data: {
-      name:             formData.name,
+      name:             formData.name.trim(),
       poolingStationId: formData.poolingStationId || null,
       totalCapacityMw:  parseFloat(formData.totalCapacityMw),
       windCapacityMw:   parseDecimal(formData.windCapacityMw),
