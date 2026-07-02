@@ -185,6 +185,21 @@ function validateSourceCap(project, newPhases) {
   }
 }
 
+// ── Hybrid source-split guard ────────────────────────────────────────────────
+// The Including-Hybrid dashboard views must be able to attribute every pipeline
+// hybrid to its component sources. A hybrid is splittable when it has a
+// component segregation (hybridComponentsJson), OR source-wise commissioning
+// phases, OR per-source capacity columns. Enforced wherever a hybrid could
+// otherwise enter (or remain in) the FTC pipeline unsplittable — so the
+// "unattributable HYBRID residual" problem cannot recur.
+function hybridSplitError(project, phaseCount) {
+  if (!project.plantType?.isHybrid) return null;
+  if ((project.hybridComponentsJson?.components ?? []).length > 0) return null;
+  if (phaseCount > 0) return null;
+  if (Number(project.windCapacityMw ?? 0) > 0 || Number(project.solarCapacityMw ?? 0) > 0 || Number(project.bessCapacityMw ?? 0) > 0) return null;
+  return 'This hybrid project has no source-wise data. Record its component capacities (Wind / Solar / BESS) or add a source-wise phase first, so its capacity can be attributed per source on the dashboard.';
+}
+
 function validateSourcePipeline(existingPhases, newPhases) {
   const evSumPhase = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
 
@@ -279,6 +294,22 @@ export async function createGenerationProject(formData) {
     plantTypeId = pt.id;
   }
   if (!plantTypeId) return { error: 'Plant type is required' };
+
+  // A hybrid created straight into the FTC pipeline (CONTD-4 CLEARED at
+  // creation) must carry its per-source capacity split — same guard as the
+  // clear/edit actions, so an unattributable hybrid can never enter.
+  if (data.createContd4 && contd4Status === 'CLEARED') {
+    const pt = await prisma.plantType.findUnique({ where: { id: plantTypeId } });
+    const capProbe = {
+      plantType: pt,
+      hybridComponentsJson: null,
+      windCapacityMw:  parseDecimal(data.windCapacityMw),
+      solarCapacityMw: parseDecimal(data.solarCapacityMw),
+      bessCapacityMw:  parseDecimal(data.bessCapacityMw),
+    };
+    const splitErr = hybridSplitError(capProbe, 0);
+    if (splitErr) return { error: splitErr };
+  }
 
   let project;
   try {
@@ -637,6 +668,19 @@ export async function upsertContd4(projectId, formData) {
   const phaseCount = await prisma.contd4Phase.count({
     where: { contd4: { projectId } },
   });
+
+  // Editing the status to CLEARED puts the project into the FTC pipeline — a
+  // hybrid must be source-splittable before that happens (same guard as the
+  // dedicated "Mark as Cleared" action).
+  if (existing && data.status === 'CLEARED' && existing.status !== 'CLEARED') {
+    const [plantType, commPhaseCount] = await Promise.all([
+      prisma.plantType.findUnique({ where: { id: project.plantTypeId } }),
+      prisma.commissioningPhase.count({ where: { projectId } }),
+    ]);
+    const splitErr = hybridSplitError({ ...project, plantType }, commPhaseCount);
+    if (splitErr) return { error: splitErr };
+  }
+
   const newRemarks = phaseCount > 0 ? null : (data.remarks?.trim() || null);
   const remarksChanged = (existing?.remarks ?? null) !== newRemarks;
 
@@ -1124,7 +1168,7 @@ export async function clearContd4(projectId, clearanceRemarks) {
 
   const project = await prisma.generationProject.findUnique({
     where: { id: projectId },
-    include: { region: true },
+    include: { region: true, plantType: true, _count: { select: { phases: true } } },
   });
   if (!project) return { error: 'Project not found.' };
 
@@ -1133,6 +1177,11 @@ export async function clearContd4(projectId, clearanceRemarks) {
   if (!isGlobal && !isOwnRgn) {
     return { error: `You can only clear projects in your assigned region (${ROLE_REGION_MAP[user.role] ?? 'N/A'}).` };
   }
+
+  // Clearing CONTD-4 puts the project into the FTC pipeline — a hybrid must be
+  // source-splittable before that happens.
+  const splitErr = hybridSplitError(project, project._count.phases);
+  if (splitErr) return { error: splitErr };
 
   const existing = await prisma.contd4Application.findUnique({ where: { projectId } });
   if (!existing) return { error: 'No CONTD-4 application linked to this project.' };
@@ -1570,7 +1619,7 @@ export async function deleteCommissioningPhase(phaseId) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const phase = await prisma.commissioningPhase.findUniqueOrThrow({
     where: { id: phaseId },
-    include: { project: true },
+    include: { project: { include: { plantType: true, contd4: { select: { status: true } } } } },
   });
 
   const scope = await buildRegionScope(user.role);
@@ -1579,6 +1628,21 @@ export async function deleteCommissioningPhase(phaseId) {
   }
 
   const projectId = phase.projectId;
+
+  // Deleting the LAST phase of a pipeline hybrid would leave it with no
+  // source-wise data (unattributable in the Including-Hybrid views) — block it
+  // unless another split source (segregation / capacity columns) exists.
+  const proj = phase.project;
+  const inPipeline = proj.inFtcPipeline === true || proj.contd4?.status === 'CLEARED';
+  if (inPipeline) {
+    const remaining = await prisma.commissioningPhase.count({
+      where: { projectId, id: { not: phaseId } },
+    });
+    const splitErr = hybridSplitError(proj, remaining);
+    if (splitErr) {
+      return { error: `Cannot delete the last phase of this hybrid: ${splitErr}` };
+    }
+  }
 
   // Log before delete (phaseId will cascade-null via SetNull)
   await prisma.projectNote.create({
