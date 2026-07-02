@@ -39,6 +39,39 @@ export function fmtDate(d) {
 
 const inMonth = (dateStr, ym) => !!(dateStr && ym && String(dateStr).slice(0, 7) === ym);
 
+// The COD-declared dates (YYYY-MM-DD) that back a project's BESS capacity —
+// same sources buildRow uses (hybrid BESS component date, else BESS-phase COD
+// events). Legacy rows with only cached totals have no date → []. Used by the
+// BESS page's COD-date-range filter.
+// Normalise a Date object (server/print context) or an ISO string (serialised
+// client props) to a comparable YYYY-MM-DD string. Returns null if unparseable.
+function toYmd(v) {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+export function projectCodDates(p) {
+  const isHybrid = !!p.plantType?.isHybrid;
+  const bessComp = isHybrid
+    ? (p.hybridComponentsJson?.components ?? []).find((c) => c.sourceType === 'BESS')
+    : null;
+  const codPhases = isHybrid ? (p.phases ?? []).filter((ph) => ph.sourceType === 'BESS') : (p.phases ?? []);
+  const dates = [];
+  if (isHybrid && bessComp) {
+    const ymd = toYmd(bessComp.codDate);
+    if (ymd && Number(bessComp.codMw ?? 0) > 0) dates.push(ymd);
+  } else {
+    for (const ph of codPhases) {
+      for (const e of ph.codEvents ?? []) {
+        const ymd = toYmd(e.eventDate);
+        if (ymd && Number(e.capacityMw ?? 0) > 0) dates.push(ymd);
+      }
+    }
+  }
+  return dates;
+}
+
 // One display row per project. For hybrids the BESS figures come from the
 // project's BESS component (hybridComponentsJson); for plain BESS plants from
 // the commissioning phase / COD events.

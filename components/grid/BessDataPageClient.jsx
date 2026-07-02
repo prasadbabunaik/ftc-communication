@@ -5,11 +5,11 @@
 // Reuses the row-shaping helpers from BessDataTab so the export matches the
 // on-screen view.
 
-import { useState } from 'react';
-import { BatteryCharging, Sheet, Printer } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { BatteryCharging, Sheet, Printer, CalendarRange, X } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { useSettings } from '@/providers/settings-provider';
-import { BessDataTab, prepareBessData, fmt, fmtDate } from '@/components/grid/BessDataTab';
+import { BessDataTab, prepareBessData, projectCodDates, fmt, fmtDate } from '@/components/grid/BessDataTab';
 import { BessEditModal } from '@/components/grid/BessEditModal';
 
 function fmtRefMonthShort(ym) {
@@ -163,7 +163,22 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
   const [editRow, setEditRow] = useState(null);
   const refMonthLabel = fmtRefMonthShort(settings.referenceMonth);
   const refMonthName  = refMonthLabel.startsWith('Exp. ') ? refMonthLabel.slice(5) : 'reference month';
-  const prepared = prepareBessData(bessProjects, settings.referenceMonth);
+
+  // COD-declared date-range filter. When either bound is set, keep only
+  // projects with at least one BESS COD declaration inside [from, to]. Both
+  // bounds are inclusive; an open bound (blank) means "no limit on that side".
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate]     = useState('');
+  const dateActive = !!(fromDate || toDate);
+  const filteredProjects = useMemo(() => {
+    if (!dateActive) return bessProjects ?? [];
+    return (bessProjects ?? []).filter((p) =>
+      projectCodDates(p).some((d) => (!fromDate || d >= fromDate) && (!toDate || d <= toDate)),
+    );
+  }, [bessProjects, fromDate, toDate, dateActive]);
+  const clearDates = () => { setFromDate(''); setToDate(''); };
+
+  const prepared = prepareBessData(filteredProjects, settings.referenceMonth);
   const hasRows = prepared.rows.length > 0;
 
   // Branded export header info — mirrors the Dashboard print view's scope
@@ -192,7 +207,11 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
         {hasRows && (
           <div className="flex items-center gap-2">
             <a
-              href={`/bess-data/print${settings.referenceMonth ? `?ref=${settings.referenceMonth}` : ''}`}
+              href={`/bess-data/print?${new URLSearchParams({
+                ...(settings.referenceMonth ? { ref: settings.referenceMonth } : {}),
+                ...(fromDate ? { codFrom: fromDate } : {}),
+                ...(toDate ? { codTo: toDate } : {}),
+              }).toString()}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-1.5 transition-colors"
@@ -216,15 +235,62 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
         )}
       </div>
 
+      {/* COD-declared date-range filter */}
+      <div className="flex items-center flex-wrap gap-2 text-[12px]">
+        <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+          <CalendarRange className="size-4" /> COD Declared
+        </span>
+        <label className="inline-flex items-center gap-1 text-muted-foreground">
+          From
+          <input
+            type="date"
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+          />
+        </label>
+        <label className="inline-flex items-center gap-1 text-muted-foreground">
+          To
+          <input
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={(e) => setToDate(e.target.value)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+          />
+        </label>
+        {dateActive && (
+          <>
+            <button
+              type="button"
+              onClick={clearDates}
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 h-8 text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <X className="size-3.5" /> Clear
+            </button>
+            <span className="text-muted-foreground">
+              {prepared.rows.length} project{prepared.rows.length === 1 ? '' : 's'} with COD in range
+            </span>
+          </>
+        )}
+      </div>
+
       <div className="flex-1 min-h-0 overflow-auto">
-        <BessDataTab
-          bessProjects={bessProjects}
-          referenceMonth={settings.referenceMonth}
-          refMonthName={refMonthName}
-          stickyTopClass="top-0"
-          editable={canEdit}
-          onEditRow={setEditRow}
-        />
+        {dateActive && !hasRows ? (
+          <div className="py-16 text-center text-sm text-muted-foreground">
+            No BESS projects have a COD declared in the selected date range.
+          </div>
+        ) : (
+          <BessDataTab
+            bessProjects={filteredProjects}
+            referenceMonth={settings.referenceMonth}
+            refMonthName={refMonthName}
+            stickyTopClass="top-0"
+            editable={canEdit}
+            onEditRow={setEditRow}
+          />
+        )}
       </div>
 
       {canEdit && (
