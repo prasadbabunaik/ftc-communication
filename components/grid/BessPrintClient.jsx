@@ -181,7 +181,7 @@ export function BessPrintClient({ bessProjects, referenceMonth, scopeRegionCode 
   const [panelOpen, setPanelOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(true);
 
-  const summary = computeBessCommissioningSummary(bessProjects);
+  const summary = computeBessCommissioningSummary(bessProjects, undefined, range);
 
   const toggle = (key) => {
     const next = new Set(enabled);

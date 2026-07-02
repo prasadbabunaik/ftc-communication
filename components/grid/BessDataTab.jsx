@@ -246,7 +246,7 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 //   A+B ...                              (inter + Intra state)   (subtotal)
 //   C   Total BESS commissioned in <Apr YYYY> on Inter State    …
 //   …                                                            grand total
-export function computeBessCommissioningSummary(bessProjects, asOf) {
+export function computeBessCommissioningSummary(bessProjects, asOf, range = null) {
   const now = asOf ? new Date(asOf) : new Date();
   const Y = now.getUTCFullYear();
   const M = now.getUTCMonth();                 // 0-11
@@ -306,30 +306,48 @@ export function computeBessCommissioningSummary(bessProjects, asOf) {
     }
   }
 
+  // When a COD date-range filter is active, restrict the summary to the month
+  // groups inside it (and drop the pre-FY "upto <Mar>" cumulative baseline —
+  // it isn't one of the filtered months). Otherwise show the full FY view.
+  const rangeIdxSet = (range && (range.from || range.to))
+    ? new Set(monthsInRange(range.from, range.to).map((ym) => { const [y, m] = ym.split('-').map(Number); return y * 12 + (m - 1); }))
+    : null;
+
   // Build display rows with A / B / … keys.
   let li = 0;
   const letter = () => String.fromCharCode(65 + li++);
   const monthLabel = (i) => `${MONTH_NAMES[((i % 12) + 12) % 12]} ${Math.floor(i / 12)}`;
   const singles = [];
   const rows = [];
+  let shownInter = 0, shownIntra = 0;
 
-  const aL = letter(), bL = letter();
-  singles.push(aL, bL);
-  rows.push({ key: aL, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} on ISTS`, value: baseInter, kind: 'data' });
-  rows.push({ key: bL, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} on Intra state`, value: baseIntra, kind: 'data' });
-  rows.push({ key: `${aL}+${bL}`, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} (inter + Intra state)`, value: baseInter + baseIntra, kind: 'subtotal' });
+  if (!rangeIdxSet) {
+    const aL = letter(), bL = letter();
+    singles.push(aL, bL);
+    rows.push({ key: aL, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} on ISTS`, value: baseInter, kind: 'data' });
+    rows.push({ key: bL, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} on Intra state`, value: baseIntra, kind: 'data' });
+    rows.push({ key: `${aL}+${bL}`, label: `Total BESS commissioned upto ${monthLabel(startIdx - 1)} (inter + Intra state)`, value: baseInter + baseIntra, kind: 'subtotal' });
+    shownInter += baseInter; shownIntra += baseIntra;
+  }
 
   for (let i = startIdx; i <= endIdx; i++) {
+    if (rangeIdxSet && !rangeIdxSet.has(i)) continue;
     const iL = letter(), jL = letter();
     singles.push(iL, jL);
     const ml = monthLabel(i);
     rows.push({ key: iL, label: `Total BESS commissioned in ${ml} on Inter State`, value: monthly[i].inter, kind: 'data' });
     rows.push({ key: jL, label: `Total BESS commissioned in ${ml} on Intra State`, value: monthly[i].intra, kind: 'data' });
     rows.push({ key: `${iL}+${jL}`, label: `Total BESS commissioned in ${ml} (inter + Intra state)`, value: monthly[i].inter + monthly[i].intra, kind: 'subtotal' });
+    shownInter += monthly[i].inter; shownIntra += monthly[i].intra;
   }
 
-  const grand = baseInter + baseIntra + Object.values(monthly).reduce((s, m) => s + m.inter + m.intra, 0);
-  rows.push({ key: singles.length <= 16 ? singles.join('+') : 'Σ', label: 'Total BESS — All-India Commissioned', value: grand, kind: 'grand' });
+  const grand = shownInter + shownIntra;
+  rows.push({
+    key: singles.length <= 16 ? singles.join('+') : 'Σ',
+    label: rangeIdxSet ? 'Total BESS Commissioned (filtered months)' : 'Total BESS — All-India Commissioned',
+    value: grand,
+    kind: 'grand',
+  });
 
   return { rows, showKeys: li <= 26, grand };
 }
@@ -337,8 +355,8 @@ export function computeBessCommissioningSummary(bessProjects, asOf) {
 // Renders the commissioning summary as a compact table (screen + standalone
 // page). The print view renders its own print-styled version from the same
 // computeBessCommissioningSummary output.
-export function BessCommissioningSummary({ bessProjects, asOf, dateLabel, className = '' }) {
-  const { rows, showKeys } = computeBessCommissioningSummary(bessProjects, asOf);
+export function BessCommissioningSummary({ bessProjects, asOf, dateLabel, className = '', range = null }) {
+  const { rows, showKeys } = computeBessCommissioningSummary(bessProjects, asOf, range);
   if (!rows.length) return null;
   return (
     <div className={`rounded-xl border shadow-sm overflow-hidden ${className}`}>
@@ -459,7 +477,7 @@ export function BessDataTab({
         </table>
       </div>
     </div>
-      {showSummary && <BessCommissioningSummary bessProjects={bessProjects} />}
+      {showSummary && <BessCommissioningSummary bessProjects={bessProjects} range={range} />}
     </div>
   );
 }
