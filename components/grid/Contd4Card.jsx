@@ -506,9 +506,9 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
           <div className="grid grid-cols-2 gap-4">
             <FormField control={form.control} name="applicationDate" render={({ field }) => (
               <FormItem>
-                <FormLabel>Application Date *</FormLabel>
+                <FormLabel>Application Date</FormLabel>
                 <FormControl>
-                  <DatePicker value={field.value} onChange={field.onChange} placeholder="Pick application date" />
+                  <DatePicker value={field.value} onChange={field.onChange} placeholder="Pick application date (optional)" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -1228,14 +1228,14 @@ function HybridModeToggle({ mode }) {
   };
 
   const OPTIONS = [
-    { value: 'excl', label: 'Excl. Hybrid' },
-    { value: 'incl', label: 'Incl. Hybrid' },
+    { value: 'excl', label: 'Grouped' },
+    { value: 'incl', label: 'Split by Source' },
   ];
 
   return (
     <div
       className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
-      title="Excluding: hybrids shown in their own row. Including: each hybrid's per-component capacity is folded into its source row (e.g. Wind = pure wind + hybrid wind)."
+      title="Grouped: hybrids are shown in their own HYBRID row. Split by Source: each hybrid's capacity is split into its component source rows (e.g. Wind = pure wind + hybrid's wind part)."
     >
       <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Hybrid</span>
       {OPTIONS.map((o) => (
@@ -1542,8 +1542,8 @@ export function SummaryPageClient({
             rows={table2Rows}
             primaryKey="region"
             refMonthLabel={refMonthLabel}
-            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
-            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
+            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Hybrid Split by Source' : ''}`}
+            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Hybrid Split by Source: each hybrid’s capacity is split into its component source rows.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
           />
         )}
@@ -1561,8 +1561,8 @@ export function SummaryPageClient({
             rows={table5Rows}
             primaryKey="source"
             refMonthLabel={refMonthLabel}
-            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
-            desc={`Same pipeline data pivoted: rows grouped by source type, each sub-row is a region.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source group.' : ''}`}
+            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Hybrid Split by Source' : ''}`}
+            desc={`Same pipeline data pivoted: rows grouped by source type, each sub-row is a region.${hybridMode === 'incl' ? ' | Hybrid Split by Source: each hybrid’s capacity is split into its component source group.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
           />
         )}

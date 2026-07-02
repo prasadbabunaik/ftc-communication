@@ -471,9 +471,9 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
             <div className="grid grid-cols-2 gap-4 pt-2">
               <FormField control={form.control} name="contd4.applicationDate" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Application Date *</FormLabel>
+                  <FormLabel>Application Date</FormLabel>
                   <FormControl>
-                    <DatePicker value={field.value} onChange={field.onChange} placeholder="Pick application date" />
+                    <DatePicker value={field.value} onChange={field.onChange} placeholder="Pick application date (optional)" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
