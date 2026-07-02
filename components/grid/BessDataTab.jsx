@@ -13,9 +13,9 @@
 // a grand Total BESS footer.
 
 // Pure helpers live in a non-'use client' module so the server print page can
-// call projectCodDates too; re-export them here for this file's client consumers.
-import { projectCodDates, monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
-export { projectCodDates, monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
+// call projectCodDates too. This file only needs the month helpers; other
+// consumers import from '@/lib/bess-helpers' directly.
+import { monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
 
 const REGION_BADGE = {
   NR: 'bg-indigo-50 text-indigo-700 border-indigo-200',

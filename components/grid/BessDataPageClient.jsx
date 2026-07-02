@@ -6,11 +6,12 @@
 // on-screen view.
 
 import { useState, useMemo } from 'react';
-import { BatteryCharging, Sheet, Printer, CalendarRange } from 'lucide-react';
+import { BatteryCharging, Sheet, Printer, CalendarRange, SlidersHorizontal, X } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { useSettings } from '@/providers/settings-provider';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { BessDataTab, prepareBessData, projectCodDates, monthsInRange, bMonthLabel, fmt, fmtDate } from '@/components/grid/BessDataTab';
+import { BessDataTab, prepareBessData, fmt, fmtDate } from '@/components/grid/BessDataTab';
+import { projectCodDates, monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
 
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const COD_PRESETS = [{ days: 7, label: 'Last 7 days' }, { days: 30, label: 'Last 30 days' }];
@@ -167,6 +168,7 @@ function downloadBessExcel(prepared, codColLabel, useRange, headerInfo = {}) {
 export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode = null, scopeRegionName = null, canEdit = false }) {
   const { settings } = useSettings();
   const [editRow, setEditRow] = useState(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const refMonthLabel = fmtRefMonthShort(settings.referenceMonth);
   const refMonthName  = refMonthLabel.startsWith('Exp. ') ? refMonthLabel.slice(5) : 'reference month';
 
@@ -225,69 +227,101 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
           </div>
         </div>
 
-        {hasRows && (
-          <div className="flex items-center gap-2">
-            <a
-              href={`/bess-data/print?${new URLSearchParams({
-                ...(settings.referenceMonth ? { ref: settings.referenceMonth } : {}),
-                ...(fromDate ? { codFrom: fromDate } : {}),
-                ...(toDate ? { codTo: toDate } : {}),
-              }).toString()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-1.5 transition-colors"
-              title="Open print / PDF view"
-              aria-label="Open print / PDF view"
-            >
-              <Printer className="size-4" strokeWidth={2} />
-              <span>Print</span>
-            </a>
-            <button
-              type="button"
-              onClick={() => downloadBessExcel(prepared, codColLabel, dateActive, brandHeader)}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1.5 transition-colors"
-              title="Download BESS data as Excel"
-              aria-label="Download BESS data as Excel"
-            >
-              <Sheet className="size-4" strokeWidth={2} />
-              <span>XLSX</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* COD-declared date-range filter */}
-      <div className="flex items-center flex-wrap gap-2 text-[12px]">
-        <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
-          <CalendarRange className="size-4" /> COD Declared
-        </span>
-        <DateRangePicker
-          from={fromDate}
-          to={toDate}
-          onChange={applyRange}
-          placeholder="Pick a COD date range"
-          className="h-9"
-        />
-        {COD_PRESETS.map(({ days, label }) => (
+        <div className="flex items-center gap-2">
           <button
-            key={days}
             type="button"
-            onClick={() => applyRange(presetRange(days))}
-            className={`h-9 px-3 rounded-md border text-xs font-medium whitespace-nowrap transition-colors ${
-              isActivePreset(days)
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-input text-muted-foreground hover:bg-muted'
+            onClick={() => setCustomizeOpen((o) => !o)}
+            aria-expanded={customizeOpen}
+            title="Customize — filter the data"
+            className={`inline-flex items-center gap-1 text-[11px] font-bold rounded px-2 py-1.5 border transition-colors ${
+              customizeOpen || dateActive
+                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-200'
             }`}
           >
-            {label}
+            <SlidersHorizontal className="size-4" strokeWidth={2} />
+            <span>Customize</span>
+            {dateActive && <span className="ml-0.5 size-1.5 rounded-full bg-blue-500" title="A filter is active" />}
           </button>
-        ))}
-        {dateActive && (
-          <span className="text-muted-foreground">
-            {prepared.rows.length} project{prepared.rows.length === 1 ? '' : 's'} with COD in range
-          </span>
-        )}
+          {hasRows && (
+            <>
+              <a
+                href={`/bess-data/print?${new URLSearchParams({
+                  ...(settings.referenceMonth ? { ref: settings.referenceMonth } : {}),
+                  ...(fromDate ? { codFrom: fromDate } : {}),
+                  ...(toDate ? { codTo: toDate } : {}),
+                }).toString()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-1.5 transition-colors"
+                title="Open print / PDF view"
+                aria-label="Open print / PDF view"
+              >
+                <Printer className="size-4" strokeWidth={2} />
+                <span>Print</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => downloadBessExcel(prepared, codColLabel, dateActive, brandHeader)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1.5 transition-colors"
+                title="Download BESS data as Excel"
+                aria-label="Download BESS data as Excel"
+              >
+                <Sheet className="size-4" strokeWidth={2} />
+                <span>XLSX</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Customize panel — COD-declared date-range filter (hidden until the
+          Customize button is toggled, so it isn't always on the display). */}
+      {customizeOpen && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/40 px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Filters</p>
+            <button
+              type="button"
+              onClick={() => setCustomizeOpen(false)}
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" /> Close
+            </button>
+          </div>
+          <div className="flex items-center flex-wrap gap-2 text-[12px]">
+            <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+              <CalendarRange className="size-4" /> COD Declared
+            </span>
+            <DateRangePicker
+              from={fromDate}
+              to={toDate}
+              onChange={applyRange}
+              placeholder="Pick a COD date range"
+              className="h-9"
+            />
+            {COD_PRESETS.map(({ days, label }) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => applyRange(presetRange(days))}
+                className={`h-9 px-3 rounded-md border text-xs font-medium whitespace-nowrap transition-colors ${
+                  isActivePreset(days)
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-input text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            {dateActive && (
+              <span className="text-muted-foreground">
+                {prepared.rows.length} project{prepared.rows.length === 1 ? '' : 's'} with COD in range
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-auto">
         {dateActive && !hasRows ? (

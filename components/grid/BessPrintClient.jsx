@@ -7,7 +7,8 @@
 // prepareBessData so the table matches the on-screen BESS table exactly.
 
 import { useState } from 'react';
-import { prepareBessData, fmt, computeBessCommissioningSummary, monthsInRange, bMonthLabel } from '@/components/grid/BessDataTab';
+import { prepareBessData, fmt, computeBessCommissioningSummary } from '@/components/grid/BessDataTab';
+import { monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
 
 function fmtRefMonth(ym) {
   if (!ym) return null;
