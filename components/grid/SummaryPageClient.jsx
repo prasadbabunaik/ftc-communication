@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer } from 'lucide-react';
+import * as XLSX from 'xlsx-js-style';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { BarChart3, GitBranch, Grid3x3, Layers, TrendingUp, Zap, Cable, CalendarDays, Download, History, ListTree, FileSpreadsheet, Printer, Sheet, FileText } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { useSettings } from '@/providers/settings-provider';
@@ -921,6 +924,82 @@ function ActivityStat({ label, value, count, color, active, onClick }) {
 // Source rows × Region columns (+ All India), a Total row, and the Hybrid row
 // showing its per-component split inside each cell. A milestone selector
 // (the three cards) switches which of FTC / TOC / COD the grid shows.
+// ── Activity summary exporters (Source × Region matrix, per milestone) ────────
+const ACT_MILES = [{ key: 'ftc', label: 'FTC' }, { key: 'toc', label: 'TOC' }, { key: 'cod', label: 'COD' }];
+const actRangeLabel = (from, to) => {
+  const d = (s) => (s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '…');
+  return `${d(from)} → ${d(to)}`;
+};
+
+function downloadActivitySummaryExcel(activity, from, to, regions, sources) {
+  const { matrix = {} } = activity ?? {};
+  const NAVY = '1E3A5F';
+  const bd = { style: 'thin', color: { rgb: 'CBD5E1' } };
+  const B = { top: bd, bottom: bd, left: bd, right: bd };
+  const base = (v) => ({ v: v == null ? '' : v, t: typeof v === 'number' && Number.isFinite(v) ? 'n' : 's' });
+  const ttl = (v) => ({ ...base(v), s: { font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: NAVY } }, alignment: { horizontal: 'center', vertical: 'center' }, border: B } });
+  const hdr = (v) => ({ ...base(v), s: { font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: NAVY } }, alignment: { horizontal: 'center', vertical: 'center' }, border: B } });
+  const dat = (v, n) => ({ ...base(v), s: { font: { sz: 10 }, alignment: { horizontal: n ? 'right' : 'left' }, border: B } });
+  const tot = (v, n) => ({ ...base(v), s: { font: { bold: true, sz: 10 }, fill: { fgColor: { rgb: 'E2E8F0' } }, alignment: { horizontal: n ? 'right' : 'left' }, border: B } });
+  const cols = ['Source', ...regions, 'All India'];
+  const aoa = []; const merges = []; let r = 0;
+  for (const m of ACT_MILES) {
+    aoa.push([ttl(`${m.label} Capacity (MW) — ${actRangeLabel(from, to)}`), ...Array.from({ length: cols.length - 1 }, () => ttl(''))]);
+    merges.push({ s: { c: 0, r }, e: { c: cols.length - 1, r } }); r += 1;
+    aoa.push(cols.map(hdr)); r += 1;
+    for (const src of sources) {
+      const row = [dat(SOURCE_LABEL[src] ?? src, false)]; let rt = 0;
+      for (const reg of regions) { const v = matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; row.push(dat(v || 0, true)); rt += v; }
+      row.push(tot(rt || 0, true)); aoa.push(row); r += 1;
+    }
+    const trow = [tot('Total', false)]; let gt = 0;
+    for (const reg of regions) { let ct = 0; for (const src of sources) ct += matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; trow.push(tot(ct || 0, true)); gt += ct; }
+    trow.push(tot(gt || 0, true)); aoa.push(trow); r += 1;
+    aoa.push([]); r += 1;
+  }
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = merges;
+  ws['!cols'] = [{ wch: 12 }, ...regions.map(() => ({ wch: 12 })), { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'FTC-TOC-COD Summary');
+  XLSX.writeFile(wb, `ftc-toc-cod-summary_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+function downloadActivitySummaryPdf(activity, from, to, regions, sources) {
+  const { matrix = {} } = activity ?? {};
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const MARGIN = 28;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 58, 95);
+  doc.text('FTC / TOC / COD Activity — Summary', MARGIN, MARGIN + 4);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90);
+  doc.text(actRangeLabel(from, to), MARGIN, MARGIN + 20);
+  let y = MARGIN + 34;
+  const head = [['Source', ...regions, 'All India']];
+  for (const m of ACT_MILES) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 58, 95);
+    doc.text(`${m.label} Capacity (MW)`, MARGIN, y);
+    const body = [];
+    for (const src of sources) {
+      const row = [SOURCE_LABEL[src] ?? src]; let rt = 0;
+      for (const reg of regions) { const v = matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; row.push(fmt(v)); rt += v; }
+      row.push(fmt(rt)); body.push(row);
+    }
+    const trow = ['Total']; let gt = 0;
+    for (const reg of regions) { let ct = 0; for (const src of sources) ct += matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; trow.push(fmt(ct)); gt += ct; }
+    trow.push(fmt(gt)); body.push(trow);
+    autoTable(doc, {
+      startY: y + 4, head, body, theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 8, halign: 'right', valign: 'middle', lineColor: [203, 213, 225], lineWidth: 0.3 },
+      headStyles: { fillColor: [30, 58, 95], textColor: [255, 255, 255], halign: 'center', fontStyle: 'bold' },
+      columnStyles: { 0: { halign: 'left' } },
+      didParseCell: (d) => { if (d.section === 'body' && d.row.index === body.length - 1) { d.cell.styles.fillColor = [226, 232, 240]; d.cell.styles.fontStyle = 'bold'; } },
+      margin: { left: MARGIN, right: MARGIN },
+    });
+    y = (doc.lastAutoTable?.finalY ?? y) + 20;
+  }
+  doc.save(`ftc-toc-cod-summary_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedRegions = [], selectedSources = [], hybridMode = 'excl' }) {
   const { matrix, totals } = activity ?? {};
   const [milestone, setMilestone] = useState('cod'); // default COD (matches the sheet)
@@ -954,10 +1033,34 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
 
   return (
     <div className="space-y-3">
-      {/* Controls: date range + breakup */}
+      {/* Controls: date range + downloads + breakup */}
       <div className="flex flex-wrap items-end justify-between gap-3 shrink-0">
         <ActivityDateRange from={from} to={to} />
-        <ViewBreakupBtn onClick={onViewBreakup} />
+        <div className="flex items-center gap-2">
+          {hasAny && (
+            <>
+              <button
+                type="button"
+                onClick={() => downloadActivitySummaryExcel(activity, from, to, regions, sources)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1.5 transition-colors"
+                title="Download the FTC/TOC/COD summary matrix as Excel"
+                aria-label="Download summary as Excel"
+              >
+                <Sheet className="size-4" strokeWidth={2} /><span>XLSX</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadActivitySummaryPdf(activity, from, to, regions, sources)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded px-2 py-1.5 transition-colors"
+                title="Download the FTC/TOC/COD summary matrix as PDF"
+                aria-label="Download summary as PDF"
+              >
+                <FileText className="size-4" strokeWidth={2} /><span>PDF</span>
+              </button>
+            </>
+          )}
+          <ViewBreakupBtn onClick={onViewBreakup} />
+        </div>
       </div>
 
       {/* Three totals double as the milestone selector */}

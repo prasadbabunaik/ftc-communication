@@ -572,6 +572,129 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
   doc.save(`${layoutTag}${tag}_${stamp}.pdf`);
 }
 
+// ── Activity-tab exporters (FTC/TOC/COD in-range MW + dates) ──────────────────
+// The generic breakup exporters above are built around the funnel columns
+// (SOURCEWISE_HEADERS). The activity tab's rows are per-milestone MW + dated
+// events, so it gets dedicated Excel/PDF exporters that mirror the modal.
+const ACTIVITY_HEADERS = ['Region', 'Source', 'Project', 'Pooling Stn', 'Plant Type', 'FTC (MW)', 'FTC Dates', 'TOC (MW)', 'TOC Dates', 'COD (MW)', 'COD Dates'];
+const ACT_NUM_IDX = new Set([5, 7, 9]);
+const ACT_COL_WIDTHS = [7, 9, 30, 14, 18, 9, 22, 9, 22, 9, 22];
+const SRC_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS', HYBRID: 'Hybrid', COAL: 'Coal', HYDRO: 'Hydro', PSP: 'PSP' };
+const srcLabel = (s) => SRC_LABEL[s] ?? s;
+
+// One event list → "33.33 MW · 03 Jun 26 / 33.33 MW · 12 Jun 26".
+function eventsToStr(events) {
+  return (events ?? [])
+    .filter((e) => e && (e.mw > 0 || e.date))
+    .map((e) => `${e.mw > 0 ? `${fmt(e.mw)} MW · ` : ''}${fmtDate(e.date)}`)
+    .join('\n');
+}
+function activityRangeLabel(from, to) {
+  const d = (s) => (s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '…');
+  return `${d(from)} → ${d(to)}`;
+}
+
+function downloadActivityExcel(filteredGroups, from, to) {
+  if (!filteredGroups.length) return;
+  const colCount = ACTIVITY_HEADERS.length;
+  const aoa = [];
+  const merges = [];
+  let r = 0;
+  aoa.push([cell(`FTC / TOC / COD Activity — Contributors   (${activityRangeLabel(from, to)})`, STYLE_TITLE),
+    ...Array.from({ length: colCount - 1 }, () => cell('', STYLE_TITLE))]);
+  merges.push({ s: { c: 0, r }, e: { c: colCount - 1, r } }); r += 1;
+  aoa.push(ACTIVITY_HEADERS.map((h) => cell(h, STYLE_HEADER))); r += 1;
+
+  const gtot = { ftc: 0, toc: 0, cod: 0 };
+  let stripe = false;
+  for (const g of filteredGroups) {
+    const sub = { ftc: 0, toc: 0, cod: 0 };
+    for (const c of g.contributors) {
+      const row = [
+        g.region, srcLabel(g.source), c.name, c.poolingStation ?? '—', c.plantType ?? '—',
+        Number(c.ftc) || 0, eventsToStr(c.ftcEvents),
+        Number(c.toc) || 0, eventsToStr(c.tocEvents),
+        Number(c.cod) || 0, eventsToStr(c.codEvents),
+      ];
+      aoa.push(row.map((v, i) => cell(v, styleData(ACT_NUM_IDX.has(i), stripe)))); r += 1;
+      stripe = !stripe;
+      sub.ftc += Number(c.ftc) || 0; sub.toc += Number(c.toc) || 0; sub.cod += Number(c.cod) || 0;
+    }
+    const subRow = [`Total ${g.region} · ${srcLabel(g.source)}`, '', '', '', '', sub.ftc, '', sub.toc, '', sub.cod, ''];
+    aoa.push(subRow.map((v, i) => cell(v, styleSubtotal(ACT_NUM_IDX.has(i)))));
+    merges.push({ s: { c: 0, r }, e: { c: 4, r } }); r += 1;
+    stripe = false;
+    gtot.ftc += sub.ftc; gtot.toc += sub.toc; gtot.cod += sub.cod;
+  }
+  const grand = ['Grand Total', '', '', '', '', gtot.ftc, '', gtot.toc, '', gtot.cod, ''];
+  aoa.push(grand.map((v, i) => cell(v, styleGrandTotal(ACT_NUM_IDX.has(i)))));
+  merges.push({ s: { c: 0, r }, e: { c: 4, r } });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = merges;
+  ws['!cols'] = ACT_COL_WIDTHS.map((w) => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'FTC-TOC-COD Activity');
+  XLSX.writeFile(wb, `ftc-toc-cod-activity_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+function downloadActivityPdf(filteredGroups, from, to) {
+  if (!filteredGroups.length) return;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const MARGIN = 24;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 58, 95);
+  doc.text('FTC / TOC / COD Activity — Contributors', MARGIN, MARGIN + 6);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90);
+  doc.text(activityRangeLabel(from, to), MARGIN, MARGIN + 22);
+
+  const SUB = 'S', GRAND = 'G';
+  const body = [];
+  const gtot = { ftc: 0, toc: 0, cod: 0 };
+  for (const g of filteredGroups) {
+    const sub = { ftc: 0, toc: 0, cod: 0 };
+    for (const c of g.contributors) {
+      body.push({ kind: null, cells: [g.region, srcLabel(g.source), c.name, c.poolingStation ?? '—', c.plantType ?? '—',
+        fmt(c.ftc), eventsToStr(c.ftcEvents), fmt(c.toc), eventsToStr(c.tocEvents), fmt(c.cod), eventsToStr(c.codEvents)] });
+      sub.ftc += Number(c.ftc) || 0; sub.toc += Number(c.toc) || 0; sub.cod += Number(c.cod) || 0;
+    }
+    body.push({ kind: SUB, cells: [`Total ${g.region} · ${srcLabel(g.source)}`, '', '', '', '', fmt(sub.ftc), '', fmt(sub.toc), '', fmt(sub.cod), ''] });
+    gtot.ftc += sub.ftc; gtot.toc += sub.toc; gtot.cod += sub.cod;
+  }
+  body.push({ kind: GRAND, cells: ['Grand Total', '', '', '', '', fmt(gtot.ftc), '', fmt(gtot.toc), '', fmt(gtot.cod), ''] });
+
+  autoTable(doc, {
+    startY: MARGIN + 32,
+    head: [ACTIVITY_HEADERS],
+    body: body.map((b) => b.cells),
+    theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 8, valign: 'middle', halign: 'center', overflow: 'linebreak', textColor: [26, 26, 46], lineColor: [203, 213, 225], lineWidth: 0.3, minCellHeight: 16 },
+    headStyles: { fillColor: [30, 58, 95], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5, minCellHeight: 22 },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 36 }, 1: { halign: 'center', cellWidth: 46 },
+      2: { halign: 'left', cellWidth: 190 }, 3: { halign: 'left', cellWidth: 96 }, 4: { halign: 'left', cellWidth: 116 },
+      5: { halign: 'right', cellWidth: 52 }, 6: { halign: 'left', cellWidth: 118 },
+      7: { halign: 'right', cellWidth: 52 }, 8: { halign: 'left', cellWidth: 118 },
+      9: { halign: 'right', cellWidth: 52 }, 10: { halign: 'left', cellWidth: 118 },
+    },
+    didParseCell: (data) => {
+      if (data.section !== 'body') return;
+      const k = body[data.row.index]?.kind;
+      if (k === SUB) { data.cell.styles.fillColor = [226, 232, 240]; data.cell.styles.fontStyle = 'bold'; }
+      else if (k === GRAND) { data.cell.styles.fillColor = [30, 58, 95]; data.cell.styles.textColor = [255, 255, 255]; data.cell.styles.fontStyle = 'bold'; }
+    },
+    didDrawPage: () => {
+      const p = doc.getCurrentPageInfo().pageNumber;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(110);
+      doc.text(`Page ${p}`, W - MARGIN - 30, H - 10);
+      doc.text(`FTC/TOC/COD activity · ${new Date().toLocaleDateString('en-IN')}`, MARGIN, H - 10);
+    },
+    margin: { left: MARGIN, right: MARGIN, top: MARGIN },
+  });
+  doc.save(`ftc-toc-cod-activity_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 // "MW + event-dates" stacked cell. Top line: total MW. Stack underneath:
 // one line per event — "150 MW · 30 Mar 26" when `showMw` is set (the
 // default for FTC / TOC / COD so partial commissioning quantum is visible
@@ -1309,13 +1432,17 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
             {/* Export buttons — Excel + PDF, both export whatever's currently
                 visible (search + source-filter applied) so the download
                 matches the on-screen view exactly. */}
-            {supportsSourceFilter && (
+            {(supportsSourceFilter || activeTab === 'activity') && (
               <>
                 <button
                   type="button"
-                  onClick={() => downloadBreakupExcel(filtered, layout, selectedSources, selectedRegions)}
+                  onClick={() => (activeTab === 'activity'
+                    ? downloadActivityExcel(filtered, activityFrom, activityTo)
+                    : downloadBreakupExcel(filtered, layout, selectedSources, selectedRegions))}
                   className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-1.5 py-1 transition-colors"
-                  title={`Download as Excel — one sheet per ${layout === 'region' ? 'region' : 'source'}`}
+                  title={activeTab === 'activity'
+                    ? 'Download as Excel — FTC/TOC/COD in-range MW with dates'
+                    : `Download as Excel — one sheet per ${layout === 'region' ? 'region' : 'source'}`}
                   aria-label="Download as Excel"
                 >
                   <Sheet className="size-4" strokeWidth={2} />
@@ -1323,9 +1450,13 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                 </button>
                 <button
                   type="button"
-                  onClick={() => downloadBreakupPdf(filtered, layout, selectedSources, selectedRegions)}
+                  onClick={() => (activeTab === 'activity'
+                    ? downloadActivityPdf(filtered, activityFrom, activityTo)
+                    : downloadBreakupPdf(filtered, layout, selectedSources, selectedRegions))}
                   className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded px-1.5 py-1 transition-colors"
-                  title={`Download as PDF — one page per ${layout === 'region' ? 'region' : 'source'}`}
+                  title={activeTab === 'activity'
+                    ? 'Download as PDF — FTC/TOC/COD in-range MW with dates'
+                    : `Download as PDF — one page per ${layout === 'region' ? 'region' : 'source'}`}
                   aria-label="Download as PDF"
                 >
                   <FileText className="size-4" strokeWidth={2} />
