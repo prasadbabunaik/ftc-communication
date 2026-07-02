@@ -161,6 +161,33 @@ function diffFields(tracked, projectId, userId, phaseId = null) {
 
 // Validates that new phases for a given sourceType don't exceed the project's
 // per-source capacity cap (only applies to hybrid projects).
+// ── Hybrid component-source guard ────────────────────────────────────────────
+// A hybrid's phases must use ONLY the source types the hybrid is declared to
+// consist of (its PlantType code, e.g. HYBRID_SB → Solar + BESS). Otherwise a
+// stray phase (say WIND on a Solar+BESS hybrid) would surface a component in
+// the dashboard's Hybrid Breakdown that the plant doesn't have. Unknown /
+// novel hybrid codes skip the check (can't infer their components).
+const HYBRID_CODE_SOURCES = {
+  HYBRID_WS:  ['WIND', 'SOLAR'],
+  HYBRID_SB:  ['SOLAR', 'BESS'],
+  HYBRID_WSB: ['WIND', 'SOLAR', 'BESS'],
+  HYBRID_WB:  ['WIND', 'BESS'],
+  HYBRID_WP:  ['WIND', 'PSP'],
+  HYBRID_HP:  ['HYDRO', 'PSP'],
+  HYBRID_SP:  ['SOLAR', 'PSP'],
+};
+function validateHybridPhaseSources(project, newPhases) {
+  if (!project.plantType?.isHybrid) return;
+  const allowed = HYBRID_CODE_SOURCES[project.plantType.code];
+  if (!allowed) return;
+  const bad = (newPhases ?? []).find((ph) => !allowed.includes(ph.sourceType));
+  if (bad) {
+    throw new Error(
+      `${bad.sourceType} is not a component of this hybrid (${project.plantType.label}). Allowed sources: ${allowed.join(', ')}.`
+    );
+  }
+}
+
 function validateSourceCap(project, newPhases) {
   const capMap = {
     WIND:  'windCapacityMw',
@@ -1287,9 +1314,10 @@ export async function addCommissioningPhases(projectId, formData) {
   });
   if (!parsed.success) return { error: parsed.error.flatten() };
 
-  // Per-source capacity cap validation for hybrid projects
+  // Per-source capacity cap + component-source validation for hybrid projects
   if (project.plantType.isHybrid) {
     try {
+      validateHybridPhaseSources(project, parsed.data.phases);
       validateSourceCap(project, parsed.data.phases);
     } catch (e) {
       return { error: e.message };
@@ -1424,7 +1452,10 @@ export async function upsertProjectPhases(projectId, formData) {
   const newPhases       = parsed.data.phases.filter((p) => !p.existingId);
   const updatedPhases   = parsed.data.phases.filter((p) =>  p.existingId);
   if (project.plantType.isHybrid) {
-    try { validateSourceCap(project, newPhases); }
+    try {
+      validateHybridPhaseSources(project, parsed.data.phases);
+      validateSourceCap(project, newPhases);
+    }
     catch (e) { return { error: e.message }; }
   }
 

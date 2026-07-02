@@ -132,6 +132,28 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     date: e.eventDate ? new Date(e.eventDate).toISOString().slice(0, 10) : '',
     remarks: e.remarks ?? '',
   });
+  // Legacy phases carry only a cached milestone aggregate (e.g. FTC 1600 MW)
+  // with NO per-date event rows. The form works in events, so without this
+  // hydration those milestones showed as 0 here (while the tracker showed the
+  // cached value) and the funnel validation false-flagged, e.g. "TOC exceeds
+  // FTC (0.00)". Seed one event row from the cached value + its cached date;
+  // if the legacy entry never recorded a date, the date is left blank and must
+  // be backfilled on save (events require a date — data-quality by design).
+  const eventsOrLegacy = (events, cachedMw, cachedDate) => {
+    const rows = (events ?? []).map(ev);
+    if (rows.length === 0 && Number(cachedMw ?? 0) > 0) {
+      rows.push({
+        mw: String(Number(cachedMw)),
+        date: cachedDate ? new Date(cachedDate).toISOString().slice(0, 10) : '',
+        remarks: '',
+      });
+    }
+    return rows;
+  };
+  // A stored expected month that's already in the past rolls forward to the
+  // current reference month (same carry-forward convention as the dashboard).
+  const storedMonth = ph.expectedMonth ?? '';
+  const expectedMonth = storedMonth && storedMonth >= defaultMonth ? storedMonth : defaultMonth;
   return {
     // Hidden marker — distinguishes "edit this existing phase" from "add a
     // new one". Server action upsertProjectPhases reads it.
@@ -142,12 +164,12 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     capacityUnderFtcMw: ph.capacityUnderFtcMw != null ? String(Number(ph.capacityUnderFtcMw)) : '',
     capacityUnderTocMw: ph.capacityUnderTocMw != null ? String(Number(ph.capacityUnderTocMw)) : '',
     expectedApr26Mw:    ph.expectedApr26Mw    != null ? String(Number(ph.expectedApr26Mw))    : '0',
-    expectedMonth:      ph.expectedMonth ?? defaultMonth,
+    expectedMonth,
     delayRemarks:       ph.delayRemarks ?? '',
     otherRemarks:       ph.otherRemarks ?? '',
-    ftcEvents:          (ph.ftcEvents ?? []).map(ev),
-    tocEvents:          (ph.tocEvents ?? []).map(ev),
-    codEvents:          (ph.codEvents ?? []).map(ev),
+    ftcEvents:          eventsOrLegacy(ph.ftcEvents, ph.ftcCompletedMw, ph.ftcCompletedDate),
+    tocEvents:          eventsOrLegacy(ph.tocEvents, ph.tocIssuedMw,    ph.tocIssuedDate),
+    codEvents:          eventsOrLegacy(ph.codEvents, ph.codDeclaredMw,  ph.codDeclaredDate),
   };
 }
 
