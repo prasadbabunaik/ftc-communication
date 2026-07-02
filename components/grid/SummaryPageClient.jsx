@@ -165,7 +165,9 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
     }
   }
 
-  const isFirstAllIndia = isAllIndia && !prevRow?.isAllIndiaBreakdown;
+  // Hybrid-component rows inserted under the All-India HYBRID row are part of
+  // the section — don't re-draw the section's thick top border after them.
+  const isFirstAllIndia = isAllIndia && !prevRow?.isAllIndiaBreakdown && !prevRow?.isHybridComponent;
 
   // All India rows live in a sticky <tfoot>, so they MUST use fully-opaque
   // backgrounds (no slash-opacity) — otherwise scrolled body content shows
@@ -300,11 +302,12 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   const totalRow      = rows.find((r) => r.isTotal);
   const baseRows      = [...regionRows, ...allIndiaRows, ...(totalRow ? [totalRow] : [])];
 
-  // A per-region HYBRID leaf row is expandable when there's a component split
-  // for that region (region-wise view only). Expanding inserts the Wind / Solar
-  // / BESS breakup rows right below it (they sum back to the HYBRID row).
+  // A HYBRID leaf row is expandable when there's a component split for its
+  // region (region-wise view only) — including the All-India summary row,
+  // whose split is the cross-region aggregate. Expanding inserts the Wind /
+  // Solar / BESS breakup rows right below (they sum back to the HYBRID row).
   const compsFor = (row) =>
-    (isRegionPrimary && row.source === 'HYBRID' && !row.isHybridComponent && !row.isSubtotal && !row.isTotal && !row.isAllIndiaBreakdown)
+    (isRegionPrimary && row.source === 'HYBRID' && !row.isHybridComponent && !row.isSubtotal && !row.isTotal)
       ? (hybridBreakup[row.region] ?? []).filter((c) => c.totalCapacityMw > 0 || c.appliedMw > 0)
       : [];
 
