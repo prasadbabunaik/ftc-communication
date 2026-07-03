@@ -1587,7 +1587,7 @@ function FilterBar({ asOf, fromMonth, toMonth }) {
 
 // ── Stat cards ─────────────────────────────────────────────────────────────────
 
-function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
+function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue', fyLabel = null, fyValue = null }) {
   const colors = {
     blue:    'bg-blue-50 text-blue-600',
     emerald: 'bg-emerald-50 text-emerald-600',
@@ -1607,6 +1607,12 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue' }) {
           {typeof value === 'number' ? Math.round(value).toLocaleString('en-IN') : value}
           {unit && <span className="text-[11px] font-normal text-muted-foreground ml-1">{unit}</span>}
         </p>
+        {/* This-FY achievement (event-dated milestones only). */}
+        {fyValue != null && (
+          <p className="text-[10px] font-semibold text-blue-600 leading-tight truncate" title={`Achieved in ${fyLabel} (1 Apr → as of date)`}>
+            {fyLabel}: {Math.round(fyValue).toLocaleString('en-IN')}<span className="font-normal text-blue-400"> {unit}</span>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1696,9 +1702,9 @@ export function SummaryPageClient({
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 shrink-0">
         <StatCard icon={Zap}        label="Applied for FTC" value={stats.totalApplied}  color="blue"    />
-        <StatCard icon={TrendingUp} label="FTC Approved"    value={stats.totalFtc}      color="emerald" />
-        <StatCard icon={BarChart3}  label="TOC Issued"      value={stats.totalToc}      color="amber"   />
-        <StatCard icon={Zap}        label="COD Declared"    value={stats.totalCod}      color="violet"  />
+        <StatCard icon={TrendingUp} label="FTC Approved"    value={stats.totalFtc}      color="emerald" fyLabel={stats.fyLabel} fyValue={stats.fyFtc} />
+        <StatCard icon={BarChart3}  label="TOC Issued"      value={stats.totalToc}      color="amber"   fyLabel={stats.fyLabel} fyValue={stats.fyToc} />
+        <StatCard icon={Zap}        label="COD Declared"    value={stats.totalCod}      color="violet"  fyLabel={stats.fyLabel} fyValue={stats.fyCod} />
         <StatCard icon={Layers}     label="Active CONTD-4"  value={stats.contd4Active}  unit="projects" color="rose"  />
         <StatCard icon={Cable}      label="Tx Pending FTC"  value={stats.txPending}     unit="elements" color="slate" />
       </div>

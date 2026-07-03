@@ -213,6 +213,15 @@ export default async function DashboardPage({ searchParams }) {
   const contd4Active  = viewProjects.filter(p => p.contd4 && !['CLEARED', 'REJECTED'].includes(p.contd4.status)).length;
   const txPending     = txElements.filter(e => e.pendingFtc).length;
 
+  // This financial year's achievements (India FY: 1 Apr → 31 Mar). FTC/TOC/COD
+  // are event-dated, so we sum only the events whose date falls in the current
+  // FY window [FY start, as-of]. "Applied for FTC" has no event date, so it has
+  // no FY figure. Same source-filtered set as the cumulative totals above.
+  const fyStartYear = (computeAsOf.getUTCMonth() + 1) >= 4 ? computeAsOf.getUTCFullYear() : computeAsOf.getUTCFullYear() - 1;
+  const fyStart     = new Date(Date.UTC(fyStartYear, 3, 1, 0, 0, 0, 0)); // 1 Apr
+  const fyLabel     = `FY ${String(fyStartYear).slice(2)}-${String(fyStartYear + 1).slice(2)}`;
+  const fyActivity  = computeMilestoneActivity(viewProjects, fyStart, computeAsOf);
+
   const regionLabel = isRegionLocked
     ? 'Showing your region'
     : (selectedRegions.length === 1
@@ -342,7 +351,8 @@ export default async function DashboardPage({ searchParams }) {
       excludeCommissioned={excludeCommissioned}
       hybridParts={availableHybridParts}
       selectedHybridParts={selectedHybridParts}
-      stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending }}
+      stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending,
+        fyLabel, fyFtc: fyActivity.totals.ftc, fyToc: fyActivity.totals.toc, fyCod: fyActivity.totals.cod }}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}
       contd4Study={JSON.parse(JSON.stringify(contd4Study))}
