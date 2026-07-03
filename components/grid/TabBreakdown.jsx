@@ -11,7 +11,7 @@ import autoTable from 'jspdf-autotable';
 import {
   Dialog, DialogContent, DialogTitle,
 } from '@/components/ui/dialog';
-import { CONTD4_SOURCE_LABEL, isInFtcPipeline, milestoneAsOf } from '@/lib/grid-computations';
+import { CONTD4_SOURCE_LABEL, isInFtcPipeline, milestoneAsOf, contd4CapacityOf } from '@/lib/grid-computations';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -883,7 +883,7 @@ function buildPipelineGroups(projects, asOf = null) {
       id: p.id, name: p.name, plantType: p.plantType?.label, region,
       poolingStation: p.poolingStation?.name ?? null,
       total:   num(p.totalCapacityMw),
-      contd4:  num(p.contd4?.capacityApr26Mw),
+      contd4:  num(contd4CapacityOf(p)),
       applied: agg.applied,
       ftc:     agg.ftc,
       uftc:    Math.max(0, r3(agg.applied - agg.ftc)),
