@@ -7,7 +7,7 @@ import {
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission,
   computeHybridBreakdown, computeMonthlyCod,
-  buildCodMonths, aggregateProjectForExport,
+  buildCodMonths, aggregateProjectForExport, isProjectCommissioned,
 } from '@/lib/grid-computations';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -401,6 +401,7 @@ export async function GET(request) {
   const fromMonth = searchParams.get('from')   ?? null;
   const toMonth   = searchParams.get('to')     ?? null;
   const asOf      = asOfStr ? new Date(asOfStr) : null;
+  const excludeCommissioned = searchParams.get('excludeCommissioned') === '1';
 
   const scope = await buildRegionScope(user.role);
 
@@ -419,7 +420,12 @@ export async function GET(request) {
   ]);
 
   // Build computations
-  const pipelineMatrix   = computePipelineMatrix(projects, asOf);
+  // "Exclude Commissioned" narrows only the FTC pipeline sheets (matching the
+  // dashboard + PDF); other sheets keep the full set.
+  const pipelineProjects = excludeCommissioned
+    ? projects.filter((p) => !isProjectCommissioned(p))
+    : projects;
+  const pipelineMatrix   = computePipelineMatrix(pipelineProjects, asOf);
   const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source');
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
   const contd4Study      = computeContd4Study(projects);

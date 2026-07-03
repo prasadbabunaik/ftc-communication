@@ -60,7 +60,7 @@ const PRINT_STYLES = `
 
 // ── Document header ────────────────────────────────────────────────────────────
 
-function DocHeader({ dateLabel, scopeRegionCode, scopeRegionName }) {
+function DocHeader({ dateLabel, scopeRegionCode, scopeRegionName, excludeCommissioned = false }) {
   // For RLDCs show the specific region name (e.g. "Southern Region"). For NLDC/
   // ADMIN scopeRegionCode is null so we fall back to the All India label.
   const scopeLabel = scopeRegionName ?? 'All India';
@@ -78,6 +78,11 @@ function DocHeader({ dateLabel, scopeRegionCode, scopeRegionName }) {
           <h2 className="text-[11pt] font-bold text-[#1e3a5f]">
             Under FTC / TOC / COD — {scopeLabel}
           </h2>
+          {excludeCommissioned && (
+            <div className="mt-1 text-[8pt] font-bold text-amber-700 uppercase tracking-wide">
+              Pipeline tables: commissioned projects excluded (under-process only)
+            </div>
+          )}
         </div>
         <div className="text-right">
           <div className="inline-block border border-[#1e3a5f] px-3 py-2 rounded">
@@ -800,7 +805,7 @@ function PrintControls({ tables, setTables, colSets, setColSet, contd4Months, ac
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects, activityMonths = [] }) {
+export function PrintSummaryClient({ dateLabel, excludeCommissioned = false, scopeRegionCode = null, scopeRegionName = null, table2Rows, table5Rows, contd4Study, transmissionRows, hybridRows, projects, activityMonths = [] }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [tables, setTables] = useState(() => new Set(PRINT_TABLES.map(t => t.id)));
   // One column set per table — everything on by default.
@@ -857,7 +862,7 @@ export function PrintSummaryClient({ dateLabel, scopeRegionCode = null, scopeReg
 
       <div className="print-page">
         <div className="inner">
-          <DocHeader dateLabel={dateLabel} scopeRegionCode={scopeRegionCode} scopeRegionName={scopeRegionName} />
+          <DocHeader dateLabel={dateLabel} scopeRegionCode={scopeRegionCode} scopeRegionName={scopeRegionName} excludeCommissioned={excludeCommissioned} />
 
           {/* Sections mirror the dashboard tab order. */}
 

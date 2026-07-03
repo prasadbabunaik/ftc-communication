@@ -1383,11 +1383,19 @@ function Empty() {
 //       </div>
 //     );
 //   }
-function FilterBar({ asOf }) {
+function FilterBar({ asOf, excludeCommissioned = false }) {
   const buildExportUrl = () => {
     const params = new URLSearchParams();
     if (asOf) params.set('asOf', asOf);
+    if (excludeCommissioned) params.set('excludeCommissioned', '1');
     return `/api/grid/export?${params.toString()}`;
+  };
+  const buildPrintUrl = () => {
+    const params = new URLSearchParams();
+    if (asOf) params.set('asOf', asOf);
+    if (excludeCommissioned) params.set('excludeCommissioned', '1');
+    const qs = params.toString();
+    return `/dashboard/print${qs ? `?${qs}` : ''}`;
   };
 
   return (
@@ -1401,7 +1409,7 @@ function FilterBar({ asOf }) {
         <FileSpreadsheet className="size-5" />
       </a>
       <a
-        href={`/dashboard/print${asOf ? `?asOf=${asOf}` : ''}`}
+        href={buildPrintUrl()}
         target="_blank"
         rel="noopener noreferrer"
         title="Open print / PDF view"
@@ -1656,7 +1664,7 @@ export function SummaryPageClient({
         </div>
         <div className="flex items-center gap-2">
           <AsOfDatePicker currentAsOf={asOf} />
-          <FilterBar asOf={asOf} />
+          <FilterBar asOf={asOf} excludeCommissioned={excludeCommissioned} />
         </div>
       </div>
 

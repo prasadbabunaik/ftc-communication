@@ -5,7 +5,7 @@ import { PrintSummaryClient } from '@/components/grid/PrintSummaryClient';
 import {
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission, computeHybridBreakdown,
-  computeMilestoneActivity,
+  computeMilestoneActivity, isProjectCommissioned,
 } from '@/lib/grid-computations';
 
 export const metadata = { title: 'Print Summary — FTC Portal' };
@@ -18,6 +18,9 @@ export default async function PrintSummaryPage({ searchParams }) {
   const params  = await searchParams;
   const asOfStr = params.asOf ?? null;
   const asOf    = asOfStr ? new Date(asOfStr) : null;
+  // Carried from the dashboard's "Exclude Commissioned" checkbox so the PDF
+  // matches the on-screen pipeline (only still-under-process projects).
+  const excludeCommissioned = params.excludeCommissioned === '1';
 
   const scope      = await buildRegionScope(user.role);
   const userRegion = await getUserRegion(user.role); // null for NLDC/ADMIN
@@ -39,7 +42,12 @@ export default async function PrintSummaryPage({ searchParams }) {
     }),
   ]);
 
-  const pipelineMatrix   = computePipelineMatrix(projects, asOf);
+  // "Exclude Commissioned" narrows only the FTC pipeline tables (matching the
+  // dashboard's scoping); CONTD-4 / transmission / hybrid / activity stay full.
+  const pipelineProjects = excludeCommissioned
+    ? projects.filter((p) => !isProjectCommissioned(p))
+    : projects;
+  const pipelineMatrix   = computePipelineMatrix(pipelineProjects, asOf);
   const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source');
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
   const contd4Study      = computeContd4Study(projects);
@@ -74,6 +82,7 @@ export default async function PrintSummaryPage({ searchParams }) {
   return (
     <PrintSummaryClient
       dateLabel={dateLabel}
+      excludeCommissioned={excludeCommissioned}
       scopeRegionCode={userRegion?.code ?? null}  // null → All India view (NLDC/ADMIN)
       scopeRegionName={userRegion?.name ?? null}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
