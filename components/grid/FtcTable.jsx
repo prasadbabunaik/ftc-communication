@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { contd4CapacityOf } from '@/lib/grid-computations';
 
 function mw(val) {
   if (val == null) return '—';
@@ -206,10 +205,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         _codDeclaredMw: codDeclaredMw,
         _codPendingMw:  Math.max(0, r3(tocIssuedMw - codDeclaredMw)),
         _expectedMw:    p.phases.reduce((s, ph) => s + (ph.expectedApr26Mw    ?? 0), 0),
-        // CONTD-4 issued capacity — null (shown as "—") when no CONTD-4 record is
-        // linked; matches the project modal and the dashboard pipeline, which read
-        // the SAME helper so the CONTD-4 (MW) columns can never disagree.
-        _contd4Cap:     contd4CapacityOf(p),
+        // CONTD-4 issued capacity — defaults to the plant's total capacity when
+        // not explicitly recorded (CONTD-4 is assumed issued for the full
+        // capacity unless a smaller value is entered). The dashboard pipeline
+        // uses the SAME fallback so the two CONTD-4 (MW) columns reconcile.
+        _contd4Cap:     p.contd4?.capacityApr26Mw ?? p.totalCapacityMw,
         _sources:       [...new Set(p.phases.map((ph) => ph.sourceType))],
         _status:        status,
         _manualCommission: manualCommission,

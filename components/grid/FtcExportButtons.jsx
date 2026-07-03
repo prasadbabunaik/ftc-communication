@@ -2,7 +2,6 @@
 
 import { FileSpreadsheet, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
-import { contd4CapacityOf } from '@/lib/grid-computations';
 
 // FTC-tracker-specific export (Excel + Print/PDF) — exports the "Generation
 // Capacity Under Process of FTC" table itself, NOT the dashboard summary. The
@@ -79,8 +78,7 @@ function buildRows(projects, cutoff) {
     const cod      = sum('codDeclaredMw');
     const expected = sum('expectedApr26Mw');
     const total    = Number(p.totalCapacityMw ?? 0);
-    // Blank when no CONTD-4 record is linked (matches the tracker/modal/dashboard).
-    const contd4   = contd4CapacityOf(p);
+    const contd4   = p.contd4?.capacityApr26Mw != null ? Number(p.contd4.capacityApr26Mw) : total;
     const codComplete = total > 0 && cod >= total - 0.01;
     const status = (codComplete || p.manuallyCommissioned) ? 'Commissioned' : 'Under Process';
     const remarks = (p.phases ?? [])
