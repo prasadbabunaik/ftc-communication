@@ -236,7 +236,12 @@ export function Header() {
     <>
       <header
         className={cn(
-          'header fixed top-0 z-10 start-0 end-0 flex flex-col shrink-0 bg-background transition-shadow duration-200',
+          // z-40: the fixed header creates a stacking context, so its account
+          // dropdown (z-50 inside) is capped at the header's own z-index. It must
+          // sit ABOVE the page's sticky tab/filter bar (z-30) or the dropdown
+          // bleeds under the "Excl./Incl. Hybrid" toggle. Stays below modals/
+          // popovers (z-50) so those still overlay the header.
+          'header fixed top-0 z-40 start-0 end-0 flex flex-col shrink-0 bg-background transition-shadow duration-200',
           scrollPosition > 0 ? 'border-b border-border shadow-sm' : 'border-b border-transparent',
         )}
       >
@@ -306,10 +311,10 @@ export function Header() {
       {mobileMode && isSidebarSheetOpen && (
         <>
           <div
-            className="fixed inset-0 z-30 bg-black/50"
+            className="fixed inset-0 z-40 bg-black/50"
             onClick={() => setIsSidebarSheetOpen(false)}
           />
-          <div className="fixed top-0 left-0 bottom-0 z-40 w-[275px] bg-background border-e border-border overflow-y-auto">
+          <div className="fixed top-0 left-0 bottom-0 z-50 w-[275px] bg-background border-e border-border overflow-y-auto">
             <div className="flex items-center px-5 py-4 border-b border-border">
               <Image
                 src="/logo-full.png"
