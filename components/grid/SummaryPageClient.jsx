@@ -1596,32 +1596,30 @@ function StatCard({ icon: Icon, label, value, unit = 'MW', color = 'blue', fyLab
     rose:    'bg-rose-50 text-rose-600',
     slate:   'bg-slate-50 text-slate-600',
   };
+  // When an FY figure is available (FTC/TOC/COD), show ONLY that — the current
+  // financial year's achievement — as the headline. The cumulative all-time
+  // total moves to the hover tooltip. "Applied for FTC" has no event date so it
+  // keeps its cumulative value.
+  const showFy = fyValue != null;
+  const shown  = showFy ? fyValue : value;
   return (
-    <div className="rounded-lg border bg-card flex flex-col overflow-hidden">
-      <div className="px-3 py-2 flex items-center gap-2 flex-1">
-        <div className={`size-8 rounded-md flex items-center justify-center shrink-0 ${colors[color]}`}>
-          <Icon className="size-4" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight truncate">{label}</p>
-          <p className="text-base font-bold text-foreground leading-tight">
-            {typeof value === 'number' ? Math.round(value).toLocaleString('en-IN') : value}
-            {unit && <span className="text-[11px] font-normal text-muted-foreground ml-1">{unit}</span>}
-          </p>
-        </div>
+    <div
+      className="rounded-lg border bg-card px-3 py-2 flex items-center gap-2"
+      title={showFy ? `${fyLabel} achievement · cumulative all-time: ${Math.round(value).toLocaleString('en-IN')} ${unit}` : undefined}
+    >
+      <div className={`size-8 rounded-md flex items-center justify-center shrink-0 ${colors[color]}`}>
+        <Icon className="size-4" />
       </div>
-      {/* Footer: this financial year's achievement (event-dated milestones only). */}
-      {fyValue != null && (
-        <div
-          className="px-3 py-1 border-t border-slate-100 bg-slate-50/70 flex items-baseline justify-between gap-2"
-          title={`Achieved in ${fyLabel} (1 Apr → as-of date)`}
-        >
-          <span className="text-[8.5px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight">Current Financial Year</span>
-          <span className="text-[12px] font-bold text-foreground leading-tight whitespace-nowrap">
-            {Math.round(fyValue).toLocaleString('en-IN')}<span className="text-[9px] font-normal text-muted-foreground ml-0.5">{unit}</span>
-          </span>
-        </div>
-      )}
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-tight truncate">{label}</p>
+        <p className="text-base font-bold text-foreground leading-tight">
+          {typeof shown === 'number' ? Math.round(shown).toLocaleString('en-IN') : shown}
+          {unit && <span className="text-[11px] font-normal text-muted-foreground ml-1">{unit}</span>}
+        </p>
+        {showFy && (
+          <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-wide leading-tight truncate">Current Financial Year</p>
+        )}
+      </div>
     </div>
   );
 }
