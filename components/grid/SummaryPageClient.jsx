@@ -205,6 +205,9 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
   const stripBg = (cls) => cls.replace(/\bbg-[\w/-]+/g, '').trim();
   const cellStyle = isFooterRow ? { backgroundColor: SOLID } : undefined;
 
+  // A "name-only" HYBRID row (partial parts selected): its total no longer equals
+  // the shown sub-rows, so every quantum is intentionally left blank.
+  const nameOnly = row.nameOnly;
   const N = ({ v, cls = '' }) => {
     const cleanCls = isFooterRow ? stripBg(cls) : cls;
     return (
@@ -212,7 +215,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
         style={cellStyle}
         className={`px-4 py-2.5 text-center tabular-nums ${bold ? 'font-bold' : ''} ${cleanCls}`}
       >
-        {fmt(v)}
+        {nameOnly ? '' : fmt(v)}
       </td>
     );
   };
@@ -256,6 +259,11 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
               <ChevronRight className={`size-3.5 text-slate-400 group-hover:text-slate-600 transition-transform ${expanded ? 'rotate-90' : ''}`} />
               <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />
             </button>
+          : nameOnly
+          ? <span className="inline-flex items-center gap-1.5">
+              <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />
+              <span className="text-[9px] font-medium text-slate-400 italic" title="Some constituent parts are filtered out, so the hybrid total is not shown — see the parts below.">parts only</span>
+            </span>
           : <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />}
       </td>
       <N v={row.totalCapacityMw}  cls="border-r border-gray-100" />
@@ -276,7 +284,16 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
 
 // ── Table 2 / 5 — FTC Pipeline ────────────────────────────────────────────────
 
-function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, hybridParts = [] }) {
+// Numeric funnel fields, in column order. Used to re-aggregate subtotals/totals
+// on the client when the hybrid bifurcation is in "partial parts" mode.
+const PIPELINE_NUM_FIELDS = [
+  'totalCapacityMw', 'contd4CapacityMw', 'appliedMw',
+  'ftcApprovedMw', 'ftcPendingMw', 'tocIssuedMw', 'tocPendingMw',
+  'codCompletedMw', 'codPendingMw', 'expectedMw',
+];
+const r3 = (v) => Math.round((Number(v) || 0) * 1000) / 1000;
+
+function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, selectedHybridParts = [], availableHybridParts = [] }) {
   const [expanded, setExpanded] = useState(() => new Set());
   // Hide leaf rows whose every figure is 0 (a region's empty COAL/HYDRO
   // scaffold rows, etc.). OFF by default — the full scaffold shows as before.
@@ -308,21 +325,73 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   // region (region-wise view only) — including the All-India summary row,
   // whose split is the cross-region aggregate. Expanding inserts the Wind /
   // Solar / BESS breakup rows right below (they sum back to the HYBRID row).
-  // Optional sub-source narrowing (?hybridParts=WIND,SOLAR). Empty ⇒ all parts.
-  const partSet = new Set(hybridParts);
+  const isHybridLeaf = (row) =>
+    isRegionPrimary && row.source === 'HYBRID' && !row.isHybridComponent && !row.isSubtotal && !row.isTotal;
+
+  // Sub-source selection (?hybridParts=). "partial" = a strict, non-empty subset
+  // of the parts that actually exist ⇒ the HYBRID total no longer equals the sum
+  // of the shown parts (e.g. Wind excluded), so we blank the HYBRID row's numbers
+  // (name only), auto-show just the selected component sub-rows, and re-aggregate
+  // every subtotal / All-India / Total row from what's actually on screen.
+  const selPart = new Set((selectedHybridParts ?? []).filter((p) => availableHybridParts.includes(p)));
+  const partial = selPart.size > 0 && selPart.size < availableHybridParts.length;
+
   const compsFor = (row) =>
-    (isRegionPrimary && row.source === 'HYBRID' && !row.isHybridComponent && !row.isSubtotal && !row.isTotal)
+    isHybridLeaf(row)
       ? (hybridBreakup[row.region] ?? [])
           .filter((c) => c.totalCapacityMw > 0 || c.appliedMw > 0)
-          .filter((c) => partSet.size === 0 || partSet.has(c.source))
+          .filter((c) => selPart.size === 0 || selPart.has(c.source))
       : [];
 
+  // Fold a displayed leaf into a running subtotal accumulator. Component rows
+  // contribute 0 to CONTD-4 (it's plant-level — shown as "—" per source).
+  const addInto = (acc, r, asComp) => {
+    for (const f of PIPELINE_NUM_FIELDS) {
+      acc[f] += (asComp && f === 'contd4CapacityMw') ? 0 : (Number(r[f]) || 0);
+    }
+  };
+  const sealAcc = (acc) => {
+    // Recompute the pending columns from the summed funnel so the subtotal
+    // matches how every other row derives them (applied→ftc→toc→cod).
+    acc.ftcPendingMw = Math.max(0, r3(acc.appliedMw    - acc.ftcApprovedMw));
+    acc.tocPendingMw = Math.max(0, r3(acc.ftcApprovedMw - acc.tocIssuedMw));
+    acc.codPendingMw = Math.max(0, r3(acc.tocIssuedMw   - acc.codCompletedMw));
+    return acc;
+  };
+
   const orderedRows = [];
-  for (const row of baseRows) {
-    orderedRows.push(row);
-    const comps = compsFor(row);
-    if (comps.length && expanded.has(row.region)) {
-      for (const c of comps) orderedRows.push({ ...c, region: row.region, isHybridComponent: true });
+  if (partial) {
+    // Rebuild the whole body, blanking hybrid parents and re-summing sections.
+    let acc = null;
+    const freshAcc = () => Object.fromEntries(PIPELINE_NUM_FIELDS.map((f) => [f, 0]));
+    for (const row of baseRows) {
+      if (row.isSubtotal || row.isTotal) {
+        orderedRows.push(acc ? { ...row, ...sealAcc(acc) } : row);
+        acc = null;
+        continue;
+      }
+      if (acc == null) acc = freshAcc();
+      if (isHybridLeaf(row)) {
+        orderedRows.push({ ...row, nameOnly: true });               // name only, no quantum
+        for (const c of compsFor(row)) {
+          const cr = { ...c, region: row.region, isHybridComponent: true };
+          orderedRows.push(cr);
+          addInto(acc, cr, true);
+        }
+      } else {
+        orderedRows.push(row);
+        addInto(acc, row, false);
+      }
+    }
+  } else {
+    // Full (or empty) selection ⇒ classic behaviour: HYBRID row keeps its total
+    // and expands on click to show every constituent part.
+    for (const row of baseRows) {
+      orderedRows.push(row);
+      const comps = compsFor(row);
+      if (comps.length && expanded.has(row.region)) {
+        for (const c of comps) orderedRows.push({ ...c, region: row.region, isHybridComponent: true });
+      }
     }
   }
 
@@ -358,7 +427,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
             {orderedRows.map((row, i) => (
               <PipelineRow
                 key={i} row={row} i={i} rows={orderedRows} isRegionPrimary={isRegionPrimary}
-                expandable={compsFor(row).length > 0}
+                expandable={!partial && compsFor(row).length > 0}
                 expanded={expanded.has(row.region)}
                 onToggle={() => toggle(row.region)}
               />
@@ -1592,8 +1661,9 @@ export function SummaryPageClient({
             sources={sources}
             selectedSources={selectedSources}
             disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid'}
-            hybridParts={activeTab === 'pipeline' ? hybridParts : []}
+            hybridParts={hybridParts}
             selectedHybridParts={selectedHybridParts}
+            showParts={activeTab === 'pipeline'}
           />
           {/* Including / Excluding Hybrid — supported on the FTC Pipeline,
               Source-wise and FTC/TOC/COD Activity tabs. */}
@@ -1628,7 +1698,8 @@ export function SummaryPageClient({
             desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
             hybridBreakup={hybridBreakup}
-            hybridParts={selectedHybridParts}
+            selectedHybridParts={selectedHybridParts}
+            availableHybridParts={hybridParts}
           />
         )}
 

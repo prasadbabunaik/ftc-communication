@@ -23,7 +23,7 @@ const SOURCE_LABELS = {
 // the FTC Pipeline bifurcation. `hybridParts` = the parts that actually exist.
 export function SourcePicker({
   sources = [], selectedSources = [], disabled = false,
-  hybridParts = [], selectedHybridParts = [],
+  hybridParts = [], selectedHybridParts = [], showParts = true,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,6 +49,18 @@ export function SourcePicker({
   }
 
   function toggle(code) {
+    // Ticking "Hybrid" ON auto-selects ALL its constituent parts (the default
+    // full view); ticking it OFF clears the parts selection. Unchecking an
+    // individual part afterwards is what puts the bifurcation into "partial"
+    // mode (name-only HYBRID row, only the chosen sub-rows shown).
+    if (code === 'HYBRID') {
+      const turningOn = !selected.includes(code);
+      pushParams({
+        srcCodes: turningOn ? [...selected, code] : selected.filter((c) => c !== code),
+        partCodes: turningOn ? hybridParts.slice() : [],
+      });
+      return;
+    }
     pushParams({ srcCodes: selected.includes(code) ? selected.filter((c) => c !== code) : [...selected, code] });
   }
   function togglePart(code) {
@@ -127,7 +139,7 @@ export function SourcePicker({
 
                 {/* Nested constituent-part filters under Hybrid — independent
                     ?hybridParts= sub-filter for the pipeline bifurcation. */}
-                {code === 'HYBRID' && hybridParts.length > 0 && (
+                {code === 'HYBRID' && showParts && hybridParts.length > 0 && (
                   <div className="ml-[19px] mt-0.5 mb-1 pl-2 border-l border-slate-200 space-y-0.5">
                     <p className="px-2 pt-1 pb-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
                       Show parts in bifurcation
