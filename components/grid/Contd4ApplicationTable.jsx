@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
-import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS } from '@/lib/grid-computations';
+import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS, contd4CapacityOf } from '@/lib/grid-computations';
 
 const STATUS_OPTIONS = ['UNDER_PROCESS', 'CLEARED', 'REJECTED'];
 
@@ -56,7 +56,7 @@ function sortRows(rows, field, dir) {
       case 'name':        av = a.name;                bv = b.name;               break;
       case 'region':      av = a.region.code;         bv = b.region.code;        break;
       case 'type':        av = a.plantType.label;     bv = b.plantType.label;    break;
-      case 'capacity':    av = Number(a.contd4?.capacityApr26Mw ?? a.totalCapacityMw); bv = Number(b.contd4?.capacityApr26Mw ?? b.totalCapacityMw); break;
+      case 'capacity':    av = Number(contd4CapacityOf(a) ?? 0); bv = Number(contd4CapacityOf(b) ?? 0); break;
       case 'status':      av = a.contd4?.status ?? ''; bv = b.contd4?.status ?? ''; break;
       default: return 0;
     }
@@ -336,9 +336,11 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                   </td>
                   <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={p.plantType.label}>{p.plantType.label}</td>
                   <td className="px-3 py-3 tabular-nums">
-                    {p.contd4?.capacityApr26Mw
-                      ? <span className="font-mono text-sm font-semibold">{Number(p.contd4.capacityApr26Mw).toFixed(1)}</span>
-                      : <span className="font-mono text-sm text-muted-foreground">{Number(p.totalCapacityMw).toFixed(1)}</span>}
+                    {!p.contd4
+                      ? <span className="font-mono text-sm text-muted-foreground">—</span>
+                      : p.contd4.capacityApr26Mw != null
+                        ? <span className="font-mono text-sm font-semibold">{Number(p.contd4.capacityApr26Mw).toFixed(1)}</span>
+                        : <span className="font-mono text-sm text-muted-foreground">{Number(p.totalCapacityMw).toFixed(1)}</span>}
                     <span className="block text-[10px] text-muted-foreground font-sans">of {Number(p.totalCapacityMw).toFixed(1)} MW</span>
                   </td>
                   <td className="px-3 py-3">
