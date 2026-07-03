@@ -253,6 +253,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
               {row.source === 'HYBRID'
                 ? <Chip label="Unsplit" colorCls="bg-slate-100 text-slate-500" />
                 : <Chip label={row.source} colorCls={SOURCE_BADGE[row.source]} />}
+              {row.isHybridContribution && <span className="text-[10px] font-medium text-teal-600/80 italic">in hybrid</span>}
             </span>
           : expandable
           ? <button type="button" onClick={onToggle} className="inline-flex items-center gap-1 group" title={expanded ? 'Hide hybrid breakup' : 'Show hybrid breakup (Wind / Solar / BESS parts)'}>
@@ -293,7 +294,7 @@ const PIPELINE_NUM_FIELDS = [
 ];
 const r3 = (v) => Math.round((Number(v) || 0) * 1000) / 1000;
 
-function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, selectedHybridParts = [], availableHybridParts = [] }) {
+function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, selectedHybridParts = [], availableHybridParts = [], hybridMode = 'excl', selectedSources = [] }) {
   const [expanded, setExpanded] = useState(() => new Set());
   // Hide leaf rows whose every figure is 0 (a region's empty COAL/HYDRO
   // scaffold rows, etc.). OFF by default — the full scaffold shows as before.
@@ -343,6 +344,24 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           .filter((c) => selPart.size === 0 || selPart.has(c.source))
       : [];
 
+  // Excl. Hybrid + a source filter that does NOT include HYBRID: the pure-source
+  // rows are shown, but each source's hybrid contribution would otherwise vanish
+  // (hybrids bucket as HYBRID, which the filter drops). Surface it as an indented
+  // "↳ Solar (in hybrid)" sub-row beneath the standalone row so the two stay
+  // separate (Incl. mode is what merges them). Skipped when HYBRID is selected —
+  // then the full HYBRID row + its own bifurcation already show the split.
+  const injectHybridContrib =
+    isRegionPrimary && hybridMode === 'excl' &&
+    selectedSources.length > 0 && !selectedSources.includes('HYBRID');
+  const isStandaloneLeaf = (row) =>
+    row.source && row.source !== 'HYBRID' &&
+    !row.isHybridComponent && !row.isSubtotal && !row.isTotal;
+  const hybridContribFor = (row) =>
+    injectHybridContrib && isStandaloneLeaf(row)
+      ? (hybridBreakup[row.region] ?? []).find(
+          (c) => c.source === row.source && (c.totalCapacityMw > 0 || c.appliedMw > 0))
+      : null;
+
   // Fold a displayed leaf into a running subtotal accumulator. Component rows
   // contribute 0 to CONTD-4 (it's plant-level — shown as "—" per source).
   const addInto = (acc, r, asComp) => {
@@ -359,9 +378,13 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
     return acc;
   };
 
+  // Either transform (partial-parts blanking OR excl hybrid-contribution rows)
+  // requires re-summing subtotals/totals from what's actually displayed.
+  const rebuild = partial || injectHybridContrib;
+
   const orderedRows = [];
-  if (partial) {
-    // Rebuild the whole body, blanking hybrid parents and re-summing sections.
+  if (rebuild) {
+    // Rebuild the whole body, injecting sub-rows and re-summing each section.
     let acc = null;
     const freshAcc = () => Object.fromEntries(PIPELINE_NUM_FIELDS.map((f) => [f, 0]));
     for (const row of baseRows) {
@@ -371,7 +394,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
         continue;
       }
       if (acc == null) acc = freshAcc();
-      if (isHybridLeaf(row)) {
+      if (partial && isHybridLeaf(row)) {
         orderedRows.push({ ...row, nameOnly: true });               // name only, no quantum
         for (const c of compsFor(row)) {
           const cr = { ...c, region: row.region, isHybridComponent: true };
@@ -381,6 +404,13 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
       } else {
         orderedRows.push(row);
         addInto(acc, row, false);
+        // Excl. mode: append this source's hybrid contribution as its own row.
+        const contrib = hybridContribFor(row);
+        if (contrib) {
+          const cr = { ...contrib, region: row.region, isHybridComponent: true, isHybridContribution: true };
+          orderedRows.push(cr);
+          addInto(acc, cr, true);
+        }
       }
     }
   } else {
@@ -1700,6 +1730,8 @@ export function SummaryPageClient({
             hybridBreakup={hybridBreakup}
             selectedHybridParts={selectedHybridParts}
             availableHybridParts={hybridParts}
+            hybridMode={hybridMode}
+            selectedSources={selectedSources}
           />
         )}
 
