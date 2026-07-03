@@ -1148,12 +1148,24 @@ function buildActivityGroups(projects, from, to) {
   const cleared = projects.filter(isInFtcPipeline);
   const fromT = from ? new Date(from + 'T00:00:00.000Z').getTime() : null;
   const toT   = to   ? new Date(to   + 'T23:59:59.999Z').getTime() : null;
+  // INCLUSION test — a project qualifies for the breakup only if it has at least
+  // one FTC/TOC/COD milestone inside the selected window.
   const inRange = (d) => {
     if (!d) return false;
     const t = new Date(d).getTime();
     if (fromT != null && t < fromT) return false;
     if (toT   != null && t > toT)   return false;
     return true;
+  };
+  // DISPLAY test — the funnel is progressive (FTC → TOC → COD), so a project
+  // whose COD lands in-range usually got its FTC/TOC EARLIER, possibly before
+  // the window. Showing only in-range events made those earlier stages read as
+  // "0", hiding the real funnel. So the cells show every milestone achieved as
+  // of the window end (incl. backdated ones) — only future events (after `to`)
+  // are withheld, since they haven't happened yet as of the range.
+  const achieved = (d) => {
+    if (!d) return false;
+    return toT == null || new Date(d).getTime() <= toT;
   };
   const mapEv = (e) => ({ mw: Number(e.capacityMw ?? e.mw ?? 0), date: e.eventDate ?? e.date ?? null });
   const sum = (arr) => arr.reduce((s, e) => s + e.mw, 0);
@@ -1162,14 +1174,16 @@ function buildActivityGroups(projects, from, to) {
   for (const p of cleared) {
     const region = p.region.code;
     const source = projectSource(p);
-    // Aggregate the in-range events across all of the project's phases.
+    // Two passes intertwined: `anyInRange` decides inclusion; the event lists
+    // carry the full funnel (every milestone up to the window end).
     const ftcEvents = [], tocEvents = [], codEvents = [];
+    let anyInRange = false;
     for (const ph of (p.phases ?? [])) {
-      for (const e of (ph.ftcEvents ?? [])) if (inRange(e.eventDate)) ftcEvents.push(mapEv(e));
-      for (const e of (ph.tocEvents ?? [])) if (inRange(e.eventDate)) tocEvents.push(mapEv(e));
-      for (const e of (ph.codEvents ?? [])) if (inRange(e.eventDate)) codEvents.push(mapEv(e));
+      for (const e of (ph.ftcEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; if (achieved(e.eventDate)) ftcEvents.push(mapEv(e)); }
+      for (const e of (ph.tocEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; if (achieved(e.eventDate)) tocEvents.push(mapEv(e)); }
+      for (const e of (ph.codEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; if (achieved(e.eventDate)) codEvents.push(mapEv(e)); }
     }
-    if (ftcEvents.length + tocEvents.length + codEvents.length === 0) continue;
+    if (!anyInRange) continue;
     const key = `${region}|${source}`;
     if (!groups[key]) groups[key] = { region, source, contributors: [] };
     groups[key].contributors.push({
@@ -1261,7 +1275,7 @@ const TAB_META = {
   hybrid:       { title: 'Hybrid Breakdown — Contributors', subtitle: 'CLEARED hybrid projects, split by their constituent source components.' },
   sourcewise:   { title: 'Source-wise Pipeline — Contributors', subtitle: 'Same CLEARED projects as FTC Pipeline, grouped by Source × Region.' },
   transmission: { title: 'Transmission — Contributors',     subtitle: 'Transmission elements grouped by Region × Element Type.' },
-  activity:     { title: 'FTC / TOC / COD Activity — Contributors', subtitle: 'Each row is a project whose FTC / TOC / COD milestone date falls inside the selected range; cells show the in-range MW with dates.' },
+  activity:     { title: 'FTC / TOC / COD Activity — Contributors', subtitle: 'Each row is a project with at least one FTC / TOC / COD milestone in the selected range. Cells show the full funnel up to the range end — earlier FTC / TOC stages are shown even if they were achieved before the range (backdated).' },
 };
 
 // Layout modes for the pipeline + sourcewise tabs.
@@ -1499,7 +1513,7 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                     : downloadBreakupExcel(filtered, layout, selectedSources, selectedRegions))}
                   className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-1.5 py-1 transition-colors"
                   title={activeTab === 'activity'
-                    ? 'Download as Excel — FTC/TOC/COD in-range MW with dates'
+                    ? 'Download as Excel — full FTC/TOC/COD funnel (incl. backdated) for projects active in range'
                     : `Download as Excel — one sheet per ${layout === 'region' ? 'region' : 'source'}`}
                   aria-label="Download as Excel"
                 >
@@ -1513,7 +1527,7 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                     : downloadBreakupPdf(filtered, layout, selectedSources, selectedRegions))}
                   className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded px-1.5 py-1 transition-colors"
                   title={activeTab === 'activity'
-                    ? 'Download as PDF — FTC/TOC/COD in-range MW with dates'
+                    ? 'Download as PDF — full FTC/TOC/COD funnel (incl. backdated) for projects active in range'
                     : `Download as PDF — one page per ${layout === 'region' ? 'region' : 'source'}`}
                   aria-label="Download as PDF"
                 >
