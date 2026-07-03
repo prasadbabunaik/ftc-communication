@@ -752,7 +752,13 @@ export async function upsertContd4(projectId, formData) {
     if (issued > Number(project.totalCapacityMw) + 0.01) {
       return { error: `CONTD-4 Issued (${issued.toFixed(1)} MW) cannot exceed the total capacity (${Number(project.totalCapacityMw).toFixed(1)} MW).` };
     }
-    issuedUpdate = { capacityApr26Mw: issued };
+    // Single-shot entry: the capacity and its target month are captured together
+    // (the "to be completed in <month>" pairing). When dated declarations exist
+    // both are managed by refreshContd4Cache, so this branch is skipped.
+    issuedUpdate = {
+      capacityApr26Mw: issued,
+      capacityMonth:   data.capacityMonth && data.capacityMonth !== '' ? data.capacityMonth : null,
+    };
   }
   // remarksUpdatedAt drives the date shown beside the remark in the list
   // view. Two cases bump it:
@@ -792,6 +798,9 @@ export async function upsertContd4(projectId, formData) {
       { field: 'Remarks', old: fmtStr(existing.remarks), new: fmtStr(newValues.remarks) },
       ...('capacityApr26Mw' in issuedUpdate
         ? [{ field: 'CONTD-4 Issued', old: fmtMw(existing.capacityApr26Mw), new: fmtMw(issuedUpdate.capacityApr26Mw) }]
+        : []),
+      ...('capacityMonth' in issuedUpdate && (existing.capacityMonth ?? null) !== (issuedUpdate.capacityMonth ?? null)
+        ? [{ field: 'Target Month', old: fmtStr(existing.capacityMonth), new: fmtStr(issuedUpdate.capacityMonth) }]
         : []),
     ];
 

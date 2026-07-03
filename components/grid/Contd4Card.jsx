@@ -128,7 +128,11 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
       // exist it's a cached sum managed by refreshContd4Cache and the input is
       // hidden, so the field defaults to the current value either way.
       capacityApr26Mw: contd4?.capacityApr26Mw != null ? String(Number(contd4.capacityApr26Mw)) : '',
-      capacityMonth:   '',
+      // Target month the CONTD-4 capacity is to be completed in — entered right
+      // alongside the capacity in this form (matches the source register's
+      // "Capacity (MW) to be completed in <month>" column). When dated
+      // declarations exist, the month is mirrored from those instead.
+      capacityMonth:   contd4?.capacityMonth ?? '',
       status: contd4?.status ?? 'UNDER_PROCESS',
       remarks: contd4?.remarks ?? '',
       effectiveDate: lastEffectiveISO,
@@ -314,6 +318,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                 <History className="size-3" /> CONTD-4 Capacity Declarations
+                <span className="text-[9px] font-normal text-slate-400 normal-case tracking-normal">· optional — only for capacity announced in multiple dated tranches</span>
               </p>
               {canEdit && !showPhaseForm && (
                 <button
@@ -557,6 +562,33 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
                 <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm">
                   <span className="font-semibold text-foreground">{totalDeclared.toFixed(1)} MW</span>
                   <span className="text-[10px] text-muted-foreground ml-2">— sum of {phases.length} declaration{phases.length === 1 ? '' : 's'} (edit below)</span>
+                </div>
+              </FormItem>
+            )}
+            {/* Target month — the "to be completed in <month>" pairing for the
+                capacity above. Shown only for single-shot entry (no dated
+                declarations); when declarations exist the month is theirs. */}
+            {phases.length === 0 ? (
+              <FormField control={form.control} name="capacityMonth" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Target Month
+                    <span className="text-[10px] text-muted-foreground font-normal"> — to be completed in</span>
+                  </FormLabel>
+                  <FormControl>
+                    <select {...field} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <option value="">— optional —</option>
+                      {MONTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            ) : (
+              <FormItem>
+                <FormLabel className="text-muted-foreground">Target Month</FormLabel>
+                <div className="h-10 flex items-center px-3 rounded-md border border-input bg-muted/30 text-sm text-muted-foreground">
+                  <span className="text-[11px]">Set per declaration below</span>
                 </div>
               </FormItem>
             )}
