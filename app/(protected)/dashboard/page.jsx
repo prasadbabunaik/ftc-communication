@@ -7,7 +7,7 @@ import {
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission,
   computeHybridBreakdown, computeMilestoneActivity, computeHybridComponentBreakup,
-  getProjectSource, SOURCE_ORDER,
+  getProjectSource, SOURCE_ORDER, isProjectCommissioned,
 } from '@/lib/grid-computations';
 
 // Returns ISO date strings (YYYY-MM-DD, UTC) for every day strictly between
@@ -151,9 +151,20 @@ export default async function DashboardPage({ searchParams }) {
   // FULL region-scoped set (not source-filtered) so hybrids aren't dropped
   // before folding; buildPipelineRows then narrows to the selected source(s).
   const hybridMode = params.hybrid === 'incl' ? 'incl' : 'excl';
+
+  // "Exclude Commissioned" (?excludeCommissioned=1) — a view filter on the FTC
+  // Pipeline / Source-wise tables that drops fully-commissioned projects so only
+  // the still-under-process pipeline remains. Scoped to those tables + their
+  // hybrid breakup; the top stat cards keep the full totals (they stay stable).
+  const excludeCommissioned = params.excludeCommissioned === '1';
+  const dropCommissioned = (list) =>
+    excludeCommissioned ? list.filter((p) => !isProjectCommissioned(p)) : list;
+  const tableViewProjects = dropCommissioned(viewProjects); // source-filtered set
+  const tableAllProjects  = dropCommissioned(projects);     // full set (for hybrid fold/breakup)
+
   const pipelineMatrixForTables = hybridMode === 'incl'
-    ? computePipelineMatrix(projects, computeAsOf, { foldHybridComponents: true })
-    : pipelineMatrix;
+    ? computePipelineMatrix(tableAllProjects, computeAsOf, { foldHybridComponents: true })
+    : (excludeCommissioned ? computePipelineMatrix(tableViewProjects, computeAsOf) : pipelineMatrix);
   const tableFilters = hybridMode === 'incl' ? { ...filters, excludeHybrid: true } : filters;
   const table2Rows       = buildPipelineRows(pipelineMatrixForTables, 'region', 'source', tableFilters);
   const table5Rows       = buildPipelineRows(pipelineMatrixForTables, 'source', 'region', tableFilters);
@@ -164,8 +175,9 @@ export default async function DashboardPage({ searchParams }) {
   // only meaningful axis. Uses the unfiltered project set.
   const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
   // Per-region hybrid component split — drives the expandable breakup under each
-  // HYBRID row in the FTC-pipeline table (Grouped mode).
-  const hybridBreakup    = computeHybridComponentBreakup(projects, computeAsOf);
+  // HYBRID row in the FTC-pipeline table (Grouped mode). Honours "Exclude
+  // Commissioned" so the bifurcation matches the (filtered) HYBRID rows above it.
+  const hybridBreakup    = computeHybridComponentBreakup(tableAllProjects, computeAsOf);
   // Distinct constituent sources actually present across all hybrids — populates
   // the Hybrid-Parts picker so it only ever offers components that exist. Kept in
   // canonical SOURCE_ORDER for stable UI ordering.
@@ -326,6 +338,7 @@ export default async function DashboardPage({ searchParams }) {
       sources={SOURCE_ORDER}
       selectedSources={selectedSources}
       hybridMode={hybridMode}
+      excludeCommissioned={excludeCommissioned}
       hybridParts={availableHybridParts}
       selectedHybridParts={selectedHybridParts}
       stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending }}

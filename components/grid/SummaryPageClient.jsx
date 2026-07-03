@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
@@ -294,11 +294,24 @@ const PIPELINE_NUM_FIELDS = [
 ];
 const r3 = (v) => Math.round((Number(v) || 0) * 1000) / 1000;
 
-function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, selectedHybridParts = [], availableHybridParts = [], hybridMode = 'excl', selectedSources = [] }) {
+function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, selectedHybridParts = [], availableHybridParts = [], hybridMode = 'excl', selectedSources = [], excludeCommissioned = false }) {
+  const router = useRouter();
+  const sp     = useSearchParams();
   const [expanded, setExpanded] = useState(() => new Set());
   // Hide leaf rows whose every figure is 0 (a region's empty COAL/HYDRO
   // scaffold rows, etc.). OFF by default — the full scaffold shows as before.
   const [hideZero, setHideZero] = useState(false);
+
+  // "Exclude Commissioned" recomputes the aggregates server-side (a project's
+  // commissioned status can't be derived from the summed rows here), so it's a
+  // URL param that re-renders the page — unlike the pure-view "Hide zero rows".
+  const [ecPending, startEc] = useTransition();
+  const toggleExcludeCommissioned = (on) => {
+    const params = new URLSearchParams(sp);
+    if (on) params.set('excludeCommissioned', '1');
+    else    params.delete('excludeCommissioned');
+    startEc(() => router.push(`/dashboard${params.toString() ? '?' + params.toString() : ''}`));
+  };
   if (!rows?.length) return <Empty />;
   const isRegionPrimary = primaryKey === 'region';
   const toggle = (region) => setExpanded((prev) => {
@@ -434,6 +447,19 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
             {desc && <p className="text-[10px] text-slate-500 mt-0.5">{desc}</p>}
           </div>
           <div className="flex items-center gap-3 shrink-0">
+            <label
+              className={`flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-medium ${excludeCommissioned ? 'text-blue-700' : 'text-slate-600 hover:text-slate-800'} ${ecPending ? 'opacity-60' : ''}`}
+              title="Drop fully-commissioned projects (COD complete) and show only the still-under-process pipeline"
+            >
+              <input
+                type="checkbox"
+                checked={excludeCommissioned}
+                disabled={ecPending}
+                onChange={(e) => toggleExcludeCommissioned(e.target.checked)}
+                className="size-3.5 accent-blue-600"
+              />
+              Exclude Commissioned
+            </label>
             <label
               className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-medium text-slate-600 hover:text-slate-800"
               title="Hide rows where every column is 0 (subtotals and totals always stay)"
@@ -1584,6 +1610,7 @@ export function SummaryPageClient({
   regionLabel, asOf, activityFrom, activityTo,
   regions = [], selectedRegions = [], canFilterRegion = false,
   sources = [], selectedSources = [], hybridMode = 'excl',
+  excludeCommissioned = false,
   hybridParts = [], selectedHybridParts = [],
   stats, table2Rows, table5Rows, contd4Study,
   transmissionRows, hybridRows, hybridBreakup = {}, bessProjects = [], activity, projects, txElements,
@@ -1724,14 +1751,15 @@ export function SummaryPageClient({
             rows={table2Rows}
             primaryKey="region"
             refMonthLabel={refMonthLabel}
-            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
-            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
+            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}${excludeCommissioned ? ' · Under Process only' : ''}`}
+            desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}${excludeCommissioned ? ' | Commissioned projects excluded.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
             hybridBreakup={hybridBreakup}
             selectedHybridParts={selectedHybridParts}
             availableHybridParts={hybridParts}
             hybridMode={hybridMode}
             selectedSources={selectedSources}
+            excludeCommissioned={excludeCommissioned}
           />
         )}
 
@@ -1748,9 +1776,10 @@ export function SummaryPageClient({
             rows={table5Rows}
             primaryKey="source"
             refMonthLabel={refMonthLabel}
-            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}`}
-            desc={`Same pipeline data pivoted: rows grouped by source type, each sub-row is a region.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source group.' : ''}`}
+            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}${excludeCommissioned ? ' · Under Process only' : ''}`}
+            desc={`Same pipeline data pivoted: rows grouped by source type, each sub-row is a region.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source group.' : ''}${excludeCommissioned ? ' | Commissioned projects excluded.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
+            excludeCommissioned={excludeCommissioned}
           />
         )}
 
