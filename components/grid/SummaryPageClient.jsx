@@ -14,7 +14,7 @@ import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
 import { TabBreakdown } from '@/components/grid/TabBreakdown';
 import { AsOfDatePicker } from '@/components/grid/AsOfDatePicker';
 import { RegionPicker } from '@/components/grid/RegionPicker';
-import { SourcePicker } from '@/components/grid/SourcePicker';
+import { SourcePicker, HybridPartPicker } from '@/components/grid/SourcePicker';
 import { LastChangesCard } from '@/components/grid/LastChangesCard';
 import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
 
@@ -276,7 +276,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
 
 // ── Table 2 / 5 — FTC Pipeline ────────────────────────────────────────────────
 
-function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {} }) {
+function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, desc, onViewBreakup, hybridBreakup = {}, hybridParts = [] }) {
   const [expanded, setExpanded] = useState(() => new Set());
   // Hide leaf rows whose every figure is 0 (a region's empty COAL/HYDRO
   // scaffold rows, etc.). OFF by default — the full scaffold shows as before.
@@ -308,9 +308,13 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   // region (region-wise view only) — including the All-India summary row,
   // whose split is the cross-region aggregate. Expanding inserts the Wind /
   // Solar / BESS breakup rows right below (they sum back to the HYBRID row).
+  // Optional sub-source narrowing (?hybridParts=WIND,SOLAR). Empty ⇒ all parts.
+  const partSet = new Set(hybridParts);
   const compsFor = (row) =>
     (isRegionPrimary && row.source === 'HYBRID' && !row.isHybridComponent && !row.isSubtotal && !row.isTotal)
-      ? (hybridBreakup[row.region] ?? []).filter((c) => c.totalCapacityMw > 0 || c.appliedMw > 0)
+      ? (hybridBreakup[row.region] ?? [])
+          .filter((c) => c.totalCapacityMw > 0 || c.appliedMw > 0)
+          .filter((c) => partSet.size === 0 || partSet.has(c.source))
       : [];
 
   const orderedRows = [];
@@ -1481,6 +1485,7 @@ export function SummaryPageClient({
   regionLabel, asOf, activityFrom, activityTo,
   regions = [], selectedRegions = [], canFilterRegion = false,
   sources = [], selectedSources = [], hybridMode = 'excl',
+  hybridParts = [], selectedHybridParts = [],
   stats, table2Rows, table5Rows, contd4Study,
   transmissionRows, hybridRows, hybridBreakup = {}, bessProjects = [], activity, projects, txElements,
   availableSnapshots,
@@ -1591,6 +1596,11 @@ export function SummaryPageClient({
           {(activeTab === 'pipeline' || activeTab === 'sourcewise' || activeTab === 'activity') && (
             <HybridModeToggle mode={hybridMode} />
           )}
+          {/* Independent sub-source filter — only narrows the FTC Pipeline's
+              expandable HYBRID bifurcation, so it appears only on that tab. */}
+          {activeTab === 'pipeline' && (
+            <HybridPartPicker parts={hybridParts} selectedParts={selectedHybridParts} />
+          )}
         </div>
       </div>
 
@@ -1619,6 +1629,7 @@ export function SummaryPageClient({
             desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
             hybridBreakup={hybridBreakup}
+            hybridParts={selectedHybridParts}
           />
         )}
 

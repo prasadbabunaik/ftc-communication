@@ -89,6 +89,11 @@ export default async function DashboardPage({ searchParams }) {
   // since "source" is computed, not a column. Transmission is unaffected.
   const selectedSources = parseCsv(params.source).filter(c => SOURCE_ORDER.includes(c));
 
+  // Hybrid-parts sub-filter (?hybridParts=WIND,SOLAR). Independent of the main
+  // source filter: it only narrows which constituent sub-rows appear when a
+  // HYBRID row is expanded in the FTC Pipeline. Validated against SOURCE_ORDER.
+  const selectedHybridParts = parseCsv(params.hybridParts).filter(c => SOURCE_ORDER.includes(c));
+
   // Restrict to projects/elements that were "live" on the requested date.
   // With no asOf, this becomes `activeUntil IS NULL` — i.e. currently-active.
   const activeFilter = activePeriodFilter(asOf);
@@ -161,6 +166,12 @@ export default async function DashboardPage({ searchParams }) {
   // Per-region hybrid component split — drives the expandable breakup under each
   // HYBRID row in the FTC-pipeline table (Grouped mode).
   const hybridBreakup    = computeHybridComponentBreakup(projects, computeAsOf);
+  // Distinct constituent sources actually present across all hybrids — populates
+  // the Hybrid-Parts picker so it only ever offers components that exist. Kept in
+  // canonical SOURCE_ORDER for stable UI ordering.
+  const availableHybridParts = SOURCE_ORDER.filter(src =>
+    Object.values(hybridBreakup).some(rows =>
+      (rows ?? []).some(c => c.source === src && (c.totalCapacityMw > 0 || c.appliedMw > 0))));
 
   // BESS Data tab: plain BESS plants + hybrids carrying a BESS component +
   // intra-state storage. Like the hybrid tab it ignores the source filter
@@ -315,6 +326,8 @@ export default async function DashboardPage({ searchParams }) {
       sources={SOURCE_ORDER}
       selectedSources={selectedSources}
       hybridMode={hybridMode}
+      hybridParts={availableHybridParts}
+      selectedHybridParts={selectedHybridParts}
       stats={{ totalApplied, totalFtc, totalToc, totalCod, contd4Active, txPending }}
       table2Rows={JSON.parse(JSON.stringify(table2Rows))}
       table5Rows={JSON.parse(JSON.stringify(table5Rows))}

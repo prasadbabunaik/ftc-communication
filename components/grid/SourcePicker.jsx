@@ -3,7 +3,7 @@
 import * as Popover from '@radix-ui/react-popover';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { Layers, Zap, Check, ChevronDown, Loader2 } from 'lucide-react';
+import { Layers, Zap, Check, ChevronDown, Loader2, GitBranch } from 'lucide-react';
 
 // Friendly labels for the source-bucket codes used by getProjectSource /
 // SOURCE_ORDER. Keep in sync with lib/grid-computations.js.
@@ -101,6 +101,110 @@ export function SourcePicker({ sources = [], selectedSources = [], disabled = fa
                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md text-left transition-colors hover:bg-slate-100 ${on ? 'bg-violet-50' : ''}`}
               >
                 <span className={`flex items-center justify-center size-3.5 rounded-[4px] border ${on ? 'bg-violet-600 border-violet-600' : 'border-slate-300'}`}>
+                  {on && <Check className="size-2.5 text-white" />}
+                </span>
+                <span className="text-slate-700">{SOURCE_LABELS[code] ?? code}</span>
+              </button>
+            );
+          })}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+// Secondary filter for the FTC Pipeline's expandable HYBRID bifurcation. It is
+// INDEPENDENT of the main Source filter: it does NOT drop projects or change any
+// parent HYBRID total — it only narrows which constituent sub-rows (Wind / Solar
+// / BESS / …) are shown when a HYBRID row is expanded. Driven by a comma-
+// separated ?hybridParts=WIND,SOLAR URL param. Empty = show all components.
+export function HybridPartPicker({ parts = [], selectedParts = [], disabled = false }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
+
+  const selected = selectedParts.filter((c) => parts.includes(c));
+
+  function pushCodes(codes) {
+    const ordered = parts.filter((c) => codes.includes(c)); // canonical order
+    const params = new URLSearchParams(searchParams);
+    if (!ordered.length) params.delete('hybridParts');
+    else params.set('hybridParts', ordered.join(','));
+    startTransition(() => {
+      router.push(`/dashboard${params.toString() ? '?' + params.toString() : ''}`);
+    });
+  }
+
+  function toggle(code) {
+    pushCodes(selected.includes(code) ? selected.filter((c) => c !== code) : [...selected, code]);
+  }
+  function clearAll() { pushCodes([]); setOpen(false); }
+
+  const active = selected.length > 0;
+  const label = selected.length === 0
+    ? 'All Parts'
+    : selected.length === 1
+      ? (SOURCE_LABELS[selected[0]] ?? selected[0])
+      : `${selected.length} parts`;
+
+  // Nothing to filter when the dataset has no hybrid components at all.
+  if (!parts.length) return null;
+
+  return (
+    <Popover.Root open={disabled ? false : open} onOpenChange={(o) => !disabled && setOpen(o)}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          disabled={isPending || disabled}
+          title={disabled ? 'Hybrid parts apply only to the FTC Pipeline bifurcation' : 'Filter which Wind / Solar / BESS sub-rows appear when a HYBRID row is expanded'}
+          className={`relative flex items-center gap-3 pl-3.5 pr-3 h-11 rounded-lg border bg-white transition-colors shadow-sm text-left ${
+            disabled
+              ? 'border-slate-200 opacity-50 cursor-not-allowed'
+              : active
+              ? 'border-teal-300 bg-teal-50/40 hover:bg-teal-50 cursor-pointer'
+              : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+          }`}
+        >
+          <GitBranch className={`size-[18px] ${active ? 'text-teal-600' : 'text-slate-500'}`} />
+          <div className="flex flex-col leading-tight pr-1 max-w-[150px]">
+            <span className="text-[9px] uppercase tracking-wide font-semibold text-slate-500">Hybrid Parts</span>
+            <span className={`text-[13px] font-bold truncate ${active ? 'text-teal-800' : 'text-slate-800'}`}>
+              {label}
+            </span>
+          </div>
+          {isPending ? <Loader2 className="size-3.5 text-teal-600 animate-spin" /> : <ChevronDown className="size-4 text-slate-400" />}
+        </button>
+      </Popover.Trigger>
+
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={8}
+          className="z-50 w-[220px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl
+                     data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95
+                     data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+        >
+          <button
+            type="button"
+            onClick={clearAll}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md text-left transition-colors hover:bg-slate-100 ${!active ? 'bg-slate-100/70' : ''}`}
+          >
+            <Check className={`size-3.5 text-teal-600 ${!active ? 'opacity-100' : 'opacity-0'}`} />
+            <GitBranch className="size-3.5 text-slate-500" />
+            <span className="font-medium">All Parts</span>
+          </button>
+          <div className="my-1 border-t border-slate-100" />
+          {parts.map((code) => {
+            const on = selected.includes(code);
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => toggle(code)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md text-left transition-colors hover:bg-slate-100 ${on ? 'bg-teal-50' : ''}`}
+              >
+                <span className={`flex items-center justify-center size-3.5 rounded-[4px] border ${on ? 'bg-teal-600 border-teal-600' : 'border-slate-300'}`}>
                   {on && <Check className="size-2.5 text-white" />}
                 </span>
                 <span className="text-slate-700">{SOURCE_LABELS[code] ?? code}</span>
