@@ -14,7 +14,7 @@ import { ProjectDetailsTab } from '@/components/grid/ProjectDetailsTab';
 import { TabBreakdown } from '@/components/grid/TabBreakdown';
 import { AsOfDatePicker } from '@/components/grid/AsOfDatePicker';
 import { RegionPicker } from '@/components/grid/RegionPicker';
-import { SourcePicker, HybridPartPicker } from '@/components/grid/SourcePicker';
+import { SourcePicker } from '@/components/grid/SourcePicker';
 import { LastChangesCard } from '@/components/grid/LastChangesCard';
 import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
 
@@ -1586,20 +1586,19 @@ export function SummaryPageClient({
         <div className="h-14 flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-0.5">Filters</span>
           {canFilterRegion && <RegionPicker regions={regions} selectedRegions={selectedRegions} />}
+          {/* Nested "hybrid parts" child options only steer the FTC Pipeline
+              bifurcation — expose them only on that tab. */}
           <SourcePicker
             sources={sources}
             selectedSources={selectedSources}
             disabled={activeTab === 'transmission' || activeTab === 'changes' || activeTab === 'hybrid'}
+            hybridParts={activeTab === 'pipeline' ? hybridParts : []}
+            selectedHybridParts={selectedHybridParts}
           />
           {/* Including / Excluding Hybrid — supported on the FTC Pipeline,
               Source-wise and FTC/TOC/COD Activity tabs. */}
           {(activeTab === 'pipeline' || activeTab === 'sourcewise' || activeTab === 'activity') && (
             <HybridModeToggle mode={hybridMode} />
-          )}
-          {/* Independent sub-source filter — only narrows the FTC Pipeline's
-              expandable HYBRID bifurcation, so it appears only on that tab. */}
-          {activeTab === 'pipeline' && (
-            <HybridPartPicker parts={hybridParts} selectedParts={selectedHybridParts} />
           )}
         </div>
       </div>
