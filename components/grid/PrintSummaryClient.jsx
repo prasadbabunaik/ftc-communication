@@ -870,7 +870,7 @@ export function PrintSummaryClient({ dateLabel, excludeCommissioned = false, sco
           {tables.has('region') && (
             <div className="mb-6">
               <SectionTitle tableNo={nextNo()}>
-                Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
+                Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise
               </SectionTitle>
               <PipelineTable rows={table2Rows} primaryKey="region" scopeRegionCode={scopeRegionCode} cols={colSets.region} />
             </div>
@@ -900,7 +900,7 @@ export function PrintSummaryClient({ dateLabel, excludeCommissioned = false, sco
           {tables.has('source') && (
             <div className="mb-6 page-break">
               <SectionTitle tableNo={nextNo()}>
-                Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
+                Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise
               </SectionTitle>
               <PipelineTable rows={table5Rows} primaryKey="source" scopeRegionCode={scopeRegionCode} cols={colSets.source} />
             </div>
@@ -937,7 +937,7 @@ export function PrintSummaryClient({ dateLabel, excludeCommissioned = false, sco
             return availableSources.map((src, idx) => (
               <div key={src} className="mb-6 page-break">
                 <SectionTitle tableNo={`${detailNo}.${idx + 1}`}>
-                  {src} — Project-wise Generation Capacity Details Under FTC / TOC / COD
+                  {src} — Project-wise ISTS Generation Capacity Details Under FTC / TOC / COD
                 </SectionTitle>
                 <SourceProjectTable source={src} projects={projects} scopeRegionCode={scopeRegionCode} cols={colSets.sources} />
               </div>

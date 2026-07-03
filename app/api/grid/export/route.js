@@ -259,7 +259,7 @@ function buildSourceDetailSheet(source, projects, asOf) {
     .sort((a, b) => REGION_ORDER.indexOf(a.region.code) - REGION_ORDER.indexOf(b.region.code));
 
   const a = acc();
-  row(a, 'title',  [`${source} Generation Capacity Details Under FTC/TOC/COD`]);
+  row(a, 'title',  [`${source} ISTS Generation Capacity Details Under FTC/TOC/COD`]);
   row(a, 'header', [
     'Sr. No', 'Generating Station', 'Pooling Station',
     'Plant Type', 'Region',
@@ -346,7 +346,7 @@ function buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel) {
   row(a, 'spacer', []);
 
   // ── Table 2: Region-wise ──────────────────────────────────────────────────
-  row(a, 'title',  ['Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise']);
+  row(a, 'title',  ['Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise']);
   row(a, 'header', PIPE_HEADER('Region'));
   for (const r of table2Rows) {
     const label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${r.region} Total` : r.region;
@@ -361,7 +361,7 @@ function buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel) {
   row(a, 'spacer', []);
 
   // ── Table 5: Source-wise ──────────────────────────────────────────────────
-  row(a, 'title',  ['Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise']);
+  row(a, 'title',  ['Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise']);
   row(a, 'header', PIPE_HEADER('Source (Type)'));
   for (const r of table5Rows) {
     const label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${r.source} Total` : r.source;
@@ -449,13 +449,13 @@ export async function GET(request) {
 
   XLSX.utils.book_append_sheet(
     wb,
-    buildPipelineSheet(table2Rows, `Total Generation Capacity Details Under FTC/TOC/COD (MW) as on ${dateLabel} (Region-wise)`, 'region'),
+    buildPipelineSheet(table2Rows, `Total ISTS Generation Capacity Details Under FTC/TOC/COD (MW) as on ${dateLabel} (Region-wise)`, 'region'),
     'Region-wise',
   );
 
   XLSX.utils.book_append_sheet(
     wb,
-    buildPipelineSheet(table5Rows, `Total Generation Capacity Details Under FTC/TOC/COD (MW) as on ${dateLabel} (Source-wise)`, 'source'),
+    buildPipelineSheet(table5Rows, `Total ISTS Generation Capacity Details Under FTC/TOC/COD (MW) as on ${dateLabel} (Source-wise)`, 'source'),
     'Source-wise',
   );
 

@@ -1635,10 +1635,10 @@ export function SummaryPageClient({
   const tabs = [
     // `tooltip` = the full table title from the source Google Sheet, shown on
     // hover so the tab labels themselves can stay short.
-    { id: 'pipeline',     label: 'FTC Pipeline',      icon: TrendingUp,   tooltip: 'Total Generation Capacity Details Under FTC/TOC/COD (MW)' },
+    { id: 'pipeline',     label: 'FTC Pipeline',      icon: TrendingUp,   tooltip: 'Total ISTS Generation Capacity Details Under FTC/TOC/COD (MW)' },
     { id: 'contd4',       label: 'CONTD-4 Study',     icon: Layers,       tooltip: 'Total Capacity (MW) Under CONTD-4 Study' },
     { id: 'hybrid',       label: 'Hybrid Breakdown',  icon: GitBranch,    tooltip: 'Total Hybrid Capacity Details Under FTC/TOC/COD (MW)' },
-    { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3,      tooltip: 'Total Generation Capacity Details Under FTC/TOC/COD (MW) (Source-wise)' },
+    { id: 'sourcewise',   label: 'Source-wise',        icon: Grid3x3,      tooltip: 'Total ISTS Generation Capacity Details Under FTC/TOC/COD (MW) (Source-wise)' },
     { id: 'transmission', label: 'Transmission',       icon: Cable,        tooltip: 'Transmission Elements Details of FTC' },
     { id: 'activity',     label: 'FTC/TOC/COD Activity', icon: CalendarDays },
     { id: 'projects',     label: 'Project Details',   icon: ListTree     },
@@ -1759,7 +1759,7 @@ export function SummaryPageClient({
             rows={table2Rows}
             primaryKey="region"
             refMonthLabel={refMonthLabel}
-            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}${excludeCommissioned ? ' · Under Process only' : ''}`}
+            title={`Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}${excludeCommissioned ? ' · Under Process only' : ''}`}
             desc={`Capacity funnel: Applied → FTC Approved → TOC Issued → COD Declared. FTC Pending = actively under FTC process.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source row.' : ''}${excludeCommissioned ? ' | Commissioned projects excluded.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
             hybridBreakup={hybridBreakup}
@@ -1784,7 +1784,7 @@ export function SummaryPageClient({
             rows={table5Rows}
             primaryKey="source"
             refMonthLabel={refMonthLabel}
-            title={`Total Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}${excludeCommissioned ? ' · Under Process only' : ''}`}
+            title={`Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise${hybridMode === 'incl' ? ' · Incl. Hybrid' : ''}${excludeCommissioned ? ' · Under Process only' : ''}`}
             desc={`Same pipeline data pivoted: rows grouped by source type, each sub-row is a region.${hybridMode === 'incl' ? ' | Including Hybrid: each hybrid’s per-component capacity is folded into its source group.' : ''}${excludeCommissioned ? ' | Commissioned projects excluded.' : ''}`}
             onViewBreakup={() => setBreakdownOpen(true)}
             excludeCommissioned={excludeCommissioned}

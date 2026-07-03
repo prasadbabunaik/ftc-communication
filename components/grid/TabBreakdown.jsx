@@ -117,7 +117,7 @@ function normaliseSections(filteredGroups, layout) {
     }
     return Object.entries(bySource).map(([source, regionGroups]) => ({
       outerLabel: source,
-      sectionTitle: `${source} Generation Capacity Details Under FTC/TOC/COD`,
+      sectionTitle: `${source} ISTS Generation Capacity Details Under FTC/TOC/COD`,
       clusters: regionGroups.map((g) => ({
         key: g.region,
         label: `Total ${g.region} ${source}`,
@@ -145,7 +145,7 @@ function normaliseSections(filteredGroups, layout) {
     const clusters = clusterContributors(g.contributors, 'region', []);
     return {
       outerLabel: g.source,
-      sectionTitle: `${g.source} Generation Capacity Details Under FTC/TOC/COD`,
+      sectionTitle: `${g.source} ISTS Generation Capacity Details Under FTC/TOC/COD`,
       clusters: clusters.map((cl) => ({
         key: cl.key,
         label: `Total ${cl.key} ${g.source}`,
@@ -920,7 +920,7 @@ function buildPipelineGroups(projects, asOf = null) {
 //                   row carries its region. Rows are clustered by region with
 //                   a "Total <source> <region>" subtotal, plus a grand
 //                   "Total <source>" at the bottom. This matches the "Source
-//                   wise" sheet ("Wind Generation Capacity Details Under
+//                   wise" sheet ("Wind ISTS Generation Capacity Details Under
 //                   FTC/TOC/COD", etc.).
 //
 // Each contributor in the consolidated section already has its `region` and
