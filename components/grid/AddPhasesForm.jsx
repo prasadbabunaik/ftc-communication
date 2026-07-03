@@ -891,6 +891,14 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const selectedSource = form.watch(`${prefix}.sourceType`);
   const srcState = existingPipeline[selectedSource] ?? { ftc: 0, toc: 0, cod: 0 };
 
+  // A hybrid's component rows are created one-per-source and the header reads
+  // "WIND Component" / "SOLAR Component" etc. — so the Source Type is fixed to
+  // that labelled source. Offering the other sources would let one component be
+  // relabelled into another, creating duplicate/invalid source combinations.
+  // Non-hybrids already resolve to a single source, so they stay locked too.
+  const rowSources   = isHybrid && selectedSource ? [selectedSource] : availableSources;
+  const sourceLocked = rowSources.length === 1;
+
   // useWatch (not form.watch) so per-lane limits/warnings re-render reliably on
   // nested event-array edits (add/edit/delete MW) — form.watch can miss these.
   const watchedFtcEvents = useWatch({ control: form.control, name: `${prefix}.ftcEvents` }) ?? [];
@@ -952,11 +960,13 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
           <label className="text-xs font-medium text-foreground block mb-1.5">Source Type *</label>
           <select
             {...form.register(`${prefix}.sourceType`)}
+            aria-readonly={sourceLocked}
+            title={sourceLocked ? 'Fixed to this component’s source' : undefined}
             className={`h-10 w-full rounded-md border border-input px-3 text-sm ${
-              availableSources.length === 1 ? 'bg-muted/30 cursor-default pointer-events-none' : 'bg-background'
+              sourceLocked ? 'bg-muted/30 cursor-default pointer-events-none' : 'bg-background'
             }`}
           >
-            {availableSources.map((s) => <option key={s} value={s}>{s}</option>)}
+            {rowSources.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           {errors?.sourceType && <p className="text-xs text-destructive mt-1">{errors.sourceType.message}</p>}
         </div>
