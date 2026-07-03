@@ -607,7 +607,26 @@ export async function updateBessRowFields(projectId, fields) {
     const s = typeof fields.stateName === 'string' ? fields.stateName.trim() : '';
     data.stateName = s === '' ? null : s;
   }
-  if ('energyCommissionedMwh' in fields) {
+  // Phase-wise energy commissioning: an array of { mwh, date?, remarks? }. Each
+  // row's date is OPTIONAL. We store the cleaned array in energyPhasesJson and
+  // mirror the SUM into the cached energyCommissionedMwh so every existing
+  // reader/export (which reads the cached field) keeps working unchanged.
+  if ('energyPhases' in fields) {
+    const rows = Array.isArray(fields.energyPhases) ? fields.energyPhases : [];
+    const clean = [];
+    for (const r of rows) {
+      const raw = r?.mwh;
+      if (raw == null || String(raw).trim() === '') continue; // skip blank rows
+      const e = parseFloat(raw);
+      if (isNaN(e) || e < 0) return { error: 'Each energy-commissioned value must be a non-negative number.' };
+      const d = r?.date && String(r.date).trim() !== '' ? String(r.date).trim() : null;
+      const rem = r?.remarks && String(r.remarks).trim() !== '' ? String(r.remarks).trim() : null;
+      clean.push({ mwh: e, date: d, remarks: rem });
+    }
+    data.energyPhasesJson      = clean.length ? clean : null;
+    data.energyCommissionedMwh = clean.length ? clean.reduce((s, r) => s + r.mwh, 0) : null;
+  } else if ('energyCommissionedMwh' in fields) {
+    // Legacy single-value path (kept for backward compatibility).
     const raw = fields.energyCommissionedMwh;
     if (raw == null || String(raw).trim() === '') {
       data.energyCommissionedMwh = null;

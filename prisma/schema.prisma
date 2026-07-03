@@ -143,9 +143,14 @@ model GenerationProject {
   // tab's "State (situated)" column.
   stateName String?
 
-  // Cumulative energy commissioned (MWh) — BESS-specific figure from the
-  // source sheet; display-only for now.
+  // Cumulative energy commissioned (MWh) — BESS-specific figure. This is now a
+  // cached SUM of energyPhasesJson (kept so every reader/export stays unchanged).
   energyCommissionedMwh Decimal? @db.Decimal(12, 2)
+
+  // Phase-wise energy commissioning (BESS): an array of { mwh, date, remarks }
+  // where date is OPTIONAL. Total = SUM(mwh), mirrored into
+  // energyCommissionedMwh on save. Stored as JSON to avoid a new relation table.
+  energyPhasesJson Json?
 
   // Manual commissioning override. The FTC tracker normally derives
   // "Commissioned" from declared COD MW reaching total capacity. This flag lets

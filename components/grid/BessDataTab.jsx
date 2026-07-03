@@ -118,6 +118,8 @@ export function buildRow(p, referenceMonth, range = null) {
     stateName: p.stateName ?? '',
     codDeclared,
     energyMwh: p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null,
+    // Phase-wise energy commissioning ({ mwh, date, remarks }) for the edit modal.
+    energyPhases: Array.isArray(p.energyPhasesJson) ? p.energyPhasesJson : [],
     codInRefMonth,
     codRangeMonths,
     codInRange,
