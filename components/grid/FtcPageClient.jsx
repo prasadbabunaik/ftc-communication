@@ -8,6 +8,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { FtcTable } from '@/components/grid/FtcTable';
 import { ProjectDetailModal } from '@/components/grid/ProjectDetailModal';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
+import { Contd4Card } from '@/components/grid/Contd4Card';
 import { CreateProjectForm } from '@/components/grid/CreateProjectForm';
 import { FtcExportButtons } from '@/components/grid/FtcExportButtons';
 import {
@@ -193,6 +194,22 @@ export function FtcPageClient({
                 data will add it — independent of its CONTD-4 status
                 ({selectedProject.contd4Status ?? 'no CONTD-4'}).
               </p>
+            )}
+
+            {/* CONTD-4 Application — same card the project-detail modal shows, so
+                both entry points are consistent and CONTD-4 can be added here. */}
+            {mode === 'pick' && selectedProject && (
+              <div className="mb-4">
+                <Contd4Card
+                  contd4={selectedProject.contd4 ?? null}
+                  projectId={selectedProject.id}
+                  canEdit={canEdit}
+                  userRole={userRole}
+                  regionCode={selectedProject.region?.code}
+                  notes={selectedProject.notes ?? []}
+                  totalCapacityMw={selectedProject.totalCapacityMw}
+                />
+              </div>
             )}
 
             {mode === 'pick' && selectedProject && (

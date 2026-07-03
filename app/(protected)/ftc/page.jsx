@@ -88,9 +88,20 @@ export default async function FtcPage({ searchParams }) {
   const selectable = await prisma.generationProject.findMany({
     where: { ...scope, ...activePeriodFilter(asOf) },
     include: {
-      region: true, plantType: true,
-      contd4: { select: { status: true } },
+      region: true, plantType: true, poolingStation: true,
+      // Full CONTD-4 record (not just status) + notes so the Add Source /
+      // Component picker can render the SAME CONTD-4 Application card as the
+      // project-detail modal — the two entry points must be consistent.
+      contd4: {
+        include: {
+          phases: {
+            where: asOf ? { declaredDate: { lte: asOf } } : undefined,
+            orderBy: { declaredDate: 'asc' },
+          },
+        },
+      },
       phases: true,
+      notes: { include: { user: true }, orderBy: { createdAt: 'desc' } },
     },
     orderBy: { name: 'asc' },
   });
@@ -100,6 +111,9 @@ export default async function FtcPage({ searchParams }) {
       name:            p.name,
       inFtcPipeline:   p.inFtcPipeline,
       contd4Status:    p.contd4?.status ?? null,
+      contd4:          p.contd4 ?? null,
+      notes:           p.notes ?? [],
+      poolingStation:  p.poolingStation ?? null,
       totalCapacityMw: Number(p.totalCapacityMw),
       windCapacityMw:  componentCap(p, 'WIND'),
       solarCapacityMw: componentCap(p, 'SOLAR'),
