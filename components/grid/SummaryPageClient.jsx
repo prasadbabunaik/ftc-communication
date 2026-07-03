@@ -1628,6 +1628,22 @@ export function SummaryPageClient({
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const { settings } = useSettings();
   const refMonthLabel = fmtRefMonthShort(settings.referenceMonth);
+  const tabRouter = useRouter();
+  const tabSp     = useSearchParams();
+
+  // Switching tabs resets all tab-level filters to their defaults so a filter
+  // set on one tab (e.g. Source = Solar, or a custom activity date range) never
+  // silently carries into the next. `asOf` is the global snapshot date, not a
+  // per-tab filter, so it's preserved. Clearing `from`/`to` also restores the
+  // activity tab's default window (last 30 days, applied server-side).
+  const TAB_FILTER_PARAMS = ['region', 'source', 'hybrid', 'excludeCommissioned', 'hybridParts', 'from', 'to'];
+  const changeTab = (id) => {
+    setActiveTab(id);   // instant; client state survives the searchParams nav below
+    const params = new URLSearchParams(tabSp);
+    let cleared = false;
+    for (const k of TAB_FILTER_PARAMS) if (params.has(k)) { params.delete(k); cleared = true; }
+    if (cleared) tabRouter.push(`/dashboard${params.toString() ? '?' + params.toString() : ''}`);
+  };
 
   // The View-Breakup button now lives inside each table's section header
   // (only the 6 aggregating tabs render it).
@@ -1673,7 +1689,7 @@ export function SummaryPageClient({
         <LastChangesCard
           availableSnapshots={availableSnapshots}
           currentAsOf={asOf}
-          onOpenRangeDiff={() => setActiveTab('changes')}
+          onOpenRangeDiff={() => changeTab('changes')}
         />
       </div>
 
@@ -1698,7 +1714,7 @@ export function SummaryPageClient({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => changeTab(tab.id)}
                 title={tab.tooltip || tab.label}
                 className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[13px] lg:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   active

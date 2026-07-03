@@ -36,10 +36,11 @@ export default async function DashboardPage({ searchParams }) {
   const asOf      = asOfStr ? new Date(asOfStr) : null;
 
   // Milestone-activity date range (FTC/TOC/COD Activity tab). `from`/`to` are
-  // YYYY-MM-DD. Default: current month 1st → today.
+  // YYYY-MM-DD. Default: the last 30 days (today and the 29 days before it) —
+  // matching the "Last 30 days" quick preset.
   const now = new Date();
-  const defaultFrom = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`;
   const defaultTo   = now.toISOString().slice(0, 10);
+  const defaultFrom = new Date(now.getTime() - 29 * 86400000).toISOString().slice(0, 10);
   const activityFromStr = params.from ?? defaultFrom;
   const activityToStr   = params.to   ?? defaultTo;
   const activityFrom = new Date(activityFromStr + 'T00:00:00.000Z');
