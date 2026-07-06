@@ -208,12 +208,13 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
   // A "name-only" HYBRID row (partial parts selected): its total no longer equals
   // the shown sub-rows, so every quantum is intentionally left blank.
   const nameOnly = row.nameOnly;
-  const N = ({ v, cls = '' }) => {
+  const N = ({ v, cls = '', rowSpan }) => {
     const cleanCls = isFooterRow ? stripBg(cls) : cls;
     return (
       <td
+        rowSpan={rowSpan}
         style={cellStyle}
-        className={`px-4 py-2.5 text-center tabular-nums ${bold ? 'font-bold' : ''} ${cleanCls}`}
+        className={`px-4 py-2.5 text-center tabular-nums ${rowSpan ? 'align-middle' : ''} ${bold ? 'font-bold' : ''} ${cleanCls}`}
       >
         {nameOnly ? '' : fmt(v)}
       </td>
@@ -268,9 +269,15 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
           : <Chip label={secondary} colorCls={isRegionPrimary ? SOURCE_BADGE[secondary] : REGION_BADGE[secondary]} />}
       </td>
       <N v={row.totalCapacityMw}  cls="border-r border-gray-100" />
-      {/* CONTD-4 is issued at PLANT level — a hybrid-component sub-row has no
-          real per-source figure, so show “—” instead of a prorated number. */}
-      <N v={isHybridComp ? null : row.contd4CapacityMw} cls="border-r border-gray-100 text-slate-400" />
+      {/* CONTD-4 is issued at PLANT level. In an expanded HYBRID group it's shown
+          once, merged (rowSpan) across the parent + component rows — like the
+          Excel/PDF. Component rows under that merge omit the cell (_mergedContd4);
+          in other modes a component still shows "—" (no real per-source figure). */}
+      {row._mergedContd4 ? null : (
+        <N v={isHybridComp ? null : row.contd4CapacityMw}
+           rowSpan={row._hybridContd4Span}
+           cls="border-r border-gray-100 text-slate-400" />
+      )}
       <N v={row.appliedMw}        cls="border-r border-slate-200" />
       <N v={row.ftcApprovedMw}    cls="border-r border-blue-100 bg-blue-50/30 text-blue-800" />
       <N v={row.ftcPendingMw}     cls="border-r border-slate-200 bg-blue-50/10 text-amber-700" />
@@ -428,12 +435,15 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
     }
   } else {
     // Full (or empty) selection ⇒ classic behaviour: HYBRID row keeps its total
-    // and expands on click to show every constituent part.
+    // and expands on click to show every constituent part. When expanded, the
+    // plant-level CONTD-4 is merged (rowSpan) across the HYBRID row + its
+    // component rows — shown once, like the Excel/PDF export — instead of "—".
     for (const row of baseRows) {
-      orderedRows.push(row);
       const comps = compsFor(row);
-      if (comps.length && expanded.has(row.region)) {
-        for (const c of comps) orderedRows.push({ ...c, region: row.region, isHybridComponent: true });
+      const showComps = comps.length && expanded.has(row.region);
+      orderedRows.push(showComps ? { ...row, _hybridContd4Span: comps.length + 1 } : row);
+      if (showComps) {
+        for (const c of comps) orderedRows.push({ ...c, region: row.region, isHybridComponent: true, _mergedContd4: true });
       }
     }
   }
