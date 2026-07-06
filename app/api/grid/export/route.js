@@ -142,49 +142,47 @@ function finalize(a, opts = {}) {
 
 // ── Sheet builders ────────────────────────────────────────────────────────────
 
-function buildPipelineSheet(rows, title, primaryKey) {
-  const isRegionPrimary = primaryKey === 'region';
-  const col1  = isRegionPrimary ? 'Region' : 'Source (Type)';
-  const col2  = isRegionPrimary ? 'Source (Type)' : 'Region';
+// The 12 pipeline data columns + a 3rd label column carrying the hybrid
+// component (Wind/Solar/BESS/PSP). It is part of "Source (Type)", so the header
+// merges col 1+2. Header emitted at row `hdrRow` (0-based) for the merge range.
+const PIPE_DATA_HEADERS = [
+  'Total Installed Capacity (MW)',
+  'Total Capacity (MW) (For which CONTD4 issued)',
+  'Capacity applied for FTC',
+  'FTC approved', 'FTC Pending', 'TOC Issued', 'TOC Pending',
+  'COD Completed', 'COD Pending',
+  'Expected Capacity (MW) to be commissioned',
+];
+const PIPE_COLS = [16, 14, 10, 20, 26, 22, 14, 14, 14, 14, 16, 14, 28];
 
-  const a = acc();
-  row(a, 'title',  [title]);
-  // A 3rd label column carries the hybrid component (Wind/Solar/BESS/PSP). It is
-  // part of "Source (Type)", so the header merges col 1+2.
-  row(a, 'header', [
-    col1, col2, '',
-    'Total Installed Capacity (MW)',
-    'Total Capacity (MW) (For which CONTD4 issued)',
-    'Capacity applied for FTC',
-    'FTC approved', 'FTC Pending', 'TOC Issued', 'TOC Pending',
-    'COD Completed', 'COD Pending',
-    'Expected Capacity (MW) to be commissioned',
-  ]);
-
-  const extraMerges = [{ s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }]; // "Source (Type)" header spans col 1-2
+// Emit a region-/source-wise pipeline table (3 label cols + 10 data cols) into
+// the accumulator, returning the merge ranges (absolute row indices): "HYBRID"
+// merged vertically across its component group, CONTD-4 merged with it, and the
+// source label spanning the component sub-column on every non-hybrid row.
+function emitPipeline(a, rows, isRegionPrimary) {
+  const merges = [];
   for (const r of rows) {
-    const rowIdx    = a.data.length;                 // index of the row about to be pushed
+    const rowIdx    = a.data.length;
     const primary   = isRegionPrimary ? r.region : r.source;
     const secondary = isRegionPrimary ? r.source : r.region;
     let cells, role;
     if (r.isInclHybridTotal) {
       role  = 'subtotal';
       cells = ['', `Total ${r.source} including Hybrid`, ''];
-      extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } });
+      merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } });
     } else if (r.isHybridComponent) {
       role  = 'data';
-      // "HYBRID" merged vertically across the group; component per row.
       cells = [primary, r.hybridGroupFirst ? 'HYBRID' : '', r.component];
       if (r.hybridGroupFirst && r.hybridGroupSize > 1) {
-        extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx + r.hybridGroupSize - 1, c: 1 } }); // HYBRID label
-        extraMerges.push({ s: { r: rowIdx, c: 4 }, e: { r: rowIdx + r.hybridGroupSize - 1, c: 4 } }); // CONTD-4 (plant-level)
+        merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx + r.hybridGroupSize - 1, c: 1 } }); // HYBRID label
+        merges.push({ s: { r: rowIdx, c: 4 }, e: { r: rowIdx + r.hybridGroupSize - 1, c: 4 } }); // CONTD-4 (plant-level)
       }
     } else {
       role  = r.isTotal ? 'total' : r.isSubtotal ? 'subtotal' : 'data';
       const label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${primary} Total` : primary;
       const label2 = r.isTotal || r.isSubtotal ? '' : secondary;
       cells = [label1, label2, ''];
-      extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } }); // source label spans the component sub-column
+      merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } });
     }
     const contd4Cell = (r.isHybridComponent && !r.hybridGroupFirst) ? '' : fmtNum(r.contd4CapacityMw);
     row(a, role, [
@@ -194,8 +192,21 @@ function buildPipelineSheet(rows, title, primaryKey) {
       fmtNum(r.tocPendingMw), fmtNum(r.codCompletedMw), fmtNum(r.codPendingMw), fmtNum(r.expectedMw),
     ]);
   }
+  return merges;
+}
 
-  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols: [16, 14, 10, 20, 26, 22, 14, 14, 14, 14, 16, 14, 28] });
+function buildPipelineSheet(rows, title, primaryKey) {
+  const isRegionPrimary = primaryKey === 'region';
+  const col1  = isRegionPrimary ? 'Region' : 'Source (Type)';
+  const col2  = isRegionPrimary ? 'Source (Type)' : 'Region';
+
+  const a = acc();
+  row(a, 'title',  [title]);
+  row(a, 'header', [col1, col2, '', ...PIPE_DATA_HEADERS]);
+  const extraMerges = [{ s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }]; // header spans col 1-2
+  extraMerges.push(...emitPipeline(a, rows, isRegionPrimary));
+
+  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols: PIPE_COLS });
 }
 
 function buildContd4Sheet(contd4Study) {
@@ -368,70 +379,42 @@ function buildSourceDetailSheet(source, projects, asOf) {
 // Combined Summary sheet (mirrors the Excel Summary tab exactly)
 function buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel) {
   const a = acc();
+  // 3 label columns (primary + Source-Type + hybrid-component), then data.
   const PIPE_HEADER = (primary) => [
-    primary, primary === 'Region' ? 'Source (Type)' : 'Region',
-    'Total Installed\nCapacity (MW)',
-    'Total Capacity (MW)\n(For which CONTD4 issued)',
-    'Capacity applied\nfor FTC',
-    'FTC Approved', 'FTC Pending', 'TOC Issued', 'TOC Pending',
-    'COD Completed', 'COD Pending',
-    'Expected Capacity\n(MW) to be commissioned',
+    primary, primary === 'Region' ? 'Source (Type)' : 'Region', '', ...PIPE_DATA_HEADERS,
   ];
+  const extraMerges = [];
+  const headerSpan = () => extraMerges.push({ s: { r: a.data.length - 1, c: 1 }, e: { r: a.data.length - 1, c: 2 } });
 
   row(a, 'title', [`Summary of Generation Capacity Under FTC / TOC / COD (as on ${dateLabel})`]);
   row(a, 'spacer', []);
 
-  // ── Table 2: Region-wise ──────────────────────────────────────────────────
+  // ── Table 2: Region-wise (hybrids subdivided + merged) ─────────────────────
   row(a, 'title',  ['Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Region-wise']);
-  row(a, 'header', PIPE_HEADER('Region'));
-  for (const r of table2Rows) {
-    let label1, label2, srole, contd4Cell = fmtNum(r.contd4CapacityMw);
-    if (r.isInclHybridTotal) {
-      label1 = ''; label2 = `Total ${r.source} including Hybrid`; srole = 'subtotal';
-    } else if (r.isHybridComponent) {
-      label1 = r.region; label2 = `HYBRID · ${r.component}`; srole = 'data';
-      contd4Cell = r.hybridGroupFirst ? fmtNum(r.contd4CapacityMw) : '';
-    } else {
-      label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${r.region} Total` : r.region;
-      label2 = r.isTotal || r.isSubtotal ? '' : r.source;
-      srole  = r.isTotal ? 'total' : r.isSubtotal ? 'subtotal' : 'data';
-    }
-    row(a, srole, [
-      label1, label2,
-      fmtNum(r.totalCapacityMw), contd4Cell, fmtNum(r.appliedMw),
-      fmtNum(r.ftcApprovedMw), fmtNum(r.ftcPendingMw), fmtNum(r.tocIssuedMw),
-      fmtNum(r.tocPendingMw), fmtNum(r.codCompletedMw), fmtNum(r.codPendingMw), fmtNum(r.expectedMw),
-    ]);
-  }
+  row(a, 'header', PIPE_HEADER('Region')); headerSpan();
+  extraMerges.push(...emitPipeline(a, table2Rows, true));
   row(a, 'spacer', []);
 
   // ── Table 5: Source-wise ──────────────────────────────────────────────────
   row(a, 'title',  ['Total ISTS Generation Capacity Details Under FTC / TOC / COD (MW) — Source-wise']);
-  row(a, 'header', PIPE_HEADER('Source (Type)'));
-  for (const r of table5Rows) {
-    const label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${r.source} Total` : r.source;
-    const label2 = r.isTotal || r.isSubtotal ? '' : r.region;
-    row(a, r.isTotal ? 'total' : r.isSubtotal ? 'subtotal' : 'data', [
-      label1, label2,
-      fmtNum(r.totalCapacityMw), fmtNum(r.contd4CapacityMw), fmtNum(r.appliedMw),
-      fmtNum(r.ftcApprovedMw), fmtNum(r.ftcPendingMw), fmtNum(r.tocIssuedMw),
-      fmtNum(r.tocPendingMw), fmtNum(r.codCompletedMw), fmtNum(r.codPendingMw), fmtNum(r.expectedMw),
-    ]);
-  }
+  row(a, 'header', PIPE_HEADER('Source (Type)')); headerSpan();
+  extraMerges.push(...emitPipeline(a, table5Rows, false));
   row(a, 'spacer', []);
 
-  // ── Table 1: CONTD-4 Study ────────────────────────────────────────────────
+  // ── Table 1: CONTD-4 Study (an empty component col keeps all sections aligned) ──
   const { rows: c4Rows, allMonths } = contd4Study;
   row(a, 'title',  ['Total Capacity Under CONTD-4 Study (MW)']);
-  row(a, 'header', ['Region', 'Source (Type)', 'Total Capacity (MW)', ...allMonths.map(fmtMonth)]);
+  row(a, 'header', ['Region', 'Source (Type)', '', 'Total Capacity (MW)', ...allMonths.map(fmtMonth)]); headerSpan();
   for (const r of c4Rows) {
-    const label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${r.region} Total` : r.region;
-    const label2 = r.isTotal || r.isSubtotal ? '' : r.source;
+    const rowIdx  = a.data.length;
+    const label1  = r.isTotal ? 'All India' : r.isSubtotal ? `${r.region} Total` : r.region;
+    const label2  = r.isTotal || r.isSubtotal ? '' : r.source;
+    extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } });
     row(a, r.isTotal ? 'total' : r.isSubtotal ? 'subtotal' : 'data',
-      [label1, label2, fmtNum(r.totalMw), ...allMonths.map(m => fmtNum(r.months?.[m] ?? 0))]);
+      [label1, label2, '', fmtNum(r.totalMw), ...allMonths.map(m => fmtNum(r.months?.[m] ?? 0))]);
   }
 
-  return finalize(a, { numFrom: 2, mergeCol: 0, cols: [18, 14, 18, 26, 20, 13, 13, 13, 13, 14, 13, 28] });
+  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols: PIPE_COLS });
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -493,7 +476,7 @@ export async function GET(request) {
   // Summary sheet (combined, mirrors Excel Summary tab)
   XLSX.utils.book_append_sheet(
     wb,
-    buildSummarySheet(table2Base, table5Rows, contd4Study, dateLabel),
+    buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel),
     'Summary',
   );
 
