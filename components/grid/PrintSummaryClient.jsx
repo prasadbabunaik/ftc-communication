@@ -200,7 +200,8 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
       <thead>
         <tr>
           <th style={{ width: 60, textAlign: 'left' }}>{isRegionPrimary ? 'Region' : 'Source'}</th>
-          <th style={{ width: 64, textAlign: 'left' }}>{isRegionPrimary ? 'Source' : 'Region'}</th>
+          {/* Source (Type) spans the label + the hybrid-component sub-column. */}
+          <th colSpan={2} style={{ width: 84, textAlign: 'left' }}>{isRegionPrimary ? 'Source (Type)' : 'Region'}</th>
           {enabled.map(c => (
             <th key={c.key} style={{ width: c.width }}>{c.label}</th>
           ))}
@@ -216,7 +217,6 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
             : row.isAllIndiaBreakdown ? 'All India'
             : p;
           const label2 = row.isInclHybridTotal ? `Total ${row.source} including Hybrid`
-            : row.isHybridComponent ? `HYBRID · ${row.component}`
             : row.isTotal || row.isSubtotal ? ''
             : s;
           const cls = row.isTotal ? 'total-row'
@@ -233,7 +233,20 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
                   {label1}
                 </td>
               )}
-              <td style={{ fontWeight: row.isInclHybridTotal ? 700 : undefined }}>{label2}</td>
+              {/* Source (Type) + hybrid component sub-column. Non-hybrid rows span
+                  both; hybrid groups show a merged "HYBRID" cell (rowSpan) plus a
+                  per-row component cell (Wind / Solar / BESS / PSP). */}
+              {row.isHybridComponent ? (
+                <>
+                  {row.hybridGroupFirst && (
+                    <td rowSpan={row.hybridGroupSize > 1 ? row.hybridGroupSize : undefined}
+                        style={{ verticalAlign: 'middle', fontWeight: 400 }}>HYBRID</td>
+                  )}
+                  <td>{row.component}</td>
+                </>
+              ) : (
+                <td colSpan={2} style={{ fontWeight: row.isInclHybridTotal ? 700 : undefined }}>{label2}</td>
+              )}
               {enabled.map(c => {
                 // CONTD-4 is plant-level: render it once per hybrid group, merged
                 // (rowSpan) across the component rows. Skip the covered cells.

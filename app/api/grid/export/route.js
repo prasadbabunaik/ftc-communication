@@ -122,12 +122,16 @@ function finalize(a, opts = {}) {
     }
   }
 
-  // Caller-supplied merges (e.g. CONTD-4 across a hybrid component group).
+  // Caller-supplied merges (hybrid: HYBRID label + CONTD-4 vertical spans; the
+  // horizontal source-label spans). Centre only the vertical spans; horizontal
+  // ones keep the cell's own (left) alignment.
   if (opts.extraMerges) {
     for (const m of opts.extraMerges) {
       merges.push(m);
-      const addr = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
-      if (ws[addr]?.s) ws[addr].s.alignment = { ...ws[addr].s.alignment, vertical: 'center', horizontal: 'center' };
+      if (m.e.r > m.s.r) {
+        const addr = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+        if (ws[addr]?.s) ws[addr].s.alignment = { ...ws[addr].s.alignment, vertical: 'center', horizontal: m.s.c >= (opts.numFrom ?? 2) ? 'right' : 'center' };
+      }
     }
   }
 
@@ -145,8 +149,10 @@ function buildPipelineSheet(rows, title, primaryKey) {
 
   const a = acc();
   row(a, 'title',  [title]);
+  // A 3rd label column carries the hybrid component (Wind/Solar/BESS/PSP). It is
+  // part of "Source (Type)", so the header merges col 1+2.
   row(a, 'header', [
-    col1, col2,
+    col1, col2, '',
     'Total Installed Capacity (MW)',
     'Total Capacity (MW) (For which CONTD4 issued)',
     'Capacity applied for FTC',
@@ -155,44 +161,41 @@ function buildPipelineSheet(rows, title, primaryKey) {
     'Expected Capacity (MW) to be commissioned',
   ]);
 
-  // Track the data-row index (2 header rows already emitted) so we can merge the
-  // CONTD-4 cells across each hybrid component group (plant-level, shown once).
-  const contd4Merges = [];
-  let hybGroupStart = null;   // sheet row index of the first component in a group
+  const extraMerges = [{ s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }]; // "Source (Type)" header spans col 1-2
   for (const r of rows) {
+    const rowIdx    = a.data.length;                 // index of the row about to be pushed
     const primary   = isRegionPrimary ? r.region : r.source;
     const secondary = isRegionPrimary ? r.source : r.region;
-    let label1, label2, role, contd4Cell;
+    let cells, role;
     if (r.isInclHybridTotal) {
-      label1 = '';
-      label2 = `Total ${r.source} including Hybrid`;
-      role   = 'subtotal';
-      contd4Cell = fmtNum(r.contd4CapacityMw);
+      role  = 'subtotal';
+      cells = ['', `Total ${r.source} including Hybrid`, ''];
+      extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } });
     } else if (r.isHybridComponent) {
-      label1 = primary;                               // region (merged by mergeCol)
-      label2 = `HYBRID · ${r.component}`;             // e.g. "HYBRID · WIND"
-      role   = 'data';
-      // CONTD-4 shown once for the whole hybrid group.
-      contd4Cell = r.hybridGroupFirst ? fmtNum(r.contd4CapacityMw) : '';
-      if (r.hybridGroupFirst) hybGroupStart = a.data.length;
+      role  = 'data';
+      // "HYBRID" merged vertically across the group; component per row.
+      cells = [primary, r.hybridGroupFirst ? 'HYBRID' : '', r.component];
       if (r.hybridGroupFirst && r.hybridGroupSize > 1) {
-        contd4Merges.push({ s: { r: hybGroupStart, c: 3 }, e: { r: hybGroupStart + r.hybridGroupSize - 1, c: 3 } });
+        extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx + r.hybridGroupSize - 1, c: 1 } }); // HYBRID label
+        extraMerges.push({ s: { r: rowIdx, c: 4 }, e: { r: rowIdx + r.hybridGroupSize - 1, c: 4 } }); // CONTD-4 (plant-level)
       }
     } else {
-      label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${primary} Total` : primary;
-      label2 = r.isTotal || r.isSubtotal ? '' : secondary;
-      role   = r.isTotal ? 'total' : r.isSubtotal ? 'subtotal' : 'data';
-      contd4Cell = fmtNum(r.contd4CapacityMw);
+      role  = r.isTotal ? 'total' : r.isSubtotal ? 'subtotal' : 'data';
+      const label1 = r.isTotal ? 'All India' : r.isSubtotal ? `${primary} Total` : primary;
+      const label2 = r.isTotal || r.isSubtotal ? '' : secondary;
+      cells = [label1, label2, ''];
+      extraMerges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 2 } }); // source label spans the component sub-column
     }
+    const contd4Cell = (r.isHybridComponent && !r.hybridGroupFirst) ? '' : fmtNum(r.contd4CapacityMw);
     row(a, role, [
-      label1, label2,
+      ...cells,
       fmtNum(r.totalCapacityMw), contd4Cell, fmtNum(r.appliedMw),
       fmtNum(r.ftcApprovedMw), fmtNum(r.ftcPendingMw), fmtNum(r.tocIssuedMw),
       fmtNum(r.tocPendingMw), fmtNum(r.codCompletedMw), fmtNum(r.codPendingMw), fmtNum(r.expectedMw),
     ]);
   }
 
-  return finalize(a, { numFrom: 2, mergeCol: 0, extraMerges: contd4Merges, cols: [18, 14, 20, 26, 22, 14, 14, 14, 14, 16, 14, 28] });
+  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols: [16, 14, 10, 20, 26, 22, 14, 14, 14, 14, 16, 14, 28] });
 }
 
 function buildContd4Sheet(contd4Study) {
@@ -469,12 +472,12 @@ export async function GET(request) {
     : projects;
   const pipelineMatrix   = computePipelineMatrix(pipelineProjects, asOf);
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
-  // Region-wise: expand each HYBRID row into its constituent-source sub-rows and
-  // append "Total <Source> including Hybrid" rows before the grand total.
+  const table2Base       = buildPipelineRows(pipelineMatrix, 'region', 'source'); // plain, for the combined Summary tab
+  // Region-wise standalone sheet: expand each HYBRID row into its constituent-
+  // source sub-rows and append "Total <Source> including Hybrid" rows.
   const hybridBreakup    = computeHybridComponentBreakup(pipelineProjects, asOf);
   const inclTotals       = inclHybridSourceTotals(pipelineProjects, asOf);
-  const table2Rows       = expandRegionRowsWithHybrid(
-    buildPipelineRows(pipelineMatrix, 'region', 'source'), hybridBreakup, inclTotals);
+  const table2Rows       = expandRegionRowsWithHybrid(table2Base, hybridBreakup, inclTotals);
   const contd4Study      = computeContd4Study(projects);
   const txRows           = computeTransmission(txElements);
   const hybridRows       = computeHybridBreakdown(projects, asOf);
@@ -490,7 +493,7 @@ export async function GET(request) {
   // Summary sheet (combined, mirrors Excel Summary tab)
   XLSX.utils.book_append_sheet(
     wb,
-    buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel),
+    buildSummarySheet(table2Base, table5Rows, contd4Study, dateLabel),
     'Summary',
   );
 
