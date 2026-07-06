@@ -16,21 +16,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
 
-// Month options for the "Expected For" dropdown — 12 past + 24 future from
-// today. Past months matter when editing back-dated phase data.
-function buildMonthOptionsForEdit() {
-  const options = [];
-  const now = new Date();
-  for (let i = -12; i < 24; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const month = d.toLocaleString('en-US', { month: 'short' });
-    const year  = String(d.getFullYear()).slice(2);
-    options.push({ value, label: `${month}'${year}` });
-  }
-  return options;
-}
-
 function fmtDateTime(iso) {
   if (!iso) return '';
   return new Date(iso).toLocaleString('en-IN', {
@@ -150,224 +135,6 @@ function DateInput({ value, onChange }) {
       onChange={v => onChange(v)}
       className="h-9"
     />
-  );
-}
-
-function PhaseEditModal({ phase, open, onOpenChange, index, onEditSuccess }) {
-  const [isPending, startTransition] = useTransition();
-
-  const [ftcMw,       setFtcMw]       = useState(phase.ftcCompletedMw     != null ? String(Number(phase.ftcCompletedMw))     : '');
-  const [ftcDate,     setFtcDate]     = useState(toDateInput(phase.ftcCompletedDate));
-  const [underFtcMw,  setUnderFtcMw]  = useState(phase.capacityUnderFtcMw != null ? String(Number(phase.capacityUnderFtcMw)) : '');
-  const [proposedFtc, setProposedFtc] = useState(toDateInput(phase.proposedFtcDate));
-  const [tocMw,       setTocMw]       = useState(phase.tocIssuedMw        != null ? String(Number(phase.tocIssuedMw))        : '');
-  const [tocDate,     setTocDate]     = useState(toDateInput(phase.tocIssuedDate));
-  const [underTocMw,  setUnderTocMw]  = useState(phase.capacityUnderTocMw != null ? String(Number(phase.capacityUnderTocMw)) : '');
-  const [codMw,       setCodMw]       = useState(phase.codDeclaredMw      != null ? String(Number(phase.codDeclaredMw))      : '');
-  const [codDate,     setCodDate]     = useState(toDateInput(phase.codDeclaredDate));
-  const [expectedMw,  setExpectedMw]  = useState(phase.expectedApr26Mw    != null ? String(Number(phase.expectedApr26Mw))    : '');
-  // Default to the phase's stored month, else current YYYY-MM. ADMIN/NLDC
-  // can change it freely; other roles see a locked label.
-  const [expectedMonth, setExpectedMonth] = useState(() => {
-    if (phase.expectedMonth) return phase.expectedMonth;
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const [delayCat,    setDelayCat]    = useState(phase.delayCategory ?? '');
-  const [delayRem,    setDelayRem]    = useState(phase.delayRemarks ?? '');
-  const [otherRem,    setOtherRem]    = useState(phase.otherRemarks ?? '');
-
-  // Real-time validation — same invariants enforced at submit time, but
-  // recomputed on every render so warnings appear as the user types and
-  // the Save button can be disabled until they're clean.
-  const applied     = Number(phase.capacityAppliedMw) || 0;
-  const ftcMwNum    = ftcMw     ? Number(ftcMw)     || 0 : 0;
-  const underFtcNum = underFtcMw ? Number(underFtcMw) || 0 : 0;
-  const tocMwNum    = tocMw     ? Number(tocMw)     || 0 : 0;
-  const underTocNum = underTocMw ? Number(underTocMw) || 0 : 0;
-  const codMwNum    = codMw     ? Number(codMw)     || 0 : 0;
-  const liveErrors = [];
-  if (ftcMwNum > applied + 0.01)
-    liveErrors.push(`FTC Approved (${ftcMwNum.toFixed(1)} MW) cannot exceed Applied capacity (${applied.toFixed(1)} MW)`);
-  if (underFtcNum + ftcMwNum > applied + 0.01)
-    liveErrors.push(`FTC Approved + Under FTC (${(ftcMwNum + underFtcNum).toFixed(1)} MW) exceeds Applied (${applied.toFixed(1)} MW)`);
-  if (tocMwNum > ftcMwNum + 0.01)
-    liveErrors.push(`TOC Issued (${tocMwNum.toFixed(1)} MW) cannot exceed FTC Approved (${ftcMwNum.toFixed(1)} MW) — FTC ≥ TOC`);
-  if (underTocNum + tocMwNum > ftcMwNum + 0.01)
-    liveErrors.push(`TOC Issued + Under TOC (${(tocMwNum + underTocNum).toFixed(1)} MW) exceeds FTC Approved (${ftcMwNum.toFixed(1)} MW)`);
-  if (codMwNum > tocMwNum + 0.01)
-    liveErrors.push(`COD Declared (${codMwNum.toFixed(1)} MW) cannot exceed TOC Issued (${tocMwNum.toFixed(1)} MW) — TOC ≥ COD`);
-  // Date ordering — TOC date should be on/after FTC date when both exist.
-  if (ftcDate && tocDate && tocDate < ftcDate)
-    liveErrors.push(`TOC Date (${tocDate}) must be on or after FTC Date (${ftcDate})`);
-  if (tocDate && codDate && codDate < tocDate)
-    liveErrors.push(`COD Date (${codDate}) must be on or after TOC Date (${tocDate})`);
-  const hasErrors = liveErrors.length > 0;
-
-  function handleSubmit(e) {
-    e.preventDefault();
-    // Belt-and-suspenders: reuse the live errors computed above so a stray
-    // race can't slip past the (also-live) disabled-Save guard.
-    if (liveErrors.length > 0) {
-      liveErrors.forEach((msg) => toast.error(msg, { duration: 6000 }));
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await updateCommissioningPhase(phase.id, {
-        ftcCompletedMw:     ftcMw,
-        ftcCompletedDate:   ftcDate,
-        proposedFtcDate:    proposedFtc,
-        capacityUnderFtcMw: underFtcMw,
-        tocIssuedMw:        tocMw,
-        tocIssuedDate:      tocDate,
-        capacityUnderTocMw: underTocMw,
-        codDeclaredMw:      codMw,
-        codDeclaredDate:    codDate,
-        expectedApr26Mw:    expectedMw,
-        expectedMonth:      expectedMonth,
-        delayCategory:      delayCat,
-        delayRemarks:       delayRem,
-        otherRemarks:       otherRem,
-      });
-      if (result?.error) {
-        toast.error(typeof result.error === 'string' ? result.error : 'Validation error.');
-      } else {
-        toast.success('Component updated successfully.');
-        onOpenChange(false);
-        onEditSuccess?.();
-      }
-    });
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="size-4 text-blue-500" />
-            Edit {phase.sourceType} Component
-          </DialogTitle>
-          <DialogDescription>
-            {Number(phase.capacityAppliedMw).toFixed(1)} MW applied. All MW fields are optional — leave blank to clear.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogBody>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* FTC */}
-            <FieldGroup label="FTC Status">
-              <Field label="FTC Approved (MW)">
-                <NumInput value={ftcMw} onChange={setFtcMw} />
-              </Field>
-              <Field label="FTC Date">
-                <DateInput value={ftcDate} onChange={setFtcDate} />
-              </Field>
-              <Field label="Under FTC Process (MW)">
-                <NumInput value={underFtcMw} onChange={setUnderFtcMw} />
-              </Field>
-              <Field label="Proposed FTC Date">
-                <DateInput value={proposedFtc} onChange={setProposedFtc} />
-              </Field>
-            </FieldGroup>
-
-            {/* TOC */}
-            <FieldGroup label="TOC Status">
-              <Field label="TOC Issued (MW)">
-                <NumInput value={tocMw} onChange={setTocMw} />
-              </Field>
-              <Field label="TOC Date">
-                <DateInput value={tocDate} onChange={setTocDate} />
-              </Field>
-              <Field label="Under TOC Process (MW)">
-                <NumInput value={underTocMw} onChange={setUnderTocMw} />
-              </Field>
-              <div /> {/* spacer */}
-            </FieldGroup>
-
-            {/* COD */}
-            <FieldGroup label="COD Status">
-              <Field label="COD Declared (MW)">
-                <NumInput value={codMw} onChange={setCodMw} />
-              </Field>
-              <Field label="COD Date">
-                <DateInput value={codDate} onChange={setCodDate} />
-              </Field>
-              <Field label="Expected (MW)">
-                <NumInput value={expectedMw} onChange={setExpectedMw} />
-              </Field>
-              <Field label="Expected For (Month)">
-                <select
-                  value={expectedMonth}
-                  onChange={(e) => setExpectedMonth(e.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  {buildMonthOptionsForEdit().map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </Field>
-            </FieldGroup>
-
-            {/* Remarks */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Delay / Remarks</p>
-              <div className="space-y-3">
-                <Field label="Delay Category">
-                  <select
-                    value={delayCat}
-                    onChange={e => setDelayCat(e.target.value)}
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
-                  >
-                    {DELAY_CATEGORIES.map(c => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Delay / Issues Remarks">
-                  <textarea
-                    value={delayRem}
-                    onChange={e => setDelayRem(e.target.value)}
-                    rows={2}
-                    placeholder="Describe delay reasons or issues…"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none"
-                  />
-                </Field>
-                <Field label="Other Remarks">
-                  <textarea
-                    value={otherRem}
-                    onChange={e => setOtherRem(e.target.value)}
-                    rows={2}
-                    placeholder="Any other notes…"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none"
-                  />
-                </Field>
-              </div>
-            </div>
-
-            {/* Live validation banner — appears as soon as any invariant
-                breaks (FTC>Applied, TOC>FTC, COD>TOC, date out of order).
-                Save button is locked while this is visible. */}
-            {hasErrors && (
-              <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 space-y-1">
-                <div className="font-semibold">⚠ Fix these before saving:</div>
-                <ul className="list-disc list-inside space-y-0.5 ml-1">
-                  {liveErrors.map((m, i) => <li key={i}>{m}</li>)}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-1 border-t">
-              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isPending || hasErrors}>
-                {isPending ? 'Saving…' : 'Save Changes'}
-              </Button>
-            </div>
-          </form>
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -554,7 +321,6 @@ function PipelineBar({ phase }) {
 function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
   const [expanded, setExpanded]       = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [editOpen, setEditOpen]       = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPending, startTransition]  = useTransition();
   const phaseNotes = phase.notes ?? [];
@@ -615,38 +381,23 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
               </span>
             )}
           </button>
+          {/* Editing a component's FTC/TOC/COD is done through the header's
+              "Add Source / Component" button (which opens in edit mode once
+              phases exist) — so there is no separate per-row edit here. Delete
+              stays: it's the only way to remove a component. */}
           {canEdit && (
-            <>
-              <button
-                type="button"
-                title="Edit component"
-                onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
-                className="text-muted-foreground hover:text-blue-600 transition-colors p-1.5 rounded"
-              >
-                <Pencil className="size-4" />
-              </button>
-              <button
-                type="button"
-                title="Delete component"
-                onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
-                className="text-muted-foreground hover:text-red-600 transition-colors p-1.5 rounded"
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </>
+            <button
+              type="button"
+              title="Delete component"
+              onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
+              className="text-muted-foreground hover:text-red-600 transition-colors p-1.5 rounded"
+            >
+              <Trash2 className="size-4" />
+            </button>
           )}
           {expanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
         </div>
       </div>
-
-      {/* Edit modal */}
-      <PhaseEditModal
-        phase={phase}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        index={index}
-        onEditSuccess={onEditSuccess}
-      />
 
       {/* Delete confirm modal */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
