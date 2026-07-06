@@ -529,11 +529,25 @@ function ChangeLog() {
                   <td className="px-3 py-1.5 text-center font-medium text-slate-800 max-w-[220px] truncate" title={r.entityName}>
                     {r.region && <span className="text-[10px] text-slate-400 mr-1">{r.region}</span>}{r.entityName}
                   </td>
-                  <td className="px-3 py-1.5 text-center text-slate-600">{r.field ?? '—'}</td>
-                  <td className="px-3 py-1.5 text-center text-slate-700">
-                    {r.oldValue != null || r.newValue != null
-                      ? <span><span className="text-rose-600">{r.oldValue ?? '—'}</span> → <span className="text-emerald-700 font-semibold">{r.newValue ?? '—'}</span></span>
-                      : <span className="text-slate-500" title={r.text}>{r.text}</span>}
+                  {/* FIELD + CHANGE, one line per underlying change so a single
+                      save shows exactly which fields moved and old → new. */}
+                  <td className="px-3 py-1.5 text-left align-top text-slate-600">
+                    {r.changes?.length
+                      ? r.changes.map((c, k) => (
+                          <div key={k} className="whitespace-nowrap leading-relaxed">{c.field ?? <span className="text-slate-400">—</span>}</div>
+                        ))
+                      : <span className="text-slate-400">—</span>}
+                  </td>
+                  <td className="px-3 py-1.5 text-left align-top text-slate-700">
+                    {r.changes?.length
+                      ? r.changes.map((c, k) => (
+                          <div key={k} className="leading-relaxed">
+                            {c.oldValue != null || c.newValue != null
+                              ? <span><span className="text-rose-600">{c.oldValue ?? '—'}</span> → <span className="text-emerald-700 font-semibold">{c.newValue ?? '—'}</span></span>
+                              : <span className="text-slate-600" title={c.text}>{c.text}</span>}
+                          </div>
+                        ))
+                      : <span className="text-slate-400">—</span>}
                   </td>
                   <td className="px-3 py-1.5 text-center text-slate-600 whitespace-nowrap">
                     {r.userName}{r.userRole ? <span className="text-slate-400">, {r.userRole}</span> : ''}
