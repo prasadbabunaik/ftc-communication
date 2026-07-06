@@ -212,10 +212,17 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
           const s = isRegionPrimary ? row.source : row.region;
           const label1 = row.isTotal ? (scopeRegionCode ? `${scopeRegionCode} — Grand Total` : 'Grand Total')
             : row.isSubtotal ? `${p} — Total`
+            : row.isInclHybridTotal ? ''
             : row.isAllIndiaBreakdown ? 'All India'
             : p;
-          const label2 = row.isTotal || row.isSubtotal ? '' : s;
-          const cls = row.isTotal ? 'total-row' : row.isSubtotal ? 'subtotal-row' : row.isAllIndiaBreakdown ? 'subtotal-row' : (i % 2 === 1 ? 'stripe' : '');
+          const label2 = row.isInclHybridTotal ? `Total ${row.source} including Hybrid`
+            : row.isHybridComponent ? `HYBRID · ${row.component}`
+            : row.isTotal || row.isSubtotal ? ''
+            : s;
+          const cls = row.isTotal ? 'total-row'
+            : row.isSubtotal || row.isInclHybridTotal ? 'subtotal-row'
+            : row.isAllIndiaBreakdown ? 'subtotal-row'
+            : (i % 2 === 1 ? 'stripe' : '');
           return (
             <tr key={i} className={cls}>
               {!skip[i] && (
@@ -226,10 +233,21 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
                   {label1}
                 </td>
               )}
-              <td>{label2}</td>
-              {enabled.map(c => (
-                <td key={c.key} style={{ textAlign: 'right' }}>{fmt(c.get(row))}</td>
-              ))}
+              <td style={{ fontWeight: row.isInclHybridTotal ? 700 : undefined }}>{label2}</td>
+              {enabled.map(c => {
+                // CONTD-4 is plant-level: render it once per hybrid group, merged
+                // (rowSpan) across the component rows. Skip the covered cells.
+                if (c.key === 'contd4' && row.isHybridComponent) {
+                  if (!row.hybridGroupFirst) return null;
+                  return (
+                    <td key={c.key} rowSpan={row.hybridGroupSize > 1 ? row.hybridGroupSize : undefined}
+                        style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                      {fmt(row.contd4CapacityMw)}
+                    </td>
+                  );
+                }
+                return <td key={c.key} style={{ textAlign: 'right' }}>{fmt(c.get(row))}</td>;
+              })}
             </tr>
           );
         })}

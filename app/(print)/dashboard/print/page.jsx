@@ -6,6 +6,7 @@ import {
   computePipelineMatrix, buildPipelineRows,
   computeContd4Study, computeTransmission, computeHybridBreakdown,
   computeMilestoneActivity, isProjectCommissioned,
+  computeHybridComponentBreakup, inclHybridSourceTotals, expandRegionRowsWithHybrid,
 } from '@/lib/grid-computations';
 
 export const metadata = { title: 'Print Summary — FTC Portal' };
@@ -48,8 +49,13 @@ export default async function PrintSummaryPage({ searchParams }) {
     ? projects.filter((p) => !isProjectCommissioned(p))
     : projects;
   const pipelineMatrix   = computePipelineMatrix(pipelineProjects, asOf);
-  const table2Rows       = buildPipelineRows(pipelineMatrix, 'region', 'source');
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
+  // Region-wise: subdivide HYBRID into its component sources and append the
+  // "Total <Source> including Hybrid" rows before the grand total.
+  const hybridBreakup    = computeHybridComponentBreakup(pipelineProjects, asOf);
+  const inclTotals       = inclHybridSourceTotals(pipelineProjects, asOf);
+  const table2Rows       = expandRegionRowsWithHybrid(
+    buildPipelineRows(pipelineMatrix, 'region', 'source'), hybridBreakup, inclTotals);
   const contd4Study      = computeContd4Study(projects);
   const transmissionRows = computeTransmission(txElements);
   const hybridRows       = computeHybridBreakdown(projects, asOf);
