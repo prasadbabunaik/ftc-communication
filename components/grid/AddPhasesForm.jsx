@@ -432,6 +432,9 @@ export function AddPhasesForm({
       if (cap != null && applied > cap + 0.01) {
         msgs.push(`Applied (${applied.toFixed(1)} MW) exceeds ${plantType.isHybrid ? `${s} ` : ''}capacity (${cap.toFixed(1)} MW)`);
       }
+      // FTC ≤ Applied — the top of the funnel. Robust even when Applied is empty
+      // (0): a non-zero FTC then reads as "FTC exceeds Applied (0.0)".
+      if (!isIntrastate && ftc > applied + 0.01) msgs.push(`FTC (${ftc.toFixed(1)} MW) exceeds Applied (${applied.toFixed(1)} MW)`);
       if (!isIntrastate && toc > ftc + 0.001) msgs.push(`TOC (${toc.toFixed(1)} MW) exceeds FTC (${ftc.toFixed(1)} MW)`);
       if (!isIntrastate && cod > toc + 0.001) msgs.push(`COD (${cod.toFixed(1)} MW) exceeds TOC (${toc.toFixed(1)} MW)`);
       if (msgs.length) errs[s] = msgs;
@@ -462,6 +465,43 @@ export function AddPhasesForm({
     return m;
   }, [watchedPhases, caps, plantType.isHybrid]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasExpectedErrors = Object.keys(expectedErrors).length > 0;
+
+  // Human-readable reasons the Save button is disabled — derived live (works in
+  // create mode too, where field-level errors aren't painted on open). Surfaced
+  // beside the disabled button so the operator always knows what to fix, rather
+  // than facing a greyed-out Save with no explanation.
+  const numRe = /^\d+(\.\d{1,3})?$/;
+  const blockingReasons = useMemo(() => {
+    const reasons = [];
+    if (pendingMw < -0.01) reasons.push(`Entered COD over-commits the plant by ${Math.abs(pendingMw).toFixed(1)} MW — reduce COD or raise Total Capacity.`);
+    (watchedPhases ?? []).forEach((p, i) => {
+      const label = p.sourceType || `Component ${i + 1}`;
+      const aRaw = String(p.capacityAppliedMw ?? '').trim();
+      const applied = parseFloat(aRaw || '0') || 0;
+      const events = [
+        ['FTC', p.ftcEvents], ['TOC', p.tocEvents], ['COD', p.codEvents],
+      ];
+      const anyEvent = events.some(([, evs]) => (evs ?? []).some((e) => String(e.mw ?? '').trim() !== ''));
+      if (aRaw === '' || !numRe.test(aRaw)) {
+        reasons.push(`${label}: Capacity Applied (MW) is required.`);
+      } else if (applied <= 0 && anyEvent) {
+        reasons.push(`${label}: Capacity Applied must be greater than 0 before adding milestones.`);
+      }
+      for (const [name, evs] of events) {
+        (evs ?? []).forEach((e, ei) => {
+          const mwStr = String(e.mw ?? '').trim();
+          if (mwStr === '' || !numRe.test(mwStr)) reasons.push(`${label}: ${name} event ${ei + 1} needs a valid MW value.`);
+          else if (!String(e.date ?? '').trim()) reasons.push(`${label}: ${name} event ${ei + 1} (${mwStr} MW) needs a date.`);
+        });
+      }
+    });
+    if (hasPipelineErrors) reasons.push('Resolve the source pipeline violations shown above.');
+    if (hasExpectedErrors) reasons.push('Expected (MW) exceeds the remaining capacity for a source.');
+    // De-dupe while preserving order.
+    return [...new Set(reasons)];
+  }, [watchedPhases, pendingMw, hasPipelineErrors, hasExpectedErrors]);
+
+  const saveDisabled = pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid;
 
   // Also check Zod-level errors (schema refine errors have no path set)
   const zodErrors = form.formState.errors.phases ?? [];
@@ -684,11 +724,23 @@ export function AddPhasesForm({
             partial commissioning is captured as FTC / TOC / COD events
             within that phase, not as new phases. */}
 
+        {/* Why is Save disabled? — always-accurate, actionable list. */}
+        {!isPending && saveDisabled && blockingReasons.length > 0 && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
+            <p className="font-semibold flex items-center gap-1.5 mb-1">
+              <AlertCircle className="size-3.5" /> Save is disabled — please fix:
+            </p>
+            <ul className="list-disc pl-5 space-y-0.5">
+              {blockingReasons.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
+          </div>
+        )}
+
         <div className="flex gap-3 justify-end pt-2">
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending || pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid}>
+          <Button type="submit" disabled={isPending || saveDisabled}>
             {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save'}
           </Button>
         </div>
@@ -903,8 +955,10 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   // nested event-array edits (add/edit/delete MW) — form.watch can miss these.
   const watchedFtcEvents = useWatch({ control: form.control, name: `${prefix}.ftcEvents` }) ?? [];
   const watchedTocEvents = useWatch({ control: form.control, name: `${prefix}.tocEvents` }) ?? [];
+  const watchedCodEvents = useWatch({ control: form.control, name: `${prefix}.codEvents` }) ?? [];
   const ftcTotal = watchedFtcEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const tocTotal = watchedTocEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  const codTotal = watchedCodEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
 
   const tocGated = isHybrid && srcState.ftc === 0 && ftcTotal === 0;
   const codGated = isHybrid && srcState.toc === 0 && tocTotal === 0;
@@ -915,14 +969,21 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   // this source's events (existing ones are pre-filled), so the running totals
   // ftcTotal / tocTotal ARE the full per-source totals — adding the cached
   // srcState on top double-counts (e.g. TOC limit showed 2× the FTC).
-  const appliedMw = parseFloat(useWatch({ control: form.control, name: `${prefix}.capacityAppliedMw` }) || '0') || 0;
-  const ftcLimit  = appliedMw > 0 ? appliedMw : null;
+  const appliedRaw = useWatch({ control: form.control, name: `${prefix}.capacityAppliedMw` }) ?? '';
+  const appliedMw = parseFloat(appliedRaw || '0') || 0;
+  // FTC is bounded by Applied. When Applied is still empty/0 but FTC has been
+  // entered, bound it to 0 so the running-total banner flags "FTC exceeds
+  // Applied (0.00)" instead of silently allowing it (null = unbounded).
+  const ftcLimit  = appliedMw > 0 ? appliedMw : (ftcTotal > 0 ? 0 : null);
   const tocLimit  = ftcTotal;
   const codLimit  = tocTotal;
 
   // Applied capacity may not exceed the plant's (or component's) total capacity.
   const appliedCap = capForSource ? capForSource(selectedSource) : null;
   const appliedOver = appliedCap != null && appliedMw > appliedCap + 0.01;
+  // Applied is required before any milestone can be recorded against a source.
+  const hasAnyEvent   = ftcTotal > 0 || tocTotal > 0 || codTotal > 0;
+  const appliedMissing = hasAnyEvent && appliedMw <= 0;
 
   // Auto-derive the dependent fields from the entered milestones/events so they
   // always track add/edit/delete LIVE:
@@ -975,6 +1036,11 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
           {appliedOver && (
             <p className="text-xs text-destructive mt-1">
               Applied ({appliedMw.toFixed(1)} MW) exceeds {isHybrid ? `${selectedSource} ` : ''}capacity ({appliedCap.toFixed(1)} MW)
+            </p>
+          )}
+          {!appliedOver && appliedMissing && (
+            <p className="text-xs text-destructive mt-1">
+              Capacity Applied (MW) is required before entering FTC / TOC / COD events.
             </p>
           )}
         </div>
