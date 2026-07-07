@@ -45,13 +45,12 @@ export function BessEditModal({ row, open, onOpenChange }) {
   const [isPending, startTransition] = useTransition();
 
   const intra      = !!row?.isIntrastate;
-  const isHybrid   = !!row?.isHybrid;
   const codPhases  = Array.isArray(row?.codPhases) ? row.codPhases : [];
-  // MW (COD capacity) is user-maintained only for a PURE intra-state BESS. For a
-  // hybrid the BESS COD comes from the FTC pipeline, and inter-state COD always
-  // does — both show MW + date read-only, editing only MWh + remarks.
-  const mwEditable = intra && !isHybrid;
-  const codReadOnly = !mwEditable && codPhases.length > 0;
+  // Intra-state (pure OR hybrid) is user-maintained: MW is editable (optional —
+  // MWh may be entered without MW). Inter-state COD is pipeline-derived, so it
+  // shows MW + date read-only with only MWh + remarks editable.
+  const mwEditable  = intra;
+  const codReadOnly = !intra && codPhases.length > 0;
   const showMw      = mwEditable || codReadOnly;
   const addable     = mwEditable || (!mwEditable && !codReadOnly);
 
@@ -88,17 +87,42 @@ export function BessEditModal({ row, open, onOpenChange }) {
       if (leftover > 0 && seed.length && !seed[0].mwh) seed[0].mwh = String(leftover);
       setPhases(seed.length ? seed : [{ ...EMPTY_PHASE }]);
     } else {
-      const seed = Array.isArray(row.energyPhases) && row.energyPhases.length
-        ? row.energyPhases.map((p) => ({
-            mw: p.mw != null ? String(p.mw) : '',
-            mwh: p.mwh != null ? String(p.mwh) : '',
-            date: toDateInput(p.date),
-            remarks: p.remarks ?? '',
-          }))
-        : (row.energyMwh != null
-            ? [{ mw: '', mwh: String(row.energyMwh), date: '', remarks: '' }]
-            : [{ ...EMPTY_PHASE }]);
-      setPhases(seed);
+      const stored = Array.isArray(row.energyPhases) ? row.energyPhases : [];
+      const hasStoredMw = stored.some((p) => p.mw != null && String(p.mw).trim() !== '');
+      if (mwEditable && !hasStoredMw && codPhases.length) {
+        // Intra-state with a pipeline COD but no user-entered MW yet: pre-fill the
+        // EDITABLE MW (+ date) from the COD phases so the current COD (e.g. 40)
+        // shows and can be adjusted; merge any stored MWh in by COD date.
+        const energyList = [...stored];
+        const takeByDate = (d) => {
+          const i = energyList.findIndex((e) => toDateInput(e.date) === toDateInput(d));
+          return i >= 0 ? energyList.splice(i, 1)[0] : null;
+        };
+        const seed = codPhases.map((cp) => {
+          const e = takeByDate(cp.date);
+          return {
+            mw: cp.mw != null ? String(cp.mw) : '',
+            date: toDateInput(cp.date),
+            mwh: e?.mwh != null ? String(e.mwh) : '',
+            remarks: e?.remarks ?? '',
+          };
+        });
+        const leftover = energyList.reduce((s, e) => s + (Number(e.mwh) || 0), 0);
+        if (leftover > 0 && seed.length && !seed[0].mwh) seed[0].mwh = String(leftover);
+        setPhases(seed.length ? seed : [{ ...EMPTY_PHASE }]);
+      } else {
+        const seed = stored.length
+          ? stored.map((p) => ({
+              mw: p.mw != null ? String(p.mw) : '',
+              mwh: p.mwh != null ? String(p.mwh) : '',
+              date: toDateInput(p.date),
+              remarks: p.remarks ?? '',
+            }))
+          : (row.energyMwh != null
+              ? [{ mw: '', mwh: String(row.energyMwh), date: '', remarks: '' }]
+              : [{ ...EMPTY_PHASE }]);
+        setPhases(seed);
+      }
     }
   }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
 

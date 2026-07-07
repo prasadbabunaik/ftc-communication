@@ -12,16 +12,39 @@ const ssoEnabled = () =>
   String(process.env.NEXT_PUBLIC_SSO_ENABLED).toLowerCase() === 'true' ||
   String(process.env.ENTRA_ROPC_ENABLED).toLowerCase() === 'true';
 
-async function requireAdmin() {
+const VALID_ROLES = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
+
+// User management is open to ADMIN and NLDC. NLDC is guarded against privilege
+// escalation: it may not create, edit, deactivate, reset, or delete an ADMIN
+// account, nor grant the ADMIN role (see requireCanActOn / assertRoleAssignable).
+async function requireUserManager() {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please log in again.' }; }
-  if (user.role !== 'ADMIN') return { error: 'Access denied. Administrator role required.' };
+  if (user.role !== 'ADMIN' && user.role !== 'NLDC') {
+    return { error: 'Access denied. Administrator or NLDC role required.' };
+  }
   return { user };
 }
 
+// A non-ADMIN manager (NLDC) can't assign the ADMIN role.
+function assertRoleAssignable(actor, role) {
+  if (role === 'ADMIN' && actor.role !== 'ADMIN') {
+    return 'Only an Administrator can grant the ADMIN role.';
+  }
+  return null;
+}
+
+// A non-ADMIN manager (NLDC) can't act on an existing ADMIN account.
+function assertCanActOn(actor, target) {
+  if (target?.role === 'ADMIN' && actor.role !== 'ADMIN') {
+    return 'Only an Administrator can modify an ADMIN account.';
+  }
+  return null;
+}
+
 export async function listUsers() {
-  const check = await requireAdmin();
+  const check = await requireUserManager();
   if (check.error) return { error: check.error };
   const users = await prisma.user.findMany({
     select: {
@@ -35,11 +58,14 @@ export async function listUsers() {
 }
 
 export async function createUser({ name, email, password, role }) {
-  const check = await requireAdmin();
+  const check = await requireUserManager();
   if (check.error) return { error: check.error };
 
   if (!name?.trim()) return { error: 'Name is required.' };
   if (!email?.trim()) return { error: 'Email is required.' };
+  if (!VALID_ROLES.includes(role)) return { error: 'Select a valid role.' };
+  const roleErr = assertRoleAssignable(check.user, role);
+  if (roleErr) return { error: roleErr };
   const hasPassword = typeof password === 'string' && password.length > 0;
   if (hasPassword && password.length < 8) return { error: 'Password must be at least 8 characters.' };
   if (!hasPassword && !ssoEnabled()) return { error: 'Password must be at least 8 characters.' };
@@ -60,11 +86,20 @@ export async function createUser({ name, email, password, role }) {
 }
 
 export async function updateUser(userId, { name, email, role }) {
-  const check = await requireAdmin();
+  const check = await requireUserManager();
   if (check.error) return { error: check.error };
 
   if (!name?.trim()) return { error: 'Name is required.' };
   if (!email?.trim()) return { error: 'Email is required.' };
+  if (!VALID_ROLES.includes(role)) return { error: 'Select a valid role.' };
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) return { error: 'User not found.' };
+  // NLDC may not edit an ADMIN account, nor promote anyone to ADMIN.
+  const actErr = assertCanActOn(check.user, target);
+  if (actErr) return { error: actErr };
+  const roleErr = assertRoleAssignable(check.user, role);
+  if (roleErr) return { error: roleErr };
 
   const conflict = await prisma.user.findFirst({
     where: { email: email.toLowerCase(), NOT: { id: userId } },
@@ -81,12 +116,14 @@ export async function updateUser(userId, { name, email, role }) {
 }
 
 export async function toggleUserActive(userId) {
-  const check = await requireAdmin();
+  const check = await requireUserManager();
   if (check.error) return { error: check.error };
   if (check.user?.id === userId) return { error: 'You cannot deactivate your own account.' };
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { error: 'User not found.' };
+  const actErr = assertCanActOn(check.user, target);
+  if (actErr) return { error: actErr };
 
   await prisma.user.update({
     where: { id: userId },
@@ -103,12 +140,17 @@ export async function toggleUserActive(userId) {
 }
 
 export async function resetUserPassword(userId, newPassword) {
-  const check = await requireAdmin();
+  const check = await requireUserManager();
   if (check.error) return { error: check.error };
 
   if (!newPassword || newPassword.length < 8) {
     return { error: 'Password must be at least 8 characters.' };
   }
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) return { error: 'User not found.' };
+  const actErr = assertCanActOn(check.user, target);
+  if (actErr) return { error: actErr };
 
   const hashed = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
@@ -119,12 +161,14 @@ export async function resetUserPassword(userId, newPassword) {
 }
 
 export async function deleteUser(userId) {
-  const check = await requireAdmin();
+  const check = await requireUserManager();
   if (check.error) return { error: check.error };
   if (check.user?.id === userId) return { error: 'You cannot delete your own account.' };
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { error: 'User not found.' };
+  const actErr = assertCanActOn(check.user, target);
+  if (actErr) return { error: actErr };
 
   await prisma.user.delete({ where: { id: userId } });
 

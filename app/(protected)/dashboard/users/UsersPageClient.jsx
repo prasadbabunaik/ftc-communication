@@ -55,7 +55,9 @@ function RoleBadge({ role }) {
   );
 }
 
-function UserFormModal({ open, onClose, editing, currentUserId }) {
+function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true }) {
+  // NLDC can't grant the ADMIN role.
+  const roleOptions = isAdmin ? ROLES : ROLES.filter((r) => r !== 'ADMIN');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState(editing ? { name: editing.name, email: editing.email, role: editing.role, password: '' } : EMPTY_FORM);
@@ -139,7 +141,7 @@ function UserFormModal({ open, onClose, editing, currentUserId }) {
                   onChange={(e) => set('role', e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm appearance-none pe-8"
                 >
-                  {ROLES.map((r) => (
+                  {roleOptions.map((r) => (
                     <option key={r} value={r}>{ROLE_META[r]?.label ?? r} ({r})</option>
                   ))}
                 </select>
@@ -266,7 +268,10 @@ function DeleteConfirmModal({ open, onClose, target, currentUserId }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export function UsersPageClient({ users: initialUsers, currentUserId }) {
+export function UsersPageClient({ users: initialUsers, currentUserId, currentUserRole = 'ADMIN' }) {
+  const isAdmin = currentUserRole === 'ADMIN';
+  // NLDC manages users but can't act on ADMIN accounts (server-enforced too).
+  const canActOn = (u) => isAdmin || u.role !== 'ADMIN';
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -430,6 +435,7 @@ export function UsersPageClient({ users: initialUsers, currentUserId }) {
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{fmtDate(user.createdAt)}</td>
                     {/* Actions */}
                     <td className="px-4 py-3">
+                      {canActOn(user) ? (
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setEditTarget(user)}
@@ -468,6 +474,11 @@ export function UsersPageClient({ users: initialUsers, currentUserId }) {
                           </>
                         )}
                       </div>
+                      ) : (
+                        <div className="flex items-center justify-end">
+                          <span className="text-[10px] text-muted-foreground italic">Admin-only</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -480,14 +491,14 @@ export function UsersPageClient({ users: initialUsers, currentUserId }) {
         <div className="flex items-center gap-2 px-4 py-2.5 border-t border-border bg-muted/10">
           <Shield className="size-3.5 text-muted-foreground" />
           <p className="text-[11px] text-muted-foreground">
-            User management is restricted to Administrators. RLDC-role accounts can only access data for their assigned region.
+            User management is available to Administrators and NLDC. NLDC cannot modify ADMIN accounts or grant the ADMIN role. RLDC-role accounts can only access data for their assigned region.
           </p>
         </div>
       </div>
 
       {/* Modals */}
-      <UserFormModal open={createOpen} onClose={() => setCreateOpen(false)} editing={null} currentUserId={currentUserId} />
-      {editTarget && <UserFormModal open={!!editTarget} onClose={() => setEditTarget(null)} editing={editTarget} currentUserId={currentUserId} />}
+      <UserFormModal open={createOpen} onClose={() => setCreateOpen(false)} editing={null} currentUserId={currentUserId} isAdmin={isAdmin} />
+      {editTarget && <UserFormModal open={!!editTarget} onClose={() => setEditTarget(null)} editing={editTarget} currentUserId={currentUserId} isAdmin={isAdmin} />}
       {resetTarget && <ResetPasswordModal open={!!resetTarget} onClose={() => setResetTarget(null)} target={resetTarget} />}
       {deleteTarget && <DeleteConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} target={deleteTarget} currentUserId={currentUserId} />}
     </div>

@@ -61,7 +61,7 @@ export const MENU_SIDEBAR = [
     title: 'User Management',
     icon: Users,
     path: '/dashboard/users',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'NLDC'],
   },
   {
     title: 'Access Control',
