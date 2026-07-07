@@ -147,8 +147,15 @@ export function buildRow(p, referenceMonth, range = null) {
     stateName: p.stateName ?? '',
     codDeclared,
     energyMwh: p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null,
-    // Phase-wise energy commissioning ({ mwh, date, remarks }) for the edit modal.
+    // Phase-wise energy commissioning ({ mw?, mwh, date, remarks }) for the edit modal.
     energyPhases: Array.isArray(p.energyPhasesJson) ? p.energyPhasesJson : [],
+    // The COD commissioning phases (MW + date) as derived from the pipeline —
+    // read-only in the edit modal for inter-state rows, which record only the
+    // MWh + remarks against each. Dated events when present, else the single
+    // undated cached total.
+    codPhases: codDated.length
+      ? codDated.map((e) => ({ mw: e.mw, date: e.date }))
+      : (codDeclared > 0 ? [{ mw: codDeclared, date: null }] : []),
     codInRefMonth,
     codRangeMonths,
     codInRange,
