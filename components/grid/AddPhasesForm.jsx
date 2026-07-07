@@ -333,13 +333,13 @@ export function AddPhasesForm({
     mode: 'onChange',
   });
 
-  // In edit mode, validate immediately on open — mount only computes isValid
-  // without populating per-field errors, so without this a legacy-hydrated
-  // event with a missing date would silently disable Save with no red
-  // highlight under the offending field. (Create mode starts intentionally
-  // blank; painting it red on open would be noise.)
+  // Validate immediately on open so per-field errors are painted right away —
+  // mount alone only computes isValid without populating field errors, which
+  // left Save disabled with no red highlight under the offending field (e.g. a
+  // required Capacity Applied, or a legacy-hydrated event missing its date).
+  // Errors surface next to the field they belong to, not in a summary.
   useEffect(() => {
-    if (isEditMode) form.trigger();
+    form.trigger();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -465,41 +465,6 @@ export function AddPhasesForm({
     return m;
   }, [watchedPhases, caps, plantType.isHybrid]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasExpectedErrors = Object.keys(expectedErrors).length > 0;
-
-  // Human-readable reasons the Save button is disabled — derived live (works in
-  // create mode too, where field-level errors aren't painted on open). Surfaced
-  // beside the disabled button so the operator always knows what to fix, rather
-  // than facing a greyed-out Save with no explanation.
-  const numRe = /^\d+(\.\d{1,3})?$/;
-  const blockingReasons = useMemo(() => {
-    const reasons = [];
-    if (pendingMw < -0.01) reasons.push(`Entered COD over-commits the plant by ${Math.abs(pendingMw).toFixed(1)} MW — reduce COD or raise Total Capacity.`);
-    (watchedPhases ?? []).forEach((p, i) => {
-      const label = p.sourceType || `Component ${i + 1}`;
-      const aRaw = String(p.capacityAppliedMw ?? '').trim();
-      const applied = parseFloat(aRaw || '0') || 0;
-      const events = [
-        ['FTC', p.ftcEvents], ['TOC', p.tocEvents], ['COD', p.codEvents],
-      ];
-      const anyEvent = events.some(([, evs]) => (evs ?? []).some((e) => String(e.mw ?? '').trim() !== ''));
-      if (aRaw === '' || !numRe.test(aRaw)) {
-        reasons.push(`${label}: Capacity Applied (MW) is required.`);
-      } else if (applied <= 0 && anyEvent) {
-        reasons.push(`${label}: Capacity Applied must be greater than 0 before adding milestones.`);
-      }
-      for (const [name, evs] of events) {
-        (evs ?? []).forEach((e, ei) => {
-          const mwStr = String(e.mw ?? '').trim();
-          if (mwStr === '' || !numRe.test(mwStr)) reasons.push(`${label}: ${name} event ${ei + 1} needs a valid MW value.`);
-          else if (!String(e.date ?? '').trim()) reasons.push(`${label}: ${name} event ${ei + 1} (${mwStr} MW) needs a date.`);
-        });
-      }
-    });
-    if (hasPipelineErrors) reasons.push('Resolve the source pipeline violations shown above.');
-    if (hasExpectedErrors) reasons.push('Expected (MW) exceeds the remaining capacity for a source.');
-    // De-dupe while preserving order.
-    return [...new Set(reasons)];
-  }, [watchedPhases, pendingMw, hasPipelineErrors, hasExpectedErrors]);
 
   const saveDisabled = pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid;
 
@@ -723,18 +688,6 @@ export function AddPhasesForm({
             commissioning phase (per source, for hybrids) and additional
             partial commissioning is captured as FTC / TOC / COD events
             within that phase, not as new phases. */}
-
-        {/* Why is Save disabled? — always-accurate, actionable list. */}
-        {!isPending && saveDisabled && blockingReasons.length > 0 && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
-            <p className="font-semibold flex items-center gap-1.5 mb-1">
-              <AlertCircle className="size-3.5" /> Save is disabled — please fix:
-            </p>
-            <ul className="list-disc pl-5 space-y-0.5">
-              {blockingReasons.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
-          </div>
-        )}
 
         <div className="flex gap-3 justify-end pt-2">
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
@@ -981,9 +934,11 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   // Applied capacity may not exceed the plant's (or component's) total capacity.
   const appliedCap = capForSource ? capForSource(selectedSource) : null;
   const appliedOver = appliedCap != null && appliedMw > appliedCap + 0.01;
-  // Applied is required before any milestone can be recorded against a source.
-  const hasAnyEvent   = ftcTotal > 0 || tocTotal > 0 || codTotal > 0;
-  const appliedMissing = hasAnyEvent && appliedMw <= 0;
+  // Applied entered as an explicit 0 (or less) while milestones exist. The empty
+  // case is already covered by the schema's "required" message at the field, so
+  // this only fires for a valid-but-zero value to avoid a duplicate line.
+  const hasAnyEvent    = ftcTotal > 0 || tocTotal > 0 || codTotal > 0;
+  const appliedMissing = hasAnyEvent && String(appliedRaw).trim() !== '' && appliedMw <= 0;
 
   // Auto-derive the dependent fields from the entered milestones/events so they
   // always track add/edit/delete LIVE:
@@ -1040,7 +995,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
           )}
           {!appliedOver && appliedMissing && (
             <p className="text-xs text-destructive mt-1">
-              Capacity Applied (MW) is required before entering FTC / TOC / COD events.
+              Capacity Applied must be greater than 0 before entering FTC / TOC / COD events.
             </p>
           )}
         </div>
