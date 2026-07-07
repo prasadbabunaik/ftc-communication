@@ -663,6 +663,21 @@ export async function updateBessRowFields(projectId, fields) {
 
   if (Object.keys(data).length === 0) return { success: true };
 
+  // Guard: COD-declared capacity (Σ phase MW) must not exceed Total Capacity.
+  // Uses whichever value is being saved, falling back to the stored one.
+  {
+    const effectiveCap = 'totalCapacityMw' in data
+      ? data.totalCapacityMw
+      : (project.totalCapacityMw != null ? Number(project.totalCapacityMw) : null);
+    const phasesForCheck = 'energyPhasesJson' in data
+      ? (data.energyPhasesJson ?? [])
+      : (Array.isArray(project.energyPhasesJson) ? project.energyPhasesJson : []);
+    const mwSum = phasesForCheck.reduce((s, r) => s + (Number(r?.mw) || 0), 0);
+    if (effectiveCap != null && mwSum > effectiveCap + 1e-6) {
+      return { error: `COD-declared capacity (${mwSum} MW) cannot exceed Total Capacity (${effectiveCap} MW).` };
+    }
+  }
+
   await prisma.generationProject.update({ where: { id: projectId }, data });
 
   const tracked = [];

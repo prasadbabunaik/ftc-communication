@@ -83,6 +83,11 @@ export function BessEditModal({ row, open, onOpenChange }) {
     (p) => (String(p.mw).trim() !== '' || String(p.mwh).trim() !== '') && !String(p.date).trim(),
   ).length;
 
+  // Intra-state COD-declared capacity (Σ phase MW) must not exceed the plant's
+  // Total Capacity (MW). Blocks the save until corrected.
+  const capNum      = parseFloat(totalCapacity);
+  const capExceeded = intra && !isNaN(capNum) && totalMw > capNum + 1e-6;
+
   const setPhase    = (i, key, val) => setPhases((prev) => prev.map((p, j) => (j === i ? { ...p, [key]: val } : p)));
   const addPhase    = () => setPhases((prev) => [...prev, { ...EMPTY_PHASE }]);
   const removePhase = (i) => setPhases((prev) => (prev.length > 1 ? prev.filter((_, j) => j !== i) : [{ ...EMPTY_PHASE }]));
@@ -90,6 +95,10 @@ export function BessEditModal({ row, open, onOpenChange }) {
   function handleSubmit(e) {
     e.preventDefault();
     if (!row) return;
+    if (capExceeded) {
+      toast.error(`COD-declared capacity (${fmt(totalMw)} MW) cannot exceed Total Capacity (${fmt(capNum)} MW).`);
+      return;
+    }
     startTransition(async () => {
       const payload = {
         stateName,
@@ -187,7 +196,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
                     {intra ? 'Capacity & Energy — phase-wise' : 'Energy Commissioned (MWh) — phase-wise'}
                   </label>
                   <span className="text-[11px] font-semibold text-foreground">
-                    {intra && <>Total: <span className="tabular-nums">{fmt(totalMw) || '0'}</span> MW&nbsp;·&nbsp;</>}
+                    {intra && <>Total: <span className={`tabular-nums ${capExceeded ? 'text-rose-600' : ''}`}>{fmt(totalMw) || '0'}</span> MW&nbsp;·&nbsp;</>}
                     <span className="tabular-nums">{fmt(totalMwh) || '0'}</span> MWh
                   </span>
                 </div>
@@ -252,6 +261,17 @@ export function BessEditModal({ row, open, onOpenChange }) {
                   <Plus className="size-3" /> Add phase
                 </button>
 
+                {capExceeded && (
+                  <p className="mt-2 flex items-start gap-1.5 text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1.5">
+                    <AlertTriangle className="size-3.5 shrink-0 mt-px" />
+                    <span>
+                      COD-declared capacity (<span className="font-semibold tabular-nums">{fmt(totalMw)}</span> MW) exceeds
+                      Total Capacity (<span className="font-semibold tabular-nums">{fmt(capNum)}</span> MW).
+                      Reduce the phase MW or raise the Total Capacity before saving.
+                    </span>
+                  </p>
+                )}
+
                 {intra && undatedCount > 0 && (
                   <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                     <AlertTriangle className="size-3.5 shrink-0 mt-px" />
@@ -269,7 +289,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
                 <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isPending}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={isPending}>
+                <Button type="submit" size="sm" disabled={isPending || capExceeded}>
                   <Save className="size-3.5 mr-1.5" />
                   {isPending ? 'Saving…' : 'Save Changes'}
                 </Button>
