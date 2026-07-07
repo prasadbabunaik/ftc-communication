@@ -607,24 +607,48 @@ export async function updateBessRowFields(projectId, fields) {
     const s = typeof fields.stateName === 'string' ? fields.stateName.trim() : '';
     data.stateName = s === '' ? null : s;
   }
-  // Phase-wise energy commissioning: an array of { mwh, date?, remarks? }. Each
-  // row's date is OPTIONAL. We store the cleaned array in energyPhasesJson and
-  // mirror the SUM into the cached energyCommissionedMwh so every existing
-  // reader/export (which reads the cached field) keeps working unchanged.
+  // Total Capacity (MW) — editable only for intra-state BESS rows (inter-state
+  // capacity is derived from the FTC pipeline and stays read-only in the UI).
+  if ('totalCapacityMw' in fields) {
+    const raw = fields.totalCapacityMw;
+    const c = parseFloat(raw);
+    if (raw == null || String(raw).trim() === '' || isNaN(c) || c < 0) {
+      return { error: 'Total Capacity (MW) must be a non-negative number.' };
+    }
+    data.totalCapacityMw = c;
+  }
+  // Phase-wise capacity + energy: an array of { mw?, mwh?, date?, remarks? }.
+  // MW drives the intra-state COD-declared capacity (a blank date reflects in
+  // the reference month by default); MWh is the energy commissioned. Each row's
+  // date is OPTIONAL. We store the cleaned array in energyPhasesJson and mirror
+  // the MWh SUM into the cached energyCommissionedMwh so every existing reader /
+  // export (which reads the cached field) keeps working unchanged.
   if ('energyPhases' in fields) {
     const rows = Array.isArray(fields.energyPhases) ? fields.energyPhases : [];
     const clean = [];
     for (const r of rows) {
-      const raw = r?.mwh;
-      if (raw == null || String(raw).trim() === '') continue; // skip blank rows
-      const e = parseFloat(raw);
-      if (isNaN(e) || e < 0) return { error: 'Each energy-commissioned value must be a non-negative number.' };
+      const mwRaw  = r?.mw;
+      const mwhRaw = r?.mwh;
+      const mwBlank  = mwRaw == null || String(mwRaw).trim() === '';
+      const mwhBlank = mwhRaw == null || String(mwhRaw).trim() === '';
+      if (mwBlank && mwhBlank) continue; // skip fully-blank rows
+      let mw = null, mwh = null;
+      if (!mwBlank) {
+        mw = parseFloat(mwRaw);
+        if (isNaN(mw) || mw < 0) return { error: 'Each MW value must be a non-negative number.' };
+      }
+      if (!mwhBlank) {
+        mwh = parseFloat(mwhRaw);
+        if (isNaN(mwh) || mwh < 0) return { error: 'Each MWh value must be a non-negative number.' };
+      }
       const d = r?.date && String(r.date).trim() !== '' ? String(r.date).trim() : null;
       const rem = r?.remarks && String(r.remarks).trim() !== '' ? String(r.remarks).trim() : null;
-      clean.push({ mwh: e, date: d, remarks: rem });
+      clean.push({ mw, mwh, date: d, remarks: rem });
     }
     data.energyPhasesJson      = clean.length ? clean : null;
-    data.energyCommissionedMwh = clean.length ? clean.reduce((s, r) => s + r.mwh, 0) : null;
+    data.energyCommissionedMwh = clean.some((r) => r.mwh != null)
+      ? clean.reduce((s, r) => s + (r.mwh ?? 0), 0)
+      : null;
   } else if ('energyCommissionedMwh' in fields) {
     // Legacy single-value path (kept for backward compatibility).
     const raw = fields.energyCommissionedMwh;
@@ -644,6 +668,13 @@ export async function updateBessRowFields(projectId, fields) {
   const tracked = [];
   if ('stateName' in data) {
     tracked.push({ field: 'State (situated)', old: fmtStr(project.stateName), new: fmtStr(data.stateName) });
+  }
+  if ('totalCapacityMw' in data) {
+    tracked.push({
+      field: 'Total Capacity (MW)',
+      old: fmtStr(project.totalCapacityMw != null ? Number(project.totalCapacityMw) : null),
+      new: fmtStr(Number(data.totalCapacityMw)),
+    });
   }
   if ('energyCommissionedMwh' in data) {
     tracked.push({

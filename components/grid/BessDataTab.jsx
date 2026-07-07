@@ -91,6 +91,35 @@ export function buildRow(p, referenceMonth, range = null) {
     }
   }
 
+  // Intra-state phase-wise MW override. Intra-state rows record their COD
+  // capacity directly in energyPhasesJson ({ mw, mwh, date? }). When present it
+  // supersedes the derived figures above: each phase's MW counts toward the
+  // COD-declared capacity, dated phases feed the date column / range filter, and
+  // a phase with a BLANK date is reflected in the reference-month column by
+  // default (per requirement).
+  const jsonPhases = Array.isArray(p.energyPhasesJson) ? p.energyPhasesJson : [];
+  if (p.isIntrastate) {
+    const mwPhases = jsonPhases.filter((ph) => ph?.mw != null && String(ph.mw).trim() !== '');
+    if (mwPhases.length) {
+      codDeclared = 0; codInRefMonth = 0; codDated = []; codDateLines = [];
+      for (const ph of mwPhases) {
+        const mw = Number(ph.mw) || 0;
+        if (mw <= 0) continue;
+        codDeclared += mw;
+        const d = ph.date ? String(ph.date).slice(0, 10) : null;
+        if (d) {
+          codDated.push({ mw, date: d });
+          codDateLines.push(`${fmt(mw)} MW on ${fmtDate(d)}`);
+          if (inMonth(d, referenceMonth)) codInRefMonth += mw;
+        } else {
+          // Blank date → reflected in the reference month by default.
+          codInRefMonth += mw;
+          codDateLines.push(`${fmt(mw)} MW — ${bMonthLabel(referenceMonth)}`);
+        }
+      }
+    }
+  }
+
   // COD declared WITHIN the active date-range filter, split by calendar month
   // (so a range spanning e.g. Jun→Jul reports each month separately).
   let codRangeMonths = null;
@@ -262,6 +291,14 @@ export function computeBessCommissioningSummary(bessProjects, asOf) {
   const add = (date, mw, intra) => { if (mw > 0) entries.push({ ms: date ? new Date(date).getTime() : null, mw, intra }); };
   for (const p of bessProjects ?? []) {
     const intra = !!p.isIntrastate;
+    // Intra-state rows record COD capacity phase-wise in energyPhasesJson.
+    const jsonMwPhases = intra && Array.isArray(p.energyPhasesJson)
+      ? p.energyPhasesJson.filter((ph) => ph?.mw != null && String(ph.mw).trim() !== '')
+      : [];
+    if (jsonMwPhases.length) {
+      for (const ph of jsonMwPhases) add(ph.date ?? null, Number(ph.mw ?? 0), true);
+      continue;
+    }
     if (p.plantType?.isHybrid) {
       // Hybrid BESS figures: prefer the segregation JSON's BESS component
       // (seeded data); otherwise fall back to the BESS phase's COD events

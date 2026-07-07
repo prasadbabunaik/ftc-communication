@@ -1,11 +1,16 @@
 'use client';
 
 // BESS Data edit modal — opened by clicking a row on the BESS Data page (same
-// interaction as the FTC tracker's clickable rows). Only the two manually-
-// maintained columns are editable: State (situated) and Energy Commissioned
-// (MWh, now recorded phase-wise with an optional date per phase). Everything
-// else (capacity, COD figures) is derived from the FTC pipeline and shown
+// interaction as the FTC tracker's clickable rows).
+//
+// Inter-state rows: only State (situated) and Energy Commissioned (MWh,
+// phase-wise) are editable; capacity / COD come from the FTC pipeline and are
 // read-only for context.
+//
+// Intra-state rows (state-network storage): additionally allow editing the
+// Total Capacity (MW), and the phase-wise editor carries BOTH MW and MWh per
+// phase (MW first, then MWh). The phase MW drives the COD-declared capacity —
+// a phase with a blank date is reflected in the reference month by default.
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,7 +27,7 @@ import { fmt } from '@/components/grid/BessDataTab';
 import { statesForRegion } from '@/lib/regions-states';
 
 const toDateInput = (v) => (v ? String(v).slice(0, 10) : '');
-const EMPTY_PHASE = { mwh: '', date: '', remarks: '' };
+const EMPTY_PHASE = { mw: '', mwh: '', date: '', remarks: '' };
 
 function ReadOnlyRow({ label, value }) {
   return (
@@ -36,22 +41,28 @@ function ReadOnlyRow({ label, value }) {
 export function BessEditModal({ row, open, onOpenChange }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [stateName, setStateName] = useState('');
-  const [phases, setPhases]       = useState([EMPTY_PHASE]);
+  const intra = !!row?.isIntrastate;
 
-  // Re-seed the form whenever a different row is opened. Seed from the stored
-  // phase-wise data; fall back to the legacy single MWh value as one phase.
+  const [stateName, setStateName]     = useState('');
+  const [totalCapacity, setTotalCap]  = useState('');
+  const [phases, setPhases]           = useState([{ ...EMPTY_PHASE }]);
+
+  // Re-seed the form whenever a different row is opened. Seed phases from the
+  // stored phase-wise data; fall back to the legacy single MWh value as one
+  // phase (its MW blank).
   useEffect(() => {
     if (!row) return;
     setStateName(row.stateName ?? '');
+    setTotalCap(row.totalCapacityMw != null ? String(row.totalCapacityMw) : '');
     const seed = Array.isArray(row.energyPhases) && row.energyPhases.length
       ? row.energyPhases.map((p) => ({
+          mw: p.mw != null ? String(p.mw) : '',
           mwh: p.mwh != null ? String(p.mwh) : '',
           date: toDateInput(p.date),
           remarks: p.remarks ?? '',
         }))
       : (row.energyMwh != null
-          ? [{ mwh: String(row.energyMwh), date: '', remarks: '' }]
+          ? [{ mw: '', mwh: String(row.energyMwh), date: '', remarks: '' }]
           : [{ ...EMPTY_PHASE }]);
     setPhases(seed);
   }, [row]);
@@ -61,7 +72,8 @@ export function BessEditModal({ row, open, onOpenChange }) {
     [row?.region],
   );
 
-  const total = phases.reduce((s, p) => s + (parseFloat(p.mwh) || 0), 0);
+  const totalMw  = phases.reduce((s, p) => s + (parseFloat(p.mw) || 0), 0);
+  const totalMwh = phases.reduce((s, p) => s + (parseFloat(p.mwh) || 0), 0);
 
   const setPhase    = (i, key, val) => setPhases((prev) => prev.map((p, j) => (j === i ? { ...p, [key]: val } : p)));
   const addPhase    = () => setPhases((prev) => [...prev, { ...EMPTY_PHASE }]);
@@ -71,12 +83,21 @@ export function BessEditModal({ row, open, onOpenChange }) {
     e.preventDefault();
     if (!row) return;
     startTransition(async () => {
-      const res = await updateBessRowFields(row.id, {
+      const payload = {
         stateName,
         energyPhases: phases
-          .filter((p) => String(p.mwh).trim() !== '')
-          .map((p) => ({ mwh: p.mwh, date: p.date || null, remarks: p.remarks || null })),
-      });
+          .filter((p) => String(p.mw).trim() !== '' || String(p.mwh).trim() !== '')
+          .map((p) => ({
+            mw: intra && String(p.mw).trim() !== '' ? p.mw : null,
+            mwh: String(p.mwh).trim() !== '' ? p.mwh : null,
+            date: p.date || null,
+            remarks: p.remarks || null,
+          })),
+      };
+      // Total Capacity is only editable for intra-state rows.
+      if (intra) payload.totalCapacityMw = totalCapacity;
+
+      const res = await updateBessRowFields(row.id, payload);
       if (res?.error) {
         toast.error(typeof res.error === 'string' ? res.error : 'Update failed.');
       } else {
@@ -87,14 +108,20 @@ export function BessEditModal({ row, open, onOpenChange }) {
     });
   }
 
+  // Phase-editor column layout — intra-state adds a leading MW column.
+  const gridCols = intra
+    ? 'grid-cols-[1fr_1fr_1fr_1.4fr_auto]'
+    : 'grid-cols-[1fr_1fr_1.4fr_auto]';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit BESS Data</DialogTitle>
+          <DialogTitle>Edit BESS Data{intra ? ' — Intra-state' : ''}</DialogTitle>
           <DialogDescription>
-            Only the manually-maintained fields are editable. Capacity and COD
-            figures are derived from the FTC pipeline / CONTD-4 and shown for reference.
+            {intra
+              ? 'Intra-state storage: edit the Total Capacity and record COD capacity (MW) & energy (MWh) phase-wise. A phase with no date is reflected in the current reference month.'
+              : 'Only the manually-maintained fields are editable. Capacity and COD figures are derived from the FTC pipeline / CONTD-4 and shown for reference.'}
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
@@ -105,39 +132,59 @@ export function BessEditModal({ row, open, onOpenChange }) {
                 <ReadOnlyRow label="Generating Station" value={row.name} />
                 <ReadOnlyRow label="Region" value={row.region} />
                 <ReadOnlyRow label="Plant Type" value={row.plantType} />
-                <ReadOnlyRow label="Total Capacity (MW)" value={fmt(row.totalCapacityMw) || '—'} />
+                {!intra && (
+                  <ReadOnlyRow label="Total Capacity (MW)" value={fmt(row.totalCapacityMw) || '—'} />
+                )}
                 <ReadOnlyRow label="COD Declared Capacity (MW)" value={fmt(row.codDeclared) || '—'} />
               </div>
 
-              {/* State */}
-              <div className="flex flex-col gap-1 sm:max-w-xs">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">State (situated)</label>
-                <Combobox
-                  options={stateOptions}
-                  value={stateName}
-                  onChange={setStateName}
-                  placeholder="— Select state —"
-                  searchPlaceholder={`Search ${row.region !== '—' ? row.region + ' ' : ''}states…`}
-                  emptyText="No matching state."
-                  creatable
-                  onCreate={setStateName}
-                  className="h-9"
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* State */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">State (situated)</label>
+                  <Combobox
+                    options={stateOptions}
+                    value={stateName}
+                    onChange={setStateName}
+                    placeholder="— Select state —"
+                    searchPlaceholder={`Search ${row.region !== '—' ? row.region + ' ' : ''}states…`}
+                    emptyText="No matching state."
+                    creatable
+                    onCreate={setStateName}
+                    className="h-9"
+                  />
+                </div>
+
+                {/* Total Capacity (MW) — editable for intra-state only */}
+                {intra && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Total Capacity (MW)</label>
+                    <input
+                      type="number" step="0.01" min="0"
+                      value={totalCapacity}
+                      onChange={(e) => setTotalCap(e.target.value)}
+                      placeholder="0"
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Energy Commissioned — phase-wise, date optional */}
+              {/* Phase-wise capacity (MW) + energy (MWh), date optional */}
               <div className="rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                    Energy Commissioned (MWh) — phase-wise
+                    {intra ? 'Capacity & Energy — phase-wise' : 'Energy Commissioned (MWh) — phase-wise'}
                   </label>
                   <span className="text-[11px] font-semibold text-foreground">
-                    Total: <span className="tabular-nums">{fmt(total) || '0'}</span> MWh
+                    {intra && <>Total: <span className="tabular-nums">{fmt(totalMw) || '0'}</span> MW&nbsp;·&nbsp;</>}
+                    <span className="tabular-nums">{fmt(totalMwh) || '0'}</span> MWh
                   </span>
                 </div>
 
-                <div className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2 mb-1 px-0.5">
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">MWh *</span>
+                <div className={`grid ${gridCols} gap-2 mb-1 px-0.5`}>
+                  {intra && <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">MW</span>}
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">MWh</span>
                   <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Date (optional)</span>
                   <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Remarks</span>
                   <span className="w-7" />
@@ -145,7 +192,16 @@ export function BessEditModal({ row, open, onOpenChange }) {
 
                 <div className="space-y-2">
                   {phases.map((p, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2 items-center">
+                    <div key={i} className={`grid ${gridCols} gap-2 items-center`}>
+                      {intra && (
+                        <input
+                          type="number" step="0.01" min="0"
+                          value={p.mw}
+                          onChange={(e) => setPhase(i, 'mw', e.target.value)}
+                          placeholder="0"
+                          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                        />
+                      )}
                       <input
                         type="number" step="0.01" min="0"
                         value={p.mwh}
