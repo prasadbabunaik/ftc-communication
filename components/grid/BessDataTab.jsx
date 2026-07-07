@@ -214,11 +214,13 @@ function CodMonthCell({ row, rangeMonths }) {
 }
 
 function DataRow({ row, sr, intrastate, editable, onEdit, rangeMonths = null }) {
-  const clickable = editable && !!onEdit;
+  // Only intra-state rows are editable here. Inter-state BESS is derived from the
+  // FTC pipeline (edit it in the FTC tracker), so its rows aren't clickable.
+  const clickable = editable && !!onEdit && intrastate;
   return (
     <tr
       onClick={clickable ? () => onEdit(row) : undefined}
-      title={clickable ? 'Click to edit State / Energy Commissioned' : undefined}
+      title={clickable ? 'Click to edit this intra-state BESS row' : undefined}
       className={`border-t border-gray-100 transition-colors ${intrastate ? 'bg-yellow-50/60 hover:bg-yellow-50' : 'bg-white hover:bg-blue-50/20'} ${clickable ? 'cursor-pointer' : ''}`}
     >
       <td className="px-2 py-2 text-center text-slate-400">{sr}</td>
