@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Demo1Layout } from '@/app/components/layouts/demo1/layout';
 import { useAuth } from '@/providers/auth-provider';
 import { GovLoader } from '@/components/ui/gov-loader';
+import { BackButtonGuard } from '@/components/BackButtonGuard';
 
 export default function ProtectedLayout({ children }) {
   const { user, loading } = useAuth();
@@ -27,5 +28,10 @@ export default function ProtectedLayout({ children }) {
     );
   }
 
-  return <Demo1Layout>{children}</Demo1Layout>;
+  return (
+    <>
+      <BackButtonGuard />
+      <Demo1Layout>{children}</Demo1Layout>
+    </>
+  );
 }
