@@ -145,6 +145,9 @@ export function buildRow(p, referenceMonth, range = null) {
     region: p.region?.code ?? '—',
     totalCapacityMw: Number(p.totalCapacityMw ?? 0),
     stateName: p.stateName ?? '',
+    // A hybrid's BESS COD is pipeline-derived (not user-maintained), so the edit
+    // modal shows its COD MW read-only even when the row is intra-state.
+    isHybrid,
     codDeclared,
     energyMwh: p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null,
     // Phase-wise energy commissioning ({ mw?, mwh, date, remarks }) for the edit modal.

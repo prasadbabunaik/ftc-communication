@@ -45,12 +45,15 @@ export function BessEditModal({ row, open, onOpenChange }) {
   const [isPending, startTransition] = useTransition();
 
   const intra      = !!row?.isIntrastate;
+  const isHybrid   = !!row?.isHybrid;
   const codPhases  = Array.isArray(row?.codPhases) ? row.codPhases : [];
-  // Inter-state row that has COD phases → phase rows are pipeline-driven, with
-  // MW + date locked and only MWh + remarks editable, no add/remove.
-  const interLocked = !intra && codPhases.length > 0;
-  const showMw      = intra || interLocked;
-  const addable     = intra || (!intra && !interLocked);
+  // MW (COD capacity) is user-maintained only for a PURE intra-state BESS. For a
+  // hybrid the BESS COD comes from the FTC pipeline, and inter-state COD always
+  // does — both show MW + date read-only, editing only MWh + remarks.
+  const mwEditable = intra && !isHybrid;
+  const codReadOnly = !mwEditable && codPhases.length > 0;
+  const showMw      = mwEditable || codReadOnly;
+  const addable     = mwEditable || (!mwEditable && !codReadOnly);
 
   const [stateName, setStateName]    = useState('');
   const [totalCapacity, setTotalCap] = useState('');
@@ -62,7 +65,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
     setStateName(row.stateName ?? '');
     setTotalCap(row.totalCapacityMw != null ? String(row.totalCapacityMw) : '');
 
-    if (interLocked) {
+    if (codReadOnly) {
       // Rows are the pipeline COD phases; MWh + remarks come from stored energy
       // phases matched by COD date (positional fallback so nothing is lost).
       const energyList = Array.isArray(row.energyPhases) ? [...row.energyPhases] : [];
@@ -107,15 +110,16 @@ export function BessEditModal({ row, open, onOpenChange }) {
   const totalMw  = phases.reduce((s, p) => s + (parseFloat(p.mw) || 0), 0);
   const totalMwh = phases.reduce((s, p) => s + (parseFloat(p.mwh) || 0), 0);
 
-  // Intra-state: commissioning phases with a value but no COD date. Allowed
-  // (saved as-is), but surfaced so the date is filled in next time.
-  const undatedCount = phases.filter(
-    (p) => (String(p.mw).trim() !== '' || String(p.mwh).trim() !== '') && !String(p.date).trim(),
-  ).length;
+  // Pure intra-state: every phase with a value must carry a COD date. MWh may be
+  // entered without MW, but the date is mandatory (it links the phase to its
+  // month). Blocks the save until every valued phase has a date.
+  const undatedCount = mwEditable
+    ? phases.filter((p) => (String(p.mw).trim() !== '' || String(p.mwh).trim() !== '') && !String(p.date).trim()).length
+    : 0;
 
   // Intra-state: COD-declared capacity (Σ phase MW) must not exceed Total Capacity.
   const capNum      = parseFloat(totalCapacity);
-  const capExceeded = intra && !isNaN(capNum) && totalMw > capNum + 1e-6;
+  const capExceeded = mwEditable && !isNaN(capNum) && totalMw > capNum + 1e-6;
 
   const setPhase    = (i, key, val) => setPhases((prev) => prev.map((p, j) => (j === i ? { ...p, [key]: val } : p)));
   const addPhase    = () => setPhases((prev) => [...prev, { ...EMPTY_PHASE }]);
@@ -128,16 +132,20 @@ export function BessEditModal({ row, open, onOpenChange }) {
       toast.error(`COD-declared capacity (${fmt(totalMw)} MW) cannot exceed Total Capacity (${fmt(capNum)} MW).`);
       return;
     }
+    if (undatedCount > 0) {
+      toast.error('Each phase must have a COD date before saving.');
+      return;
+    }
     startTransition(async () => {
       const payload = {
         stateName,
-        // MW is persisted only for intra-state (inter-state COD MW is pipeline-
-        // derived and read-only). Inter-state stores its date so re-seeding can
-        // match each MWh back to its COD phase.
+        // MW is persisted only for a pure intra-state BESS (a hybrid's / inter-
+        // state's COD MW is pipeline-derived and read-only). The date is stored
+        // so re-seeding can match each MWh back to its COD phase.
         energyPhases: phases
           .filter((p) => String(p.mw).trim() !== '' || String(p.mwh).trim() !== '')
           .map((p) => ({
-            mw: intra && String(p.mw).trim() !== '' ? p.mw : null,
+            mw: mwEditable && String(p.mw).trim() !== '' ? p.mw : null,
             mwh: String(p.mwh).trim() !== '' ? p.mwh : null,
             date: p.date || null,
             remarks: p.remarks || null,
@@ -170,10 +178,10 @@ export function BessEditModal({ row, open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>Edit BESS Data{intra ? ' — Intra-state' : ''}</DialogTitle>
           <DialogDescription>
-            {intra
-              ? 'Intra-state storage: edit the Total Capacity and record COD capacity (MW) & energy (MWh) phase-wise. A phase with no date is reflected in the current reference month.'
-              : interLocked
-                ? 'COD commissioning phases (MW + date) are derived from the FTC pipeline and read-only. Edit only the Energy Commissioned (MWh) and Remarks against each phase.'
+            {mwEditable
+              ? 'Intra-state storage: edit the Total Capacity and record COD capacity (MW) & energy (MWh) phase-wise. Each phase needs a COD date.'
+              : codReadOnly
+                ? `COD commissioning phases (MW + date) are derived from the FTC pipeline and read-only. Edit ${intra ? 'the Total Capacity, ' : ''}the Energy Commissioned (MWh) and Remarks against each phase.`
                 : 'Only the manually-maintained fields are editable. Capacity and COD figures are derived from the FTC pipeline / CONTD-4 and shown for reference.'}
           </DialogDescription>
         </DialogHeader>
@@ -227,32 +235,34 @@ export function BessEditModal({ row, open, onOpenChange }) {
               <div className="rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                    {intra
+                    {mwEditable
                       ? 'Capacity & Energy — phase-wise'
-                      : interLocked
+                      : codReadOnly
                         ? 'Energy Commissioned (MWh) — per COD phase'
                         : 'Energy Commissioned (MWh) — phase-wise'}
                   </label>
                   <span className="text-[11px] font-semibold text-foreground">
-                    {showMw && <>{intra ? 'Total: ' : 'COD: '}<span className={`tabular-nums ${capExceeded ? 'text-rose-600' : ''}`}>{fmt(totalMw) || '0'}</span> MW&nbsp;·&nbsp;</>}
+                    {showMw && <>{mwEditable ? 'Total: ' : 'COD: '}<span className={`tabular-nums ${capExceeded ? 'text-rose-600' : ''}`}>{fmt(totalMw) || '0'}</span> MW&nbsp;·&nbsp;</>}
                     <span className="tabular-nums">{fmt(totalMwh) || '0'}</span> MWh
                   </span>
                 </div>
 
                 <div className={`grid ${gridCols} gap-2 mb-1 px-0.5`}>
-                  {showMw && <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">MW{interLocked ? ' (COD)' : ''}</span>}
+                  {showMw && <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">MW{codReadOnly ? ' (COD)' : ''}</span>}
                   <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">MWh</span>
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">{interLocked ? 'COD Date' : 'Date (optional)'}</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">{codReadOnly ? 'COD Date' : 'Date'}</span>
                   <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Remarks</span>
                   <span className="w-7" />
                 </div>
 
                 <div className="space-y-2">
-                  {phases.map((p, i) => (
+                  {phases.map((p, i) => {
+                    const dateMissing = mwEditable && (String(p.mw).trim() !== '' || String(p.mwh).trim() !== '') && !String(p.date).trim();
+                    return (
                     <div key={i} className={`grid ${gridCols} gap-2 items-center`}>
-                      {/* MW — editable (intra) or read-only COD (inter) */}
+                      {/* MW — editable (pure intra) or read-only COD (hybrid / inter) */}
                       {showMw && (
-                        intra ? (
+                        mwEditable ? (
                           <input
                             type="number" step="0.01" min="0"
                             value={p.mw}
@@ -274,15 +284,15 @@ export function BessEditModal({ row, open, onOpenChange }) {
                         className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                       />
 
-                      {/* Date — editable (intra / free-form) or read-only COD date (inter) */}
-                      {interLocked ? (
+                      {/* Date — read-only COD date (hybrid / inter) or required entry (pure intra) */}
+                      {codReadOnly ? (
                         <div className={`${roCell} justify-start`} title="COD date (from pipeline)">{fmtDate(p.date) || '—'}</div>
                       ) : (
                         <DatePicker
                           value={p.date}
                           onChange={(v) => setPhase(i, 'date', v || '')}
-                          placeholder="—"
-                          className="h-9 w-full min-w-0"
+                          placeholder="Required"
+                          className={`h-9 w-full min-w-0 ${dateMissing ? 'border-rose-400 ring-1 ring-rose-300 rounded-md' : ''}`}
                         />
                       )}
 
@@ -309,7 +319,8 @@ export function BessEditModal({ row, open, onOpenChange }) {
                         <span className="w-7" />
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {addable && (
@@ -333,14 +344,12 @@ export function BessEditModal({ row, open, onOpenChange }) {
                   </p>
                 )}
 
-                {intra && undatedCount > 0 && (
-                  <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                {undatedCount > 0 && (
+                  <p className="mt-2 flex items-start gap-1.5 text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1.5">
                     <AlertTriangle className="size-3.5 shrink-0 mt-px" />
                     <span>
-                      {undatedCount} commissioning phase{undatedCount === 1 ? ' has' : 's have'} no COD date.
-                      You can save now — {undatedCount === 1 ? 'it is' : 'they are'} counted in the current
-                      month&apos;s “COD Declared in &lt;Month&gt;” column — but add the date so it links to the
-                      correct month.
+                      {undatedCount} phase{undatedCount === 1 ? '' : 's'} {undatedCount === 1 ? 'is' : 'are'} missing a COD date.
+                      A date is required for every phase (MWh may be entered without MW). Add the date to save.
                     </span>
                   </p>
                 )}
@@ -350,7 +359,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
                 <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isPending}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={isPending || capExceeded}>
+                <Button type="submit" size="sm" disabled={isPending || capExceeded || undatedCount > 0}>
                   <Save className="size-3.5 mr-1.5" />
                   {isPending ? 'Saving…' : 'Save Changes'}
                 </Button>
