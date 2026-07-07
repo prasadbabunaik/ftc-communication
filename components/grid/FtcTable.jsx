@@ -154,7 +154,7 @@ function StatusBadge({ status, manual = false }) {
   );
 }
 
-export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected", onVisibleChange }) {
+export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected", onVisibleChange, highlightId = null, onHighlightDone }) {
   const [search, setSearch]             = useState('');
   const [regionFilter, setRegionFilter] = useState('All');
   const [typeFilter, setTypeFilter]     = useState('All');
@@ -251,6 +251,22 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const offset     = (page - 1) * PER_PAGE;
+
+  // Deep-link highlight (from the Change Log): clear filters so the project is
+  // in the list, jump to its page, scroll it into view and flash it briefly.
+  useEffect(() => {
+    if (!highlightId) return;
+    setSearch(''); setRegionFilter('All'); setTypeFilter('All'); setStatusFilter('All');
+    const full = sortRows([...enrichedRows], sortField, sortDir);
+    const idx = full.findIndex((p) => p.id === highlightId);
+    if (idx >= 0) setPage(Math.floor(idx / PER_PAGE) + 1);
+    const scroll = setTimeout(() => {
+      document.querySelector(`[data-pid="${highlightId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    const clear = setTimeout(() => onHighlightDone?.(), 4000);
+    return () => { clearTimeout(scroll); clearTimeout(clear); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightId]);
 
   const sp = { sortField, sortDir, onSort: handleSort };
 
@@ -395,8 +411,13 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                 const mainRow = (
                   <tr
                     key={p.id}
+                    data-pid={p.id}
                     onClick={() => onView?.(p)}
-                    className={`hover:bg-muted/20 transition-colors cursor-pointer ${p._isOverdue ? 'bg-red-50/30' : ''}`}
+                    className={`hover:bg-muted/20 transition-colors cursor-pointer ${
+                      p.id === highlightId
+                        ? 'ring-2 ring-inset ring-blue-400 bg-blue-100/70'
+                        : p._isOverdue ? 'bg-red-50/30' : ''
+                    }`}
                   >
                     <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                     <td className="px-3 py-2.5 min-w-[180px]">

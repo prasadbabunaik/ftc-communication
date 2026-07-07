@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Layers, Zap, Plus, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -39,8 +39,22 @@ export function FtcPageClient({
   const [visibleProjects, setVisibleProjects]     = useState(projects);
   const handleVisibleChange = useCallback((rows) => setVisibleProjects(rows), []);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { settings } = useSettings();
   const refMonthLabel = fmtRefMonth(settings.referenceMonth);
+
+  // Deep-link from the Change Log: /ftc?project=<id> opens that project's detail
+  // and flags its table row for a highlight/scroll. The param is then stripped
+  // so a later manual close/back doesn't re-open it.
+  const [highlightId, setHighlightId] = useState(null);
+  useEffect(() => {
+    const pid = searchParams.get('project');
+    if (!pid) return;
+    const proj = projects.find((p) => p.id === pid) ?? allClearedProjects.find((p) => p.id === pid);
+    if (proj) { setDetailProject(proj); setHighlightId(pid); }
+    router.replace('/ftc', { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
 
@@ -95,6 +109,8 @@ export function FtcPageClient({
           onView={setDetailProject}
           refMonthLabel={refMonthLabel}
           onVisibleChange={handleVisibleChange}
+          highlightId={highlightId}
+          onHighlightDone={() => setHighlightId(null)}
         />
       </div>
 

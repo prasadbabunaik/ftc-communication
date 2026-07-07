@@ -45,7 +45,7 @@ export async function GET(request) {
         select: {
           id: true, field: true, oldValue: true, newValue: true, text: true,
           createdAt: true, effectiveDate: true,
-          projectName: true,
+          projectName: true, projectId: true,
           project: { select: { name: true, region: { select: { code: true } } } },
           user:    { select: { name: true, role: true } },
         },
@@ -55,7 +55,7 @@ export async function GET(request) {
       prisma.transmissionAuditLog.findMany({
         where: { ...(regionCode ? { element: { region: { code: regionCode } } } : {}), ...windowFilter },
         select: {
-          id: true, action: true, field: true, elementName: true,
+          id: true, action: true, field: true, elementName: true, elementId: true,
           createdAt: true, effectiveDate: true,
           element: { select: { region: { select: { code: true } } } },
           user:    { select: { name: true, role: true } },
@@ -69,14 +69,14 @@ export async function GET(request) {
     const flat = [
       ...notes.map((n) => ({
         kind: 'PROJECT', entityName: n.project?.name ?? n.projectName ?? '—',
-        region: n.project?.region?.code ?? null,
+        region: n.project?.region?.code ?? null, refId: n.projectId ?? null,
         field: n.field, oldValue: n.oldValue, newValue: n.newValue, text: n.text,
         userName: n.user?.name ?? 'System', userRole: n.user?.role ?? null,
         createdAt: n.createdAt, effectiveDate: n.effectiveDate,
       })),
       ...txLogs.map((t) => ({
         kind: 'TRANSMISSION', entityName: t.elementName ?? '—',
-        region: t.element?.region?.code ?? null,
+        region: t.element?.region?.code ?? null, refId: t.elementId ?? null,
         field: t.field, oldValue: null, newValue: null,
         text: [t.action, t.field].filter(Boolean).join(' — ') || null,
         userName: t.user?.name ?? 'System', userRole: t.user?.role ?? null,
@@ -95,7 +95,7 @@ export async function GET(request) {
       let g = events.get(key);
       if (!g) {
         g = {
-          id: key, kind: e.kind, entityName: e.entityName, region: e.region,
+          id: key, kind: e.kind, entityName: e.entityName, region: e.region, refId: e.refId ?? null,
           userName: e.userName, userRole: e.userRole, createdAt: e.createdAt, effectiveDate: e.effectiveDate,
           backDated: !!e.effectiveDate && e.effectiveDate.getTime() < e.createdAt.getTime(),
           changeCount: 0, fields: [], changes: [],
@@ -103,6 +103,7 @@ export async function GET(request) {
         events.set(key, g);
       }
       g.changeCount += 1;
+      if (!g.refId && e.refId) g.refId = e.refId;
       if (e.field && !g.fields.includes(e.field)) g.fields.push(e.field);
       g.changes.push({ field: e.field ?? null, oldValue: e.oldValue ?? null, newValue: e.newValue ?? null, text: e.text ?? null });
     }

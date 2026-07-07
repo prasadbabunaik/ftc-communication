@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 
@@ -433,6 +434,14 @@ export function SnapshotCompareTab() {
 // positioned by their effective date. This is the "which change was made at
 // what time" view, distinct from the milestone-movement diff above.
 function ChangeLog() {
+  const router    = useRouter();
+  // Clicking a change jumps to the entity (project → FTC tracker, opening its
+  // detail; transmission → transmission page) with that row highlighted.
+  const openEntity = (r) => {
+    if (!r.refId) return;
+    if (r.kind === 'TRANSMISSION') router.push(`/transmission?highlight=${r.refId}`);
+    else router.push(`/ftc?project=${r.refId}`);
+  };
   const today     = new Date().toISOString().slice(0, 10);
   const monthAgo  = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
   const [from, setFrom] = useState(monthAgo);
@@ -518,7 +527,12 @@ function ChangeLog() {
             </thead>
             <tbody className="divide-y divide-border">
               {grouped[day].map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50/60">
+                <tr
+                  key={r.id}
+                  onClick={() => openEntity(r)}
+                  title={r.refId ? `Open ${r.entityName}` : undefined}
+                  className={`hover:bg-slate-50/60 ${r.refId ? 'cursor-pointer' : ''}`}
+                >
                   <td className="px-3 py-1.5 text-center font-mono text-slate-600 whitespace-nowrap">{fmtTs(r.effectiveDate ?? r.createdAt)}</td>
                   <td className="px-3 py-1.5 text-center">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${KIND_TONE[r.kind] ?? 'bg-slate-100 text-slate-700'}`}>
