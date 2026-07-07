@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Save, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -75,6 +75,14 @@ export function BessEditModal({ row, open, onOpenChange }) {
   const totalMw  = phases.reduce((s, p) => s + (parseFloat(p.mw) || 0), 0);
   const totalMwh = phases.reduce((s, p) => s + (parseFloat(p.mwh) || 0), 0);
 
+  // Commissioning phases with a value but no COD date. Allowed (saved as-is),
+  // but surfaced as a validation notice so the date is filled in next time —
+  // a dated phase attributes to the right "COD Declared in <Month>" column,
+  // whereas an undated one is only reflected in the current reference month.
+  const undatedCount = phases.filter(
+    (p) => (String(p.mw).trim() !== '' || String(p.mwh).trim() !== '') && !String(p.date).trim(),
+  ).length;
+
   const setPhase    = (i, key, val) => setPhases((prev) => prev.map((p, j) => (j === i ? { ...p, [key]: val } : p)));
   const addPhase    = () => setPhases((prev) => [...prev, { ...EMPTY_PHASE }]);
   const removePhase = (i) => setPhases((prev) => (prev.length > 1 ? prev.filter((_, j) => j !== i) : [{ ...EMPTY_PHASE }]));
@@ -108,14 +116,16 @@ export function BessEditModal({ row, open, onOpenChange }) {
     });
   }
 
-  // Phase-editor column layout — intra-state adds a leading MW column.
+  // Phase-editor column layout — intra-state adds a leading MW column. Tracks
+  // use minmax(0,…) so the cells shrink to fit the modal (no horizontal
+  // overflow) and the header row stays aligned with the input row.
   const gridCols = intra
-    ? 'grid-cols-[1fr_1fr_1fr_1.4fr_auto]'
-    : 'grid-cols-[1fr_1fr_1.4fr_auto]';
+    ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.5fr)_28px]'
+    : 'grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.5fr)_28px]';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Edit BESS Data{intra ? ' — Intra-state' : ''}</DialogTitle>
           <DialogDescription>
@@ -199,7 +209,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
                           value={p.mw}
                           onChange={(e) => setPhase(i, 'mw', e.target.value)}
                           placeholder="0"
-                          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                          className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                         />
                       )}
                       <input
@@ -207,20 +217,20 @@ export function BessEditModal({ row, open, onOpenChange }) {
                         value={p.mwh}
                         onChange={(e) => setPhase(i, 'mwh', e.target.value)}
                         placeholder="0"
-                        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                        className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                       />
                       <DatePicker
                         value={p.date}
                         onChange={(v) => setPhase(i, 'date', v || '')}
                         placeholder="—"
-                        className="h-9"
+                        className="h-9 w-full min-w-0"
                       />
                       <input
                         type="text"
                         value={p.remarks}
                         onChange={(e) => setPhase(i, 'remarks', e.target.value)}
                         placeholder="e.g. Phase-1"
-                        className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                        className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                       />
                       <button
                         type="button"
@@ -241,6 +251,18 @@ export function BessEditModal({ row, open, onOpenChange }) {
                 >
                   <Plus className="size-3" /> Add phase
                 </button>
+
+                {intra && undatedCount > 0 && (
+                  <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                    <AlertTriangle className="size-3.5 shrink-0 mt-px" />
+                    <span>
+                      {undatedCount} commissioning phase{undatedCount === 1 ? ' has' : 's have'} no COD date.
+                      You can save now — {undatedCount === 1 ? 'it is' : 'they are'} counted in the current
+                      month&apos;s “COD Declared in &lt;Month&gt;” column — but add the date so it links to the
+                      correct month.
+                    </span>
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t">
