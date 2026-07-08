@@ -68,7 +68,7 @@ const EMPTY_EVENT = { mw: '', date: '', remarks: '' };
 const EMPTY_PHASE = {
   existingId:         null,
   sourceType:         'SOLAR',
-  capacityAppliedMw:  '',
+  capacityAppliedMw:  '0',
   proposedFtcDate:    '',
   capacityUnderFtcMw: '',
   capacityUnderTocMw: '',
@@ -159,7 +159,7 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     // new one". Server action upsertProjectPhases reads it.
     existingId:         ph.id ?? null,
     sourceType:         ph.sourceType,
-    capacityAppliedMw:  ph.capacityAppliedMw  != null ? String(Number(ph.capacityAppliedMw))  : '',
+    capacityAppliedMw:  ph.capacityAppliedMw  != null ? String(Number(ph.capacityAppliedMw))  : '0',
     proposedFtcDate:    ph.proposedFtcDate    ? new Date(ph.proposedFtcDate).toISOString().slice(0, 10) : '',
     capacityUnderFtcMw: ph.capacityUnderFtcMw != null ? String(Number(ph.capacityUnderFtcMw)) : '',
     capacityUnderTocMw: ph.capacityUnderTocMw != null ? String(Number(ph.capacityUnderTocMw)) : '',
