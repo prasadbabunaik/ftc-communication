@@ -471,8 +471,38 @@ export function AddPhasesForm({
   // Also check Zod-level errors (schema refine errors have no path set)
   const zodErrors = form.formState.errors.phases ?? [];
 
+  // Scroll the first visible error into view so a save attempt never appears to
+  // "do nothing" when the offending field is below the fold. Covers field-level
+  // messages, the FTC/TOC/COD event guard-rails, and the top violation banners.
+  function scrollToFirstError() {
+    requestAnimationFrame(() => {
+      const root = rootRef.current;
+      if (!root) return;
+      const el = root.querySelector(
+        '[aria-invalid="true"], .text-destructive, .text-red-600, .text-red-700, [role="alert"]',
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // If it's a focusable input, focus it too (helps screen readers).
+        const focusable = el.closest('.grid')?.querySelector('input, select, textarea');
+        focusable?.focus?.({ preventScroll: true });
+      }
+    });
+  }
+
+  // react-hook-form invokes this when a submit is attempted but the schema fails.
+  function onInvalid() {
+    scrollToFirstError();
+  }
+
   function onSubmit(values) {
-    if (hasPipelineErrors) return;
+    // Non-schema blockers (funnel/expected/over-commit) — surface + scroll,
+    // don't silently no-op.
+    if (hasPipelineErrors || hasExpectedErrors || pendingMw < -0.01) {
+      toast.error('Please resolve the highlighted issues before saving.');
+      scrollToFirstError();
+      return;
+    }
     setServerError(null);
     startTransition(async () => {
       // Persist any capacity edits first so the corrected ceiling is in place
@@ -667,7 +697,7 @@ export function AddPhasesForm({
       )}
 
       {/* Phase rows */}
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
         {fields.map((field, i) => (
           <PhaseRow
             key={field.id}
@@ -693,7 +723,10 @@ export function AddPhasesForm({
           <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending || saveDisabled}>
+          {/* Kept enabled while blocked so a click scrolls to the first error
+              (a disabled button swallows the click); the submit handlers refuse
+              to persist when there are outstanding issues. */}
+          <Button type="submit" disabled={isPending} aria-disabled={saveDisabled} className={saveDisabled ? 'opacity-60' : ''}>
             {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save'}
           </Button>
         </div>
