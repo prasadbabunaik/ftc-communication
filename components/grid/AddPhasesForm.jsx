@@ -472,27 +472,52 @@ export function AddPhasesForm({
   const zodErrors = form.formState.errors.phases ?? [];
 
   // Scroll the first visible error into view so a save attempt never appears to
-  // "do nothing" when the offending field is below the fold. Covers field-level
-  // messages, the FTC/TOC/COD event guard-rails, and the top violation banners.
+  // "do nothing" when the offending field is below the fold. Scrolls the actual
+  // scroll container (the DialogBody, max-h + overflow-y-auto) rather than
+  // relying on scrollIntoView, which no-ops on nested scroll areas when the
+  // element is already within the window viewport.
   function scrollToFirstError() {
-    requestAnimationFrame(() => {
+    // Two frames so React has painted the freshly-set error nodes.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       const root = rootRef.current;
       if (!root) return;
       const el = root.querySelector(
         '[aria-invalid="true"], .text-destructive, .text-red-600, .text-red-700, [role="alert"]',
       );
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // If it's a focusable input, focus it too (helps screen readers).
-        const focusable = el.closest('.grid')?.querySelector('input, select, textarea');
-        focusable?.focus?.({ preventScroll: true });
+      if (!el) return;
+      // Nearest scrollable ancestor.
+      let sc = el.parentElement;
+      while (sc && sc !== document.body) {
+        const oy = getComputedStyle(sc).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && sc.scrollHeight > sc.clientHeight) break;
+        sc = sc.parentElement;
       }
-    });
+      if (sc && sc !== document.body) {
+        const scRect = sc.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const delta = (elRect.top - scRect.top) - sc.clientHeight / 2 + elRect.height / 2;
+        sc.scrollBy({ top: delta, behavior: 'smooth' });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      el.closest('.grid, div')?.querySelector('input, select, textarea')?.focus?.({ preventScroll: true });
+    }));
   }
 
-  // react-hook-form invokes this when a submit is attempted but the schema fails.
-  function onInvalid() {
-    scrollToFirstError();
+  // Validate everything, and if anything blocks the save, surface it and scroll
+  // to it. Returns true when the form is clear to persist. Driven from the Save
+  // button's click (and Enter via the form's onSubmit) so it always runs even
+  // while the button is visually blocked.
+  async function attemptSave() {
+    const schemaOk = await form.trigger();
+    const blocked = !schemaOk || hasPipelineErrors || hasExpectedErrors || pendingMw < -0.01;
+    if (blocked) {
+      if (schemaOk) toast.error('Please resolve the highlighted issues before saving.');
+      scrollToFirstError();
+      return false;
+    }
+    onSubmit(form.getValues());
+    return true;
   }
 
   function onSubmit(values) {
@@ -697,7 +722,7 @@ export function AddPhasesForm({
       )}
 
       {/* Phase rows */}
-      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); attemptSave(); }} className="space-y-4">
         {fields.map((field, i) => (
           <PhaseRow
             key={field.id}
@@ -724,9 +749,9 @@ export function AddPhasesForm({
             Cancel
           </Button>
           {/* Kept enabled while blocked so a click scrolls to the first error
-              (a disabled button swallows the click); the submit handlers refuse
-              to persist when there are outstanding issues. */}
-          <Button type="submit" disabled={isPending} aria-disabled={saveDisabled} className={saveDisabled ? 'opacity-60' : ''}>
+              (a disabled button swallows the click); attemptSave refuses to
+              persist when there are outstanding issues. */}
+          <Button type="button" onClick={attemptSave} disabled={isPending} aria-disabled={saveDisabled} className={saveDisabled ? 'opacity-60' : ''}>
             {isPending ? 'Saving...' : isEditMode ? 'Save Changes' : 'Save'}
           </Button>
         </div>
