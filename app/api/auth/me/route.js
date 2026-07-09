@@ -11,12 +11,23 @@ export async function GET(request) {
 
     const payload = await verifyAccessToken(accessToken);
 
+    // "View as role" overlay — only a real ADMIN can impersonate another role.
+    const VIEW_AS_ROLES = ['NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
+    let role = payload.role;
+    let impersonating = false;
+    if (payload.role === 'ADMIN') {
+      const viewAs = request.cookies.get('view_as_role')?.value;
+      if (viewAs && VIEW_AS_ROLES.includes(viewAs)) { role = viewAs; impersonating = true; }
+    }
+
     return NextResponse.json({
       user: {
         id: payload.sub,
         name: payload.name,
         email: payload.email,
-        role: payload.role,
+        role,
+        realRole: payload.role,
+        impersonating,
       },
     });
   } catch {
