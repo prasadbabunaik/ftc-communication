@@ -11,6 +11,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/common/container';
 import { NotificationBell } from '@/components/common/NotificationBell';
+import { ViewAsBar } from '@/components/ViewAsBar';
 import { SidebarMenu } from './sidebar-menu';
 
 function useScrollPosition() {
@@ -293,8 +294,10 @@ export function Header() {
           {/* ── Center: system frequency pill (xl+) ── */}
           {/* <FrequencyPill /> */}
 
-          {/* ── Right: clock + bell + user ── */}
+          {/* ── Right: view-as + clock + bell + user ── */}
           <div className="flex items-center gap-2 lg:gap-3">
+            {user && <ViewAsBar />}
+
             {/* Divider before clock (desktop only) */}
             <div className="hidden lg:block h-5 w-px bg-border" />
 
