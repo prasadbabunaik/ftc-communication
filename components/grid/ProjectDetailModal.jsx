@@ -490,6 +490,41 @@ const SOURCE_BADGE = {
   PSP:    'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
+// Per-component rows for the Hybrid Capacity Breakdown, derived from the LIVE
+// commissioning phases (the single source of truth — same cached milestone
+// fields the header "Commissioned (COD)" sums), so the breakdown always
+// reconciles with the header / dashboard / exports. The segregation JSON is used
+// only for the nameplate "Total (MW)" per component and as a fallback for a
+// component that has no phase yet.
+const HYBRID_CAP_COL = { WIND: 'windCapacityMw', SOLAR: 'solarCapacityMw', BESS: 'bessCapacityMw' };
+function hybridBreakdownRows(project) {
+  const jsonComps = project.hybridComponentsJson?.components ?? [];
+  const jsonByType = new Map(jsonComps.map((c) => [c.sourceType, c]));
+  const num = (v) => Number(v ?? 0);
+  const phaseByType = {};
+  for (const ph of (project.phases ?? [])) {
+    const a = (phaseByType[ph.sourceType] ??= { appliedMw: 0, ftcMw: 0, tocMw: 0, codMw: 0, expectedMw: 0 });
+    a.appliedMw  += num(ph.capacityAppliedMw);
+    a.ftcMw      += num(ph.ftcCompletedMw);
+    a.tocMw      += num(ph.tocIssuedMw);
+    a.codMw      += num(ph.codDeclaredMw);
+    a.expectedMw += num(ph.expectedApr26Mw);
+  }
+  const types = [...new Set([...jsonComps.map((c) => c.sourceType), ...Object.keys(phaseByType)])];
+  return types.map((t) => {
+    const j  = jsonByType.get(t);
+    const ph = phaseByType[t];
+    const totalMw = j != null
+      ? num(j.totalMw)
+      : (HYBRID_CAP_COL[t] ? num(project[HYBRID_CAP_COL[t]]) : num(ph?.appliedMw));
+    const figs = ph ?? {
+      appliedMw: num(j?.appliedMw), ftcMw: num(j?.ftcMw), tocMw: num(j?.tocMw),
+      codMw: num(j?.codMw), expectedMw: num(j?.expectedMw),
+    };
+    return { sourceType: t, totalMw, ...figs };
+  });
+}
+
 export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userRole }) {
   const [view, setView] = useState('detail'); // 'detail' | 'add-phase'
   // Commissioning data has two axes: 'source' = per-component lanes (what), and
@@ -666,8 +701,8 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                   hybridComponentsJson). Falls back to the compact 3-stat
                   layout when only the legacy capacity fields are present. */}
               {project.plantType.isHybrid && (
-                project.hybridComponentsJson?.components?.length ? (
-                  <HybridComponentTable components={project.hybridComponentsJson.components} hybridType={project.hybridComponentsJson.hybridType ?? project.plantType.label} />
+                (project.hybridComponentsJson?.components?.length || project.phases?.length) ? (
+                  <HybridComponentTable components={hybridBreakdownRows(project)} hybridType={project.hybridComponentsJson?.hybridType ?? project.plantType.label} />
                 ) : (
                   <div className="rounded-xl border bg-card p-4">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
