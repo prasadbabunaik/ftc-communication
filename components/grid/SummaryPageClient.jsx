@@ -725,7 +725,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
 // Order the All India per-source totals exactly like the Google Sheet's
 // hybrid summary footer: Solar, Wind, BESS, PSP. Other sources fall after
 // these but should never appear in practice for hybrid breakdowns.
-const HYBRID_SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP'];
+const HYBRID_SRC_ORDER = ['WIND', 'SOLAR', 'BESS', 'PSP'];
 
 // Take the matrix from computeHybridBreakdown and produce a flat list of
 // display rows, mirroring the Google Sheet's hybrid summary structure:
@@ -1106,7 +1106,7 @@ const MILE_ACCENT = {
 const SOURCE_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS', HYBRID: 'Hybrid', COAL: 'Coal', HYDRO: 'Hydro', PSP: 'PSP' };
 const COMP_LABEL   = { ...SOURCE_LABEL, PSP: 'PSP' };
 // Component order inside a hybrid cell (largest families first, stable).
-const COMP_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP', 'COAL', 'HYDRO'];
+const COMP_ORDER = ['WIND', 'SOLAR', 'BESS', 'PSP', 'COAL', 'HYDRO'];
 
 function ActivityStat({ label, value, count, color, active, onClick }) {
   const colors = {

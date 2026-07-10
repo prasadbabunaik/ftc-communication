@@ -52,9 +52,11 @@ function fmtMw(v) {
   const s = n.toFixed(2);
   return s.replace(/\.?0+$/, '') || '0';
 }
-const COMPONENT_TABLE_SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP', 'HYDRO', 'COAL'];
+// Same source sequence used everywhere else (SOURCE_ORDER in grid-computations,
+// the dashboard, exports): Wind → Solar → BESS → …
+const COMPONENT_TABLE_SRC_ORDER = ['WIND', 'SOLAR', 'BESS', 'PSP', 'HYDRO', 'COAL'];
 function HybridComponentTable({ components, hybridType }) {
-  // Order the rows like the Google Sheet (Solar → Wind → BESS → PSP).
+  // Order the rows consistently: Wind → Solar → BESS → PSP.
   const ordered = [...components].sort((a, b) => {
     const ai = COMPONENT_TABLE_SRC_ORDER.indexOf(a.sourceType);
     const bi = COMPONENT_TABLE_SRC_ORDER.indexOf(b.sourceType);

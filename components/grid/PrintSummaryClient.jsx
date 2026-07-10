@@ -383,7 +383,7 @@ function TransmissionTable({ transmissionRows, cols }) {
 // Source × Region matrix of capacity whose COD date falls in the given month.
 // Hybrid cells show the per-component split (e.g. "180 – BESS / 211.4 – Solar").
 
-const COMP_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP', 'COAL', 'HYDRO'];
+const COMP_ORDER = ['WIND', 'SOLAR', 'BESS', 'PSP', 'COAL', 'HYDRO'];
 const COMP_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS', PSP: 'PSP', COAL: 'Coal', HYDRO: 'Hydro' };
 
 function ActivityMatrix({ activity, scopeRegionCode }) {
@@ -442,7 +442,7 @@ function ActivityMatrix({ activity, scopeRegionCode }) {
 // split by constituent source components, with per-region source subtotals,
 // region grand totals and an All India footer.
 
-const HYBRID_SRC_ORDER = ['SOLAR', 'WIND', 'BESS', 'PSP'];
+const HYBRID_SRC_ORDER = ['WIND', 'SOLAR', 'BESS', 'PSP'];
 
 function buildHybridDisplayRows(rows) {
   const out = [];
