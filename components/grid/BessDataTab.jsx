@@ -64,6 +64,9 @@ export function buildRow(p, referenceMonth, range = null) {
   let codDeclared = 0;
   let codInRefMonth = 0;
   let codDateLines = [];
+  // Per-date energy (MWh) for the "COD Date Declared (MWh)" column, and its sum.
+  let codDateLinesMwh = [];
+  let codMwhTotal = 0;
   // Normalised dated COD contributions (MW on a specific date) — drives both
   // the reference-month cell and the COD-date-range breakdown.
   let codDated = [];
@@ -85,6 +88,11 @@ export function buildRow(p, referenceMonth, range = null) {
       codInRefMonth = sorted.reduce((s, e) => s + (inMonth(e.eventDate, referenceMonth) ? Number(e.capacityMw ?? 0) : 0), 0);
       codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
       codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate }));
+      // Energy (MWh) per COD date — entered against BESS in the FTC tracker.
+      codMwhTotal     = sorted.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);
+      codDateLinesMwh = sorted
+        .filter((e) => e.capacityMwh != null && Number(e.capacityMwh) > 0)
+        .map((e) => `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.eventDate)}`);
     } else {
       // Legacy / intra-state rows: cached phase totals, no dated events.
       codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
@@ -149,7 +157,11 @@ export function buildRow(p, referenceMonth, range = null) {
     // modal shows its COD MW read-only even when the row is intra-state.
     isHybrid,
     codDeclared,
-    energyMwh: p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null,
+    // Energy Commissioned reflects the FTC-tracker COD MWh when present (ISTS
+    // BESS), else the manually-maintained value.
+    energyMwh: codMwhTotal > 0
+      ? codMwhTotal
+      : (p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null),
     // Phase-wise energy commissioning ({ mw?, mwh, date, remarks }) for the edit modal.
     energyPhases: Array.isArray(p.energyPhasesJson) ? p.energyPhasesJson : [],
     // The COD commissioning phases (MW + date) as derived from the pipeline —
@@ -163,6 +175,7 @@ export function buildRow(p, referenceMonth, range = null) {
     codRangeMonths,
     codInRange,
     codDateLines,
+    codDateLinesMwh,
   };
 }
 
@@ -240,6 +253,11 @@ function DataRow({ row, sr, intrastate, editable, onEdit, rangeMonths = null }) 
           ? row.codDateLines.map((l, i) => <div key={i}>{l}</div>)
           : ''}
       </td>
+      <td className="px-3 py-2 text-center text-[10px] text-slate-600 leading-relaxed whitespace-nowrap">
+        {row.codDateLinesMwh?.length
+          ? row.codDateLinesMwh.map((l, i) => <div key={i}>{l}</div>)
+          : ''}
+      </td>
     </tr>
   );
 }
@@ -253,6 +271,7 @@ function TotalRow({ label, totals, grand = false, rangeMonths = null }) {
       <td className="px-3 py-2 text-center tabular-nums text-violet-800">
         <CodMonthCell row={{ codInRefMonth: totals.codInRefMonth, codRangeMonths: totals.codRangeMonths }} rangeMonths={rangeMonths} />
       </td>
+      <td className="px-3 py-2" />
       <td className="px-3 py-2" />
     </tr>
   );
@@ -497,7 +516,8 @@ export function BessDataTab({
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD declared Capacity (MW)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">Energy Commissioned (MWh)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap bg-violet-50 text-violet-700">{codMonthHeader}</th>
-              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD Date Declared</th>
+              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD Date Declared (MW)</th>
+              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD Date Declared (MWh)</th>
             </tr>
           </thead>
           <tbody>

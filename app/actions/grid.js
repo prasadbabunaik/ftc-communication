@@ -373,6 +373,7 @@ export async function createGenerationProject(formData) {
         regionId: data.regionId,
         plantTypeId,
         poolingStationId,
+        developerName: (data.developerName ?? '').trim() || null,
         totalCapacityMw: parseFloat(data.totalCapacityMw),
         windCapacityMw:  parseDecimal(data.windCapacityMw),
         solarCapacityMw: parseDecimal(data.solarCapacityMw),
@@ -1580,6 +1581,7 @@ export async function upsertProjectPhases(projectId, formData) {
     return {
       sourceType:         p.sourceType,
       capacityAppliedMw:  parseFloat(p.capacityAppliedMw),
+      capacityAppliedMwh: parseDecimal(p.capacityAppliedMwh),
       ftcCompletedMw:     ftcTotal > 0 ? ftcTotal : null,
       ftcCompletedDate:   evLatestDate(p.ftcEvents),
       proposedFtcDate:    parseDate(p.proposedFtcDate),
@@ -1598,9 +1600,10 @@ export async function upsertProjectPhases(projectId, formData) {
   const eventCreateMany = (evs) => ({
     createMany: {
       data: (evs ?? []).map((e) => ({
-        eventDate:  parseDate(e.date),
-        capacityMw: parseFloat(e.mw),
-        remarks:    e.remarks || null,
+        eventDate:   parseDate(e.date),
+        capacityMw:  parseFloat(e.mw),
+        capacityMwh: parseDecimal(e.mwh),
+        remarks:     e.remarks || null,
       })),
     },
   });
@@ -1621,9 +1624,10 @@ export async function upsertProjectPhases(projectId, formData) {
     // Update existing events; create new ones.
     for (const e of (incoming ?? [])) {
       const data = {
-        eventDate:  parseDate(e.date),
-        capacityMw: parseFloat(e.mw),
-        remarks:    e.remarks || null,
+        eventDate:   parseDate(e.date),
+        capacityMw:  parseFloat(e.mw),
+        capacityMwh: parseDecimal(e.mwh),
+        remarks:     e.remarks || null,
       };
       if (e.id) {
         await tx[model].update({ where: { id: e.id }, data });

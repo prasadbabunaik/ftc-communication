@@ -123,11 +123,12 @@ export default async function FtcPage({ searchParams }) {
       plantType:       p.plantType,
       hybridComponentsJson: p.hybridComponentsJson ?? null,
       phases: p.phases.map((ph) => ({
-        sourceType:        ph.sourceType,
-        capacityAppliedMw: ph.capacityAppliedMw != null ? Number(ph.capacityAppliedMw) : null,
-        ftcCompletedMw:    ph.ftcCompletedMw    != null ? Number(ph.ftcCompletedMw)    : null,
-        tocIssuedMw:       ph.tocIssuedMw       != null ? Number(ph.tocIssuedMw)       : null,
-        codDeclaredMw:     ph.codDeclaredMw     != null ? Number(ph.codDeclaredMw)     : null,
+        sourceType:         ph.sourceType,
+        capacityAppliedMw:  ph.capacityAppliedMw  != null ? Number(ph.capacityAppliedMw)  : null,
+        capacityAppliedMwh: ph.capacityAppliedMwh != null ? Number(ph.capacityAppliedMwh) : null,
+        ftcCompletedMw:     ph.ftcCompletedMw     != null ? Number(ph.ftcCompletedMw)     : null,
+        tocIssuedMw:        ph.tocIssuedMw        != null ? Number(ph.tocIssuedMw)        : null,
+        codDeclaredMw:      ph.codDeclaredMw      != null ? Number(ph.codDeclaredMw)      : null,
       })),
     }))
   );
@@ -157,6 +158,7 @@ export default async function FtcPage({ searchParams }) {
           id: e.id,
           eventDate: e.eventDate,
           capacityMw: Number(e.capacityMw),
+          capacityMwh: e.capacityMwh != null ? Number(e.capacityMwh) : null,
           remarks: e.remarks ?? null,
           // Audit trail — when this event row was last written by the
           // upsert. Preserved across edits when the event ID is sent back
@@ -167,6 +169,7 @@ export default async function FtcPage({ searchParams }) {
         return {
           ...ph,
           capacityAppliedMw:  ph.capacityAppliedMw  != null ? Number(ph.capacityAppliedMw)  : null,
+          capacityAppliedMwh: ph.capacityAppliedMwh != null ? Number(ph.capacityAppliedMwh) : null,
           ftcCompletedMw:     ftc,
           tocIssuedMw:        toc,
           codDeclaredMw:      cod,

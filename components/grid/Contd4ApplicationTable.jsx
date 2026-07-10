@@ -48,6 +48,14 @@ function Th({ label, className = '' }) {
   );
 }
 
+// "Pooling Station" alone, or "Pooling Station, Developer" when both are set.
+function psDevLabel(p) {
+  const ps  = p.poolingStation?.name?.trim();
+  const dev = p.developerName?.trim();
+  if (ps && dev) return `${ps}, ${dev}`;
+  return ps || dev || '—';
+}
+
 function sortRows(rows, field, dir) {
   if (!field) return rows;
   return [...rows].sort((a, b) => {
@@ -309,6 +317,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
             <tr>
               <Th label="Sr. No"  className="w-[52px]" />
               <SortableTh label="Generating Station" field="name"      className="w-[240px]"  {...sortProps} />
+              <Th label="Pooling Station / Developer" className="w-[200px]" />
               <SortableTh label="Region"             field="region"    className="w-[75px]"   {...sortProps} />
               <SortableTh label="Generation Type"    field="type"      className="w-[160px]"  {...sortProps} />
               <SortableTh label="Declared Cap (MW)"  field="capacity"  className="w-[140px]"  {...sortProps} />
@@ -320,7 +329,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No CONTD-4 applications found.
                 </td>
               </tr>
@@ -329,6 +338,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                 <tr key={p.id} onClick={() => onView?.(p)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                   <td className="px-3 py-3 text-sm font-medium text-foreground truncate" title={p.name}>{p.name}</td>
+                  <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={psDevLabel(p)}>{psDevLabel(p)}</td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {p.region.code}

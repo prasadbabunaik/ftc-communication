@@ -130,6 +130,7 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
       plantTypeCode: '',
       poolingStationId: '',
       poolingStationName: '',
+      developerName: '',
       totalCapacityMw: '',
       windCapacityMw: '',
       solarCapacityMw: '',
@@ -395,6 +396,14 @@ export function CreateProjectForm({ regions, plantTypes, poolingStations: initia
                 </FormItem>
               )} />
             )}
+
+            <FormField control={form.control} name="developerName" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Developer Name <span className="text-[10px] text-muted-foreground font-normal">(optional)</span></FormLabel>
+                <FormControl><Input placeholder="e.g. Adani Green Energy Ltd" {...field} value={field.value ?? ''} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <FormField control={form.control} name="totalCapacityMw" render={({ field }) => (
               <FormItem>

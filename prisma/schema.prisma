@@ -114,6 +114,8 @@ model GenerationProject {
   plantType        PlantType       @relation(fields: [plantTypeId], references: [id])
   poolingStationId String?
   poolingStation   PoolingStation? @relation(fields: [poolingStationId], references: [id])
+  // Optional developer/owner name; shown as "Pooling Station, Developer" in lists.
+  developerName    String?
 
   totalCapacityMw Decimal  @db.Decimal(10, 2)
   windCapacityMw  Decimal? @db.Decimal(10, 2)
@@ -240,6 +242,8 @@ model CommissioningPhase {
 
   sourceType        SourceType
   capacityAppliedMw Decimal    @db.Decimal(10, 2)
+  // Energy applied (MWh) — BESS only; parallel to the MW quantum.
+  capacityAppliedMwh Decimal? @db.Decimal(12, 2)
 
   // Legacy cached totals — kept in sync with FtcEvent / TocEvent / CodEvent
   // rows by refreshCommissioningCache(phaseId). Source of truth is now the
@@ -297,6 +301,7 @@ model FtcEvent {
   phase      CommissioningPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   eventDate  DateTime
   capacityMw Decimal  @db.Decimal(10, 2)
+  capacityMwh Decimal? @db.Decimal(12, 2)  // Energy (MWh) for BESS events; null for other sources.
   remarks    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -311,6 +316,7 @@ model TocEvent {
   phase      CommissioningPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   eventDate  DateTime
   capacityMw Decimal  @db.Decimal(10, 2)
+  capacityMwh Decimal? @db.Decimal(12, 2)  // Energy (MWh) for BESS events; null for other sources.
   remarks    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -325,6 +331,7 @@ model CodEvent {
   phase      CommissioningPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   eventDate  DateTime
   capacityMw Decimal  @db.Decimal(10, 2)
+  capacityMwh Decimal? @db.Decimal(12, 2)  // Energy (MWh) for BESS events; null for other sources.
   remarks    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

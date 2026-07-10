@@ -63,12 +63,13 @@ const SOURCE_COLORS = {
   PSP:   'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
 
-const EMPTY_EVENT = { mw: '', date: '', remarks: '' };
+const EMPTY_EVENT = { mw: '', mwh: '', date: '', remarks: '' };
 
 const EMPTY_PHASE = {
   existingId:         null,
   sourceType:         'SOLAR',
   capacityAppliedMw:  '0',
+  capacityAppliedMwh: '',
   proposedFtcDate:    '',
   capacityUnderFtcMw: '',
   capacityUnderTocMw: '',
@@ -129,6 +130,7 @@ function existingPhaseToFormRow(ph, defaultMonth) {
   const ev = (e) => ({
     id: e.id,
     mw: e.capacityMw != null ? String(Number(e.capacityMw)) : '',
+    mwh: e.capacityMwh != null ? String(Number(e.capacityMwh)) : '',
     date: e.eventDate ? new Date(e.eventDate).toISOString().slice(0, 10) : '',
     remarks: e.remarks ?? '',
   });
@@ -160,6 +162,7 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     existingId:         ph.id ?? null,
     sourceType:         ph.sourceType,
     capacityAppliedMw:  ph.capacityAppliedMw  != null ? String(Number(ph.capacityAppliedMw))  : '0',
+    capacityAppliedMwh: ph.capacityAppliedMwh != null ? String(Number(ph.capacityAppliedMwh)) : '',
     proposedFtcDate:    ph.proposedFtcDate    ? new Date(ph.proposedFtcDate).toISOString().slice(0, 10) : '',
     capacityUnderFtcMw: ph.capacityUnderFtcMw != null ? String(Number(ph.capacityUnderFtcMw)) : '',
     capacityUnderTocMw: ph.capacityUnderTocMw != null ? String(Number(ph.capacityUnderTocMw)) : '',
@@ -768,12 +771,16 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
   const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+  const mwhTotal = watchedEvents.reduce((s, e) => s + (parseFloat(e.mwh) || 0), 0);
   const st = MILESTONE_STYLES[milestone];
+  // BESS carries an energy (MWh) column parallel to MW.
+  const gridCls = isBess ? 'grid-cols-[1fr_1fr_140px_1fr_28px]' : 'grid-cols-[1fr_140px_1fr_28px]';
+  const colSpanN = isBess ? 5 : 4;
 
   // Cumulative MW limit check for THIS milestone (FTC ≤ Applied, TOC ≤ FTC,
   // COD ≤ TOC). limitMw can be undefined for FTC's first-time use where
@@ -839,8 +846,8 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
       {/* Event rows */}
       {fields.length > 0 && (
         <div className="rounded-md border border-border overflow-hidden bg-white">
-          <div className="grid grid-cols-[1fr_140px_1fr_28px] gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5">
-            <span>MW</span><span>Date</span><span>Remarks</span><span />
+          <div className={`grid ${gridCls} gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5`}>
+            <span>MW</span>{isBess && <span>MWh</span>}<span>Date</span><span>Remarks</span><span />
           </div>
           {fields.map((field, ei) => {
             // Per-row validation errors ("phases.<i>.<milestone>Events.<ei>")
@@ -849,7 +856,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
             const [, pIdx, evKey] = prefix.split('.');
             const rowErr = form.formState.errors?.phases?.[pIdx]?.[evKey]?.[ei];
             return (
-            <div key={field.id} className="grid grid-cols-[1fr_140px_1fr_28px] gap-1 items-center px-2 py-1.5 border-b last:border-b-0">
+            <div key={field.id} className={`grid ${gridCls} gap-1 items-center px-2 py-1.5 border-b last:border-b-0`}>
               <Input
                 type="number"
                 step="0.01"
@@ -857,6 +864,15 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                 {...form.register(`${prefix}.${ei}.mw`)}
                 className={`h-8 text-xs font-mono ${rowErr?.mw ? 'border-red-400 ring-1 ring-red-300' : ''}`}
               />
+              {isBess && (
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="MWh"
+                  {...form.register(`${prefix}.${ei}.mwh`)}
+                  className="h-8 text-xs font-mono"
+                />
+              )}
               <DatePicker
                 value={form.watch(`${prefix}.${ei}.date`) ?? ''}
                 onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
@@ -876,7 +892,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                 <Trash2 className="size-3.5" />
               </button>
               {rowErr && (
-                <p className="col-span-4 text-[11px] text-red-600 pt-0.5">
+                <p className={`col-span-${colSpanN} text-[11px] text-red-600 pt-0.5`}>
                   ⚠ {[rowErr.mw?.message, rowErr.date?.message && `${rowErr.date.message} — pick the actual ${milestone} date for this ${form.watch(`${prefix}.${ei}.mw`) || ''} MW entry`].filter(Boolean).join(' · ')}
                 </p>
               )}
@@ -892,7 +908,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
           <div className="flex-1">
             <button
               type="button"
-              onClick={() => append({ mw: '', date: '', remarks: '' })}
+              onClick={() => append({ ...EMPTY_EVENT })}
               disabled={gated}
               className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition-colors disabled:opacity-40 disabled:pointer-events-none ${st.btn}`}
             >
@@ -936,7 +952,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
       ) : (
         <button
           type="button"
-          onClick={() => append({ mw: '', date: '', remarks: '' })}
+          onClick={() => append({ ...EMPTY_EVENT })}
           disabled={gated}
           className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition-colors disabled:opacity-40 disabled:pointer-events-none ${st.btn}`}
         >
@@ -952,6 +968,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
+  const isBess = selectedSource === 'BESS'; // energy (MWh) captured alongside MW
   const srcState = existingPipeline[selectedSource] ?? { ftc: 0, toc: 0, cod: 0 };
 
   // A hybrid's component rows are created one-per-source and the header reads
@@ -1059,6 +1076,13 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         </div>
       </div>
 
+      {/* BESS: energy applied (MWh) alongside the MW capacity. */}
+      {isBess && (
+        <div className="grid grid-cols-2 gap-4">
+          <Field prefix={prefix} name="capacityAppliedMwh" label="Capacity Applied (MWh)" type="number" form={form} errors={errors} />
+        </div>
+      )}
+
       {/* Intra-state BESS records COD only — the FTC/TOC lanes (and their
           dependent fields) don't apply to state-network storage. */}
       {!isIntrastate && (
@@ -1073,6 +1097,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
           <EventList
             phaseIndex={index}
             milestone="FTC"
+            isBess={isBess}
             form={form}
             gated={false}
             refMonthLabel={refMonthLabel}
@@ -1085,6 +1110,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
           <EventList
             phaseIndex={index}
             milestone="TOC"
+            isBess={isBess}
             form={form}
             gated={tocGated}
             gatedMsg={`Requires ${selectedSource} FTC to be completed first`}
@@ -1107,6 +1133,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
       <EventList
         phaseIndex={index}
         milestone="COD"
+            isBess={isBess}
         form={form}
         gated={isIntrastate ? false : codGated}
         gatedMsg={`Requires ${selectedSource} TOC to be issued first`}
