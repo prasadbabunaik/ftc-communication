@@ -853,11 +853,11 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
             /* BESS: two grouped clusters — Power (MW + date) and Energy (MWh +
                date) — separated by a divider so the row reads as two dated
                measurements instead of five loose fields. */
-            <div className="flex items-center gap-2 px-2.5 py-1.5 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-50 border-b">
-              <span className="w-[192px] shrink-0 whitespace-nowrap">Power (MW) &amp; date</span>
+            <div className="flex items-center gap-3 px-3 py-1.5 text-[9.5px] font-semibold uppercase tracking-wide bg-slate-50 border-b">
+              <span className="w-[252px] shrink-0 whitespace-nowrap text-slate-500">Power (MW) &amp; Date</span>
               <span className="w-px h-3 shrink-0" />
-              <span className="w-[192px] shrink-0 whitespace-nowrap">Energy (MWh) &amp; date</span>
-              <span className="flex-1 min-w-0">Remarks</span>
+              <span className="w-[252px] shrink-0 whitespace-nowrap text-indigo-500">Energy (MWh) &amp; Date</span>
+              <span className="flex-1 min-w-0 text-slate-500">Remarks</span>
               <span className="w-7 shrink-0" />
             </div>
           ) : (
@@ -880,32 +880,38 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
             if (isBess) {
               return (
                 <div key={field.id} className="border-b last:border-b-0">
-                  <div className="flex items-center gap-2 px-2.5 py-1.5">
-                    {/* Power (MW) */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Input
-                        type="number" step="0.01" placeholder="MW"
-                        {...form.register(`${prefix}.${ei}.mw`)}
-                        className={`w-[68px] h-8 text-xs font-mono ${rowErr?.mw ? 'border-red-400 ring-1 ring-red-300' : ''}`}
-                      />
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    {/* Power (MW): value (with MW unit suffix) + its date */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="relative w-[96px]">
+                        <Input
+                          type="number" step="0.01" placeholder="0"
+                          {...form.register(`${prefix}.${ei}.mw`)}
+                          className={`w-full h-8 text-xs font-mono pr-9 ${rowErr?.mw ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+                        />
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400">MW</span>
+                      </div>
                       <DatePicker
                         value={form.watch(`${prefix}.${ei}.date`) ?? ''}
                         onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
-                        className={`w-[120px] h-8 text-xs ${rowErr?.date ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+                        className={`w-[148px] h-8 text-xs ${rowErr?.date ? 'border-red-400 ring-1 ring-red-300' : ''}`}
                       />
                     </div>
-                    <span className="w-px h-6 bg-slate-200 shrink-0" />
-                    {/* Energy (MWh) */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Input
-                        type="number" step="0.01" placeholder="MWh"
-                        {...form.register(`${prefix}.${ei}.mwh`)}
-                        className="w-[68px] h-8 text-xs font-mono"
-                      />
+                    <span className="w-px h-7 bg-slate-200 shrink-0" />
+                    {/* Energy (MWh): value (with MWh unit suffix) + its date */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="relative w-[96px]">
+                        <Input
+                          type="number" step="0.01" placeholder="0"
+                          {...form.register(`${prefix}.${ei}.mwh`)}
+                          className="w-full h-8 text-xs font-mono pr-11 text-indigo-700"
+                        />
+                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-indigo-400">MWh</span>
+                      </div>
                       <DatePicker
                         value={form.watch(`${prefix}.${ei}.mwhDate`) ?? ''}
                         onChange={(v) => form.setValue(`${prefix}.${ei}.mwhDate`, v, { shouldValidate: true })}
-                        className="w-[120px] h-8 text-xs"
+                        className="w-[148px] h-8 text-xs"
                       />
                     </div>
                     {/* Remarks */}
