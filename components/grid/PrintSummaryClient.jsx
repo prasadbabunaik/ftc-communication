@@ -37,9 +37,15 @@ const PRINT_STYLES = `
   @page { size: A3 landscape; margin: 14mm 12mm 14mm 12mm; }
   @page :first { margin-top: 10mm; }
   body { font-family: 'Arial', sans-serif; font-size: 8pt; color: #1a1a2e; background: #fff; }
-  .page-break { break-before: page; }
+  /* Sections flow one after another (no forced page per section); long tables
+     still split across pages naturally with a repeated header. */
+  .page-break { break-before: auto; }
   .avoid-break { break-inside: avoid; }
-  table { border-collapse: collapse; width: 100%; }
+  /* table-layout: fixed so the declared column widths are honoured — otherwise
+     auto layout lets the (text) name column swallow all the slack, leaving the
+     numbers cramped on the right. Long names wrap within their column. */
+  table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  td, th { overflow-wrap: break-word; word-break: break-word; }
   /* Let long tables flow across pages: repeat the header on every page and keep
      each row whole so nothing splits mid-row. */
   thead { display: table-header-group; }
@@ -624,7 +630,7 @@ function SourceProjectTable({ source, projects, scopeRegionCode, cols }) {
         <thead>
           <tr>
             <th style={{ width: 22, textAlign: 'center' }}>Sr.</th>
-            <th style={{ textAlign: 'left' }}>Generating Station</th>
+            <th style={{ width: 200, textAlign: 'left' }}>Generating Station</th>
             {has('pooling') && <th style={{ width: 80, textAlign: 'left' }}>Pooling Station</th>}
             <th style={{ width: 30, textAlign: 'center' }}>Rgn.</th>
             {has('total')   && <th style={{ width: 48 }}>Total Capacity (MW)</th>}
