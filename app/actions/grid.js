@@ -93,6 +93,9 @@ function revalidateGridPages(projectId = null) {
   revalidatePath('/hybrid-ftc');
   revalidatePath('/contd4');
   revalidatePath('/generation');
+  // The BESS Data component derives its COD MW + energy (MWh) live from these
+  // same phases / COD events, so any FTC-tracker edit must refresh it too.
+  revalidatePath('/bess-data');
   if (projectId) revalidatePath(`/generation/${projectId}`);
 }
 

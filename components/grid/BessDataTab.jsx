@@ -147,6 +147,18 @@ export function buildRow(p, referenceMonth, range = null) {
     }
   }
 
+  // Energy Commissioned (MWh) — derived LIVE from a single source per row type,
+  // never a cached column, so it always tracks the underlying entries:
+  //   • intra-state           → Σ phase-wise MWh (energyPhasesJson)
+  //   • inter-state plain BESS → Σ FTC-tracker COD-event MWh (codMwhTotal)
+  //   • hybrid BESS           → per-component MWh isn't tracked in the pipeline
+  //                             yet, so the stored value is the only source (follow-up)
+  const energyMwh = p.isIntrastate
+    ? (() => { const s = jsonPhases.reduce((a, ph) => a + (Number(ph?.mwh) || 0), 0); return s > 0 ? s : null; })()
+    : isHybrid
+      ? (p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null)
+      : (codMwhTotal > 0 ? codMwhTotal : null);
+
   return {
     id: p.id,
     name: p.name,
@@ -159,11 +171,7 @@ export function buildRow(p, referenceMonth, range = null) {
     // modal shows its COD MW read-only even when the row is intra-state.
     isHybrid,
     codDeclared,
-    // Energy Commissioned reflects the FTC-tracker COD MWh when present (ISTS
-    // BESS), else the manually-maintained value.
-    energyMwh: codMwhTotal > 0
-      ? codMwhTotal
-      : (p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null),
+    energyMwh,
     // Phase-wise energy commissioning ({ mw?, mwh, date, remarks }) for the edit modal.
     energyPhases: Array.isArray(p.energyPhasesJson) ? p.energyPhasesJson : [],
     // The COD commissioning phases (MW + date) as derived from the pipeline —
