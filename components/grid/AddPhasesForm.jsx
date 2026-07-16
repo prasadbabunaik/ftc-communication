@@ -63,7 +63,7 @@ const SOURCE_COLORS = {
   PSP:   'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
 
-const EMPTY_EVENT = { mw: '', mwh: '', date: '', remarks: '' };
+const EMPTY_EVENT = { mw: '', mwh: '', date: '', mwhDate: '', remarks: '' };
 
 const EMPTY_PHASE = {
   existingId:         null,
@@ -132,6 +132,7 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     mw: e.capacityMw != null ? String(Number(e.capacityMw)) : '',
     mwh: e.capacityMwh != null ? String(Number(e.capacityMwh)) : '',
     date: e.eventDate ? new Date(e.eventDate).toISOString().slice(0, 10) : '',
+    mwhDate: e.mwhDate ? new Date(e.mwhDate).toISOString().slice(0, 10) : '',
     remarks: e.remarks ?? '',
   });
   // Legacy phases carry only a cached milestone aggregate (e.g. FTC 1600 MW)
@@ -778,9 +779,10 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const mwhTotal = watchedEvents.reduce((s, e) => s + (parseFloat(e.mwh) || 0), 0);
   const st = MILESTONE_STYLES[milestone];
-  // BESS carries an energy (MWh) column parallel to MW.
-  const gridCls = isBess ? 'grid-cols-[1fr_1fr_140px_1fr_28px]' : 'grid-cols-[1fr_140px_1fr_28px]';
-  const colSpanN = isBess ? 5 : 4;
+  // BESS carries an energy (MWh) column parallel to MW, each with its OWN date
+  // (MW date + MWh date) — the energy quantum can be reached on a different day.
+  const gridCls = isBess ? 'grid-cols-[1fr_1fr_128px_128px_1fr_28px]' : 'grid-cols-[1fr_140px_1fr_28px]';
+  const colSpanN = isBess ? 6 : 4;
 
   // Cumulative MW limit check for THIS milestone (FTC ≤ Applied, TOC ≤ FTC,
   // COD ≤ TOC). limitMw can be undefined for FTC's first-time use where
@@ -847,7 +849,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
       {fields.length > 0 && (
         <div className="rounded-md border border-border overflow-hidden bg-white">
           <div className={`grid ${gridCls} gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5`}>
-            <span>MW</span>{isBess && <span>MWh</span>}<span>Date</span><span>Remarks</span><span />
+            <span>MW</span>{isBess && <span>MWh</span>}<span>{isBess ? 'MW Date' : 'Date'}</span>{isBess && <span>MWh Date</span>}<span>Remarks</span><span />
           </div>
           {fields.map((field, ei) => {
             // Per-row validation errors ("phases.<i>.<milestone>Events.<ei>")
@@ -878,6 +880,12 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                 onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
                 className={rowErr?.date ? 'border-red-400 ring-1 ring-red-300' : undefined}
               />
+              {isBess && (
+                <DatePicker
+                  value={form.watch(`${prefix}.${ei}.mwhDate`) ?? ''}
+                  onChange={(v) => form.setValue(`${prefix}.${ei}.mwhDate`, v, { shouldValidate: true })}
+                />
+              )}
               <Input
                 type="text"
                 placeholder="Remarks (optional)"

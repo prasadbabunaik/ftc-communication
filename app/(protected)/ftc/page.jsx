@@ -159,6 +159,7 @@ export default async function FtcPage({ searchParams }) {
           eventDate: e.eventDate,
           capacityMw: Number(e.capacityMw),
           capacityMwh: e.capacityMwh != null ? Number(e.capacityMwh) : null,
+          mwhDate: e.mwhDate ?? null,
           remarks: e.remarks ?? null,
           // Audit trail — when this event row was last written by the
           // upsert. Preserved across edits when the event ID is sent back

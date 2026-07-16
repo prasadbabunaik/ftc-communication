@@ -302,6 +302,7 @@ model FtcEvent {
   eventDate  DateTime
   capacityMw Decimal  @db.Decimal(10, 2)
   capacityMwh Decimal? @db.Decimal(12, 2)  // Energy (MWh) for BESS events; null for other sources.
+  mwhDate    DateTime?                      // Date the MWh (energy) quantum was reached; BESS-only, independent of eventDate (the MW date).
   remarks    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -317,6 +318,7 @@ model TocEvent {
   eventDate  DateTime
   capacityMw Decimal  @db.Decimal(10, 2)
   capacityMwh Decimal? @db.Decimal(12, 2)  // Energy (MWh) for BESS events; null for other sources.
+  mwhDate    DateTime?                      // Date the MWh (energy) quantum was reached; BESS-only, independent of eventDate (the MW date).
   remarks    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -332,6 +334,7 @@ model CodEvent {
   eventDate  DateTime
   capacityMw Decimal  @db.Decimal(10, 2)
   capacityMwh Decimal? @db.Decimal(12, 2)  // Energy (MWh) for BESS events; null for other sources.
+  mwhDate    DateTime?                      // Date the MWh (energy) quantum was reached; BESS-only, independent of eventDate (the MW date).
   remarks    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

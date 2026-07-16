@@ -92,7 +92,8 @@ export function buildRow(p, referenceMonth, range = null) {
       codMwhTotal     = sorted.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);
       codDateLinesMwh = sorted
         .filter((e) => e.capacityMwh != null && Number(e.capacityMwh) > 0)
-        .map((e) => `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.eventDate)}`);
+        // The MWh has its own date; fall back to the MW date only if it was left blank.
+        .map((e) => `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.mwhDate ?? e.eventDate)}`);
     } else {
       // Legacy / intra-state rows: cached phase totals, no dated events.
       codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);

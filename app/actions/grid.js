@@ -1603,6 +1603,7 @@ export async function upsertProjectPhases(projectId, formData) {
         eventDate:   parseDate(e.date),
         capacityMw:  parseFloat(e.mw),
         capacityMwh: parseDecimal(e.mwh),
+        mwhDate:     parseDate(e.mwhDate),
         remarks:     e.remarks || null,
       })),
     },
@@ -1627,6 +1628,7 @@ export async function upsertProjectPhases(projectId, formData) {
         eventDate:   parseDate(e.date),
         capacityMw:  parseFloat(e.mw),
         capacityMwh: parseDecimal(e.mwh),
+        mwhDate:     parseDate(e.mwhDate),
         remarks:     e.remarks || null,
       };
       if (e.id) {
