@@ -573,7 +573,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-      <DialogContent className="max-w-4xl" showClose={false}>
+      <DialogContent className="max-w-6xl" showClose={false}>
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-border">
