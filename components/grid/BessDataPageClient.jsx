@@ -39,7 +39,8 @@ function headerLabels(codColLabel) {
     'COD declared Capacity (MW)',
     'Energy Commissioned (MWh)',
     codColLabel,
-    'COD Date Declared',
+    'COD Date Declared (MW)',
+    'COD Date Declared (MWh)',
   ];
 }
 
@@ -65,6 +66,7 @@ function rowCells(row, sr, useRange = false) {
     row.energyMwh != null ? round2(row.energyMwh) : '',
     round2(useRange ? row.codInRange : row.codInRefMonth),
     row.codDateLines.join('\n'),
+    (row.codDateLinesMwh ?? []).join('\n'),
   ];
 }
 
@@ -75,6 +77,7 @@ function totalCells(label, totals, useRange = false) {
     round2(totals.codDeclared),
     totals.energyMwh > 0 ? round2(totals.energyMwh) : '',
     codMonth > 0 ? round2(codMonth) : 0,
+    '',
     '',
   ];
 }
@@ -131,7 +134,7 @@ function downloadBessExcel(prepared, codColLabel, useRange, headerInfo = {}) {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!merges'] = merges;
-  ws['!cols'] = [6, 26, 22, 16, 8, 14, 16, 18, 18, 18, 26].map((wch) => ({ wch }));
+  ws['!cols'] = [6, 26, 22, 16, 8, 14, 16, 18, 18, 18, 24, 22].map((wch) => ({ wch }));
 
   // Style cells.
   for (let r = 0; r < aoa.length; r++) {

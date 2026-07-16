@@ -70,8 +70,11 @@ function buildColumns(refColLabel, useRange = false) {
     { key: 'codRef',  label: refColLabel,                  group: 'value', width: 78, short: 'COD in ref. month',
       render: (row) => fmt(useRange ? row.codInRange : row.codInRefMonth), cellStyle: { textAlign: 'right', color: '#6d28d9', fontWeight: 600 },
       total: (t) => ((useRange ? t.codInRange : t.codInRefMonth) > 0 ? fmt(useRange ? t.codInRange : t.codInRefMonth) : '0') },
-    { key: 'codDates', label: 'COD Date Declared',         group: 'value', width: 130, align: 'left', short: 'COD Date Declared',
+    { key: 'codDates', label: 'COD Date Declared (MW)',    group: 'value', width: 120, align: 'left', short: 'COD Date Declared (MW)',
       render: (row) => (row.codDateLines.length ? row.codDateLines.map((l, i) => <div key={i}>{l}</div>) : ''),
+      cellStyle: { textAlign: 'left', fontSize: '7pt' }, total: () => '' },
+    { key: 'codDatesMwh', label: 'COD Date Declared (MWh)', group: 'value', width: 110, align: 'left', short: 'COD Date Declared (MWh)',
+      render: (row) => (row.codDateLinesMwh?.length ? row.codDateLinesMwh.map((l, i) => <div key={i}>{l}</div>) : ''),
       cellStyle: { textAlign: 'left', fontSize: '7pt' }, total: () => '' },
   ];
 }
