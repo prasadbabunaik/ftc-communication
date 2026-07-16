@@ -65,26 +65,17 @@ export function BessEditModal({ row, open, onOpenChange }) {
     setTotalCap(row.totalCapacityMw != null ? String(row.totalCapacityMw) : '');
 
     if (codReadOnly) {
-      // Rows are the pipeline COD phases; MWh + remarks come from stored energy
-      // phases matched by COD date (positional fallback so nothing is lost).
-      const energyList = Array.isArray(row.energyPhases) ? [...row.energyPhases] : [];
-      const takeByDate = (d) => {
-        const i = energyList.findIndex((e) => toDateInput(e.date) === toDateInput(d));
-        return i >= 0 ? energyList.splice(i, 1)[0] : null;
-      };
-      const seed = codPhases.map((cp) => {
-        const e = takeByDate(cp.date);
-        return {
-          mw: cp.mw != null ? String(cp.mw) : '',
-          date: toDateInput(cp.date),
-          mwh: e?.mwh != null ? String(e.mwh) : '',
-          remarks: e?.remarks ?? '',
-        };
-      });
-      // Any unmatched legacy MWh (e.g. a single undated entry) → first phase, so
-      // switching to phase-aligned energy never drops the recorded total.
-      const leftover = energyList.reduce((s, e) => s + (Number(e.mwh) || 0), 0);
-      if (leftover > 0 && seed.length && !seed[0].mwh) seed[0].mwh = String(leftover);
+      // Inter-state: the COD phases (MW + date) are pipeline-derived and the MWh +
+      // remarks now live on the COD events themselves — the FTC-tracker source of
+      // truth. Seed straight from them; each phase keeps its COD-event id so the
+      // save writes MWh back to that event.
+      const seed = codPhases.map((cp) => ({
+        id: cp.id ?? null,
+        mw: cp.mw != null ? String(cp.mw) : '',
+        date: toDateInput(cp.date),
+        mwh: cp.mwh != null && Number(cp.mwh) > 0 ? String(cp.mwh) : '',
+        remarks: cp.remarks ?? '',
+      }));
       setPhases(seed.length ? seed : [{ ...EMPTY_PHASE }]);
     } else {
       const stored = Array.isArray(row.energyPhases) ? row.energyPhases : [];
@@ -161,21 +152,29 @@ export function BessEditModal({ row, open, onOpenChange }) {
       return;
     }
     startTransition(async () => {
-      const payload = {
-        stateName,
-        // MW is persisted only for a pure intra-state BESS (a hybrid's / inter-
-        // state's COD MW is pipeline-derived and read-only). The date is stored
-        // so re-seeding can match each MWh back to its COD phase.
-        energyPhases: phases
+      const payload = { stateName };
+      if (codReadOnly) {
+        // Inter-state: write the MWh + remarks straight back to the COD events
+        // (the FTC-tracker source). MW / date stay pipeline-derived and untouched.
+        payload.codEventEnergy = phases
+          .filter((p) => p.id)
+          .map((p) => ({
+            id: p.id,
+            mwh: String(p.mwh).trim() !== '' ? p.mwh : null,
+            remarks: p.remarks || null,
+          }));
+      } else {
+        // Intra-state (pure): MW + MWh + date maintained here as energy phases.
+        payload.energyPhases = phases
           .filter((p) => String(p.mw).trim() !== '' || String(p.mwh).trim() !== '')
           .map((p) => ({
             mw: mwEditable && String(p.mw).trim() !== '' ? p.mw : null,
             mwh: String(p.mwh).trim() !== '' ? p.mwh : null,
             date: p.date || null,
             remarks: p.remarks || null,
-          })),
-      };
-      if (intra) payload.totalCapacityMw = totalCapacity;
+          }));
+        if (intra) payload.totalCapacityMw = totalCapacity;
+      }
 
       const res = await updateBessRowFields(row.id, payload);
       if (res?.error) {

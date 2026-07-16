@@ -662,6 +662,35 @@ export async function updateBessRowFields(projectId, fields) {
     }
   }
 
+  // Inter-state BESS: the MWh + remarks live on the COD events themselves (the
+  // FTC-tracker source of truth). Write each back to its event — scoped to this
+  // project — then mirror the SUM into the cached energyCommissionedMwh so the
+  // BESS table's fallback + exports stay in sync.
+  if ('codEventEnergy' in fields) {
+    const rows = Array.isArray(fields.codEventEnergy) ? fields.codEventEnergy : [];
+    const ids  = rows.map((r) => r?.id).filter(Boolean);
+    // Only COD events belonging to a phase of THIS project may be touched.
+    const owned = ids.length
+      ? await prisma.codEvent.findMany({ where: { id: { in: ids }, phase: { projectId } }, select: { id: true } })
+      : [];
+    const ownedSet = new Set(owned.map((e) => e.id));
+    for (const r of rows) {
+      if (!r?.id || !ownedSet.has(r.id)) continue;
+      let mwh = null;
+      if (r.mwh != null && String(r.mwh).trim() !== '') {
+        const m = parseFloat(r.mwh);
+        if (isNaN(m) || m < 0) return { error: 'Each MWh value must be a non-negative number.' };
+        mwh = m;
+      }
+      const rem = r.remarks && String(r.remarks).trim() !== '' ? String(r.remarks).trim() : null;
+      await prisma.codEvent.update({ where: { id: r.id }, data: { capacityMwh: mwh, remarks: rem } });
+    }
+    // Recompute the cached energy total from ALL of this project's COD events.
+    const codEvents = await prisma.codEvent.findMany({ where: { phase: { projectId } }, select: { capacityMwh: true } });
+    const total = codEvents.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);
+    data.energyCommissionedMwh = total > 0 ? total : null;
+  }
+
   if (Object.keys(data).length === 0) return { success: true };
 
   // Guard: COD-declared capacity (Σ phase MW) must not exceed Total Capacity.
@@ -704,6 +733,7 @@ export async function updateBessRowFields(projectId, fields) {
 
   revalidatePath('/bess-data');
   revalidatePath('/dashboard');
+  revalidatePath('/ftc'); // COD-event MWh edits surface on the FTC tracker too
   return { success: true };
 }
 

@@ -87,13 +87,14 @@ export function buildRow(p, referenceMonth, range = null) {
       codDeclared   = sorted.reduce((s, e) => s + Number(e.capacityMw ?? 0), 0);
       codInRefMonth = sorted.reduce((s, e) => s + (inMonth(e.eventDate, referenceMonth) ? Number(e.capacityMw ?? 0) : 0), 0);
       codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
-      codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate }));
-      // Energy (MWh) per COD date — entered against BESS in the FTC tracker.
+      codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate, mwh: Number(e.capacityMwh ?? 0), id: e.id, remarks: e.remarks ?? '' }));
+      // Energy (MWh) per COD event — the FTC-tracker source of truth for BESS.
       codMwhTotal     = sorted.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);
       codDateLinesMwh = sorted
         .filter((e) => e.capacityMwh != null && Number(e.capacityMwh) > 0)
-        // The MWh has its own date; fall back to the MW date only if it was left blank.
-        .map((e) => `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.mwhDate ?? e.eventDate)}`);
+        // The MWh carries its own date; when it has none (e.g. the energy total
+        // backfilled onto the first COD phase) show the MWh with no date.
+        .map((e) => e.mwhDate ? `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.mwhDate)}` : `${fmt(e.capacityMwh)} MWh`);
     } else {
       // Legacy / intra-state rows: cached phase totals, no dated events.
       codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
@@ -170,7 +171,7 @@ export function buildRow(p, referenceMonth, range = null) {
     // MWh + remarks against each. Dated events when present, else the single
     // undated cached total.
     codPhases: codDated.length
-      ? codDated.map((e) => ({ mw: e.mw, date: e.date }))
+      ? codDated.map((e) => ({ mw: e.mw, date: e.date, mwh: e.mwh ?? null, id: e.id ?? null, remarks: e.remarks ?? '' }))
       : (codDeclared > 0 ? [{ mw: codDeclared, date: null }] : []),
     codInRefMonth,
     codRangeMonths,
