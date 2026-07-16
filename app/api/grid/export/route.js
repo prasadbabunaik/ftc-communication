@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx-js-style';
 import { prisma } from '@/lib/prisma';
-import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, activePeriodFilter } from '@/lib/server-auth';
 import {
   n, REGION_ORDER, SOURCE_ORDER, getProjectSource, isInFtcPipeline,
   computePipelineMatrix, buildPipelineRows,
@@ -80,6 +80,11 @@ function finalize(a, opts = {}) {
       : role === 'subtotal' ? xSub(isNum)
       : role === 'total'    ? xTotal(isNum)
       :                       xData(isNum, stripe);
+      // Horizontally centre the Region label column(s) — header AND every body
+      // cell — so the (now narrow) Region column reads centred, matching the PDF.
+      if (opts.centerCols?.includes(C) && ws[addr].s) {
+        ws[addr].s.alignment = { ...ws[addr].s.alignment, horizontal: 'center' };
+      }
     }
     if (role === 'title') merges.push({ s: { r: R, c: 0 }, e: { r: R, c: opts.titleCols ?? lastCol } });
     if (role === 'data') stripe = !stripe;
@@ -153,7 +158,17 @@ const PIPE_DATA_HEADERS = [
   'COD Completed', 'COD Pending',
   'Expected Capacity (MW) to be commissioned',
 ];
-const PIPE_COLS = [16, 14, 10, 20, 26, 22, 14, 14, 14, 14, 16, 14, 28];
+// 10 data-column widths, shared by every pipeline orientation. Bumped from the
+// old 14s so the width freed by the narrower Region column lands on the numbers.
+const PIPE_DATA_COLS = [20, 26, 22, 16, 16, 16, 16, 18, 16, 28];
+// Label-column widths differ by orientation so the Region column is always the
+// narrow one and its neighbour (Source (Type)) gets the slack:
+//   [primary, secondary, hybrid-component, ...data]
+const PIPE_COLS_REGION = [9, 22, 12, ...PIPE_DATA_COLS];  // Region primary → narrow col 0
+const PIPE_COLS_SOURCE = [16, 9, 12, ...PIPE_DATA_COLS];  // Region secondary → narrow col 1
+// Combined Summary sheet stacks both orientations under one set of widths, so
+// both label columns stay compact and are centred (Region sits in each).
+const PIPE_COLS        = [12, 12, 12, ...PIPE_DATA_COLS];
 
 // Emit a region-/source-wise pipeline table (3 label cols + 10 data cols) into
 // the accumulator, returning the merge ranges (absolute row indices): "HYBRID"
@@ -206,7 +221,11 @@ function buildPipelineSheet(rows, title, primaryKey) {
   const extraMerges = [{ s: { r: 1, c: 1 }, e: { r: 1, c: 2 } }]; // header spans col 1-2
   extraMerges.push(...emitPipeline(a, rows, isRegionPrimary));
 
-  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols: PIPE_COLS });
+  // Region is col 0 (region-wise) or col 1 (source-wise) — centre whichever
+  // holds it, and use the matching narrow-Region width profile.
+  const cols       = isRegionPrimary ? PIPE_COLS_REGION : PIPE_COLS_SOURCE;
+  const centerCols = isRegionPrimary ? [0] : [1];
+  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols, centerCols });
 }
 
 function buildContd4Sheet(contd4Study) {
@@ -223,7 +242,7 @@ function buildContd4Sheet(contd4Study) {
     row(a, role, [label1, label2, fmtNum(r.totalMw), ...allMonths.map(m => fmtNum(r.months?.[m] ?? 0))]);
   }
 
-  return finalize(a, { numFrom: 2, mergeCol: 0, cols: [18, 14, 20, ...allMonths.map(() => 14)] });
+  return finalize(a, { numFrom: 2, mergeCol: 0, centerCols: [0], cols: [9, 22, 20, ...allMonths.map(() => 14)] });
 }
 
 function buildTransmissionSheet(txRows) {
@@ -251,7 +270,7 @@ function buildTransmissionSheet(txRows) {
     ]);
   }
 
-  return finalize(a, { numFrom: 2, mergeCol: 0, cols: [10, 32, 16, 22, 18, 24] });
+  return finalize(a, { numFrom: 2, mergeCol: 0, centerCols: [0], cols: [8, 34, 16, 22, 18, 24] });
 }
 
 function buildHybridSheet(hybridRows) {
@@ -269,7 +288,7 @@ function buildHybridSheet(hybridRows) {
 
   // Hybrid Type also repeats per region run — merge both Region (0) and the
   // Hybrid Type (1) is left un-merged to avoid spanning across regions.
-  return finalize(a, { numFrom: 3, mergeCol: 0, cols: [10, 36, 18, 14, 14, 14, 14, 14, 14] });
+  return finalize(a, { numFrom: 3, mergeCol: 0, centerCols: [0], cols: [8, 38, 18, 14, 14, 14, 14, 14, 14] });
 }
 
 function buildMonthlyCodSheet(monthlyCod) {
@@ -372,8 +391,9 @@ function buildSourceDetailSheet(source, projects, asOf) {
     fmtNum(allIndia.ftcApproved), fmtNum(allIndia.tocIssued), fmtNum(allIndia.codDeclared), fmtNum(allIndia.expected),
   ]);
 
-  // Merge the Region column (idx 4) across each region's run of projects.
-  return finalize(a, { numFrom: 5, mergeCol: 4, cols: [8, 46, 22, 28, 8, 18, 28, 22, 22, 20, 22, 26] });
+  // Merge the Region column (idx 4) across each region's run of projects, and
+  // centre it (header + values) to match the other sheets.
+  return finalize(a, { numFrom: 5, mergeCol: 4, centerCols: [4], cols: [8, 46, 22, 28, 8, 18, 28, 22, 22, 20, 22, 26] });
 }
 
 // Combined Summary sheet (mirrors the Excel Summary tab exactly)
@@ -414,7 +434,9 @@ function buildSummarySheet(table2Rows, table5Rows, contd4Study, dateLabel) {
       [label1, label2, '', fmtNum(r.totalMw), ...allMonths.map(m => fmtNum(r.months?.[m] ?? 0))]);
   }
 
-  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, cols: PIPE_COLS });
+  // The combined sheet stacks region-wise (Region in col 0) and source-wise
+  // (Region in col 1) sections, so centre both compact label columns.
+  return finalize(a, { numFrom: 3, mergeCol: 0, extraMerges, centerCols: [0, 1], cols: PIPE_COLS });
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -430,19 +452,27 @@ export async function GET(request) {
   const toMonth   = searchParams.get('to')     ?? null;
   const asOf      = asOfStr ? new Date(asOfStr) : null;
   const excludeCommissioned = searchParams.get('excludeCommissioned') === '1';
+  // End-of-day cutoff for milestone sums, mirroring the dashboard + PDF exactly
+  // (so a same-day event counts identically across all three outputs).
+  const computeAsOf = asOf
+    ? new Date(asOfStr + 'T23:59:59.999Z')
+    : (() => { const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t; })();
 
   const scope = await buildRegionScope(user.role);
+  // Same active-period gate the dashboard + PDF apply: drop superseded/versioned
+  // records (activeUntil set) so the Excel totals match the on-screen numbers.
+  const activeFilter = activePeriodFilter(asOf);
 
   const [projects, txElements] = await Promise.all([
     prisma.generationProject.findMany({
-      where: scope,
+      where: { ...scope, ...activeFilter },
       include: {
         region: true, plantType: true, contd4: true,
         phases: true, poolingStation: true,
       },
     }),
     prisma.transmissionElement.findMany({
-      where: scope,
+      where: { ...scope, ...activeFilter },
       include: { region: true },
     }),
   ]);
@@ -453,17 +483,17 @@ export async function GET(request) {
   const pipelineProjects = excludeCommissioned
     ? projects.filter((p) => !isProjectCommissioned(p))
     : projects;
-  const pipelineMatrix   = computePipelineMatrix(pipelineProjects, asOf);
+  const pipelineMatrix   = computePipelineMatrix(pipelineProjects, computeAsOf);
   const table5Rows       = buildPipelineRows(pipelineMatrix, 'source', 'region');
   const table2Base       = buildPipelineRows(pipelineMatrix, 'region', 'source'); // plain, for the combined Summary tab
   // Region-wise standalone sheet: expand each HYBRID row into its constituent-
   // source sub-rows and append "Total <Source> including Hybrid" rows.
-  const hybridBreakup    = computeHybridComponentBreakup(pipelineProjects, asOf);
-  const inclTotals       = inclHybridSourceTotals(pipelineProjects, asOf);
+  const hybridBreakup    = computeHybridComponentBreakup(pipelineProjects, computeAsOf);
+  const inclTotals       = inclHybridSourceTotals(pipelineProjects, computeAsOf);
   const table2Rows       = expandRegionRowsWithHybrid(table2Base, hybridBreakup, inclTotals);
   const contd4Study      = computeContd4Study(projects);
   const txRows           = computeTransmission(txElements);
-  const hybridRows       = computeHybridBreakdown(projects, asOf);
+  const hybridRows       = computeHybridBreakdown(projects, computeAsOf);
   const monthlyCod       = computeMonthlyCod(projects, fromMonth, toMonth);
 
   const dateLabel  = asOfStr

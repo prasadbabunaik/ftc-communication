@@ -205,9 +205,13 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
     <table>
       <thead>
         <tr>
-          <th style={{ width: 60, textAlign: 'left' }}>{isRegionPrimary ? 'Region' : 'Source'}</th>
-          {/* Source (Type) spans the label + the hybrid-component sub-column. */}
-          <th colSpan={2} style={{ width: 84, textAlign: 'left' }}>{isRegionPrimary ? 'Source (Type)' : 'Region'}</th>
+          {/* Region is kept narrow and centred; the freed width is handed to the
+              adjacent Source (Type) column (region-wise) so the numbers get room. */}
+          <th style={{ width: isRegionPrimary ? 40 : 60, textAlign: isRegionPrimary ? 'center' : 'left' }}>{isRegionPrimary ? 'Region' : 'Source'}</th>
+          {/* Secondary column spans the label + the hybrid-component sub-column.
+              Source (Type) when region is primary (wide, left); Region when source
+              is primary (narrow, centred). */}
+          <th colSpan={2} style={{ width: isRegionPrimary ? 104 : 44, textAlign: isRegionPrimary ? 'left' : 'center' }}>{isRegionPrimary ? 'Source (Type)' : 'Region'}</th>
           {enabled.map(c => (
             <th key={c.key} style={{ width: c.width }}>{c.label}</th>
           ))}
@@ -234,7 +238,7 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
               {!skip[i] && (
                 <td
                   rowSpan={span[i] > 1 ? span[i] : undefined}
-                  style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400, verticalAlign: 'middle', textAlign: span[i] > 1 ? 'center' : 'left' }}
+                  style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400, verticalAlign: 'middle', textAlign: isRegionPrimary || span[i] > 1 ? 'center' : 'left' }}
                 >
                   {label1}
                 </td>
@@ -251,7 +255,7 @@ function PipelineTable({ rows, primaryKey, scopeRegionCode, cols }) {
                   <td>{row.component}</td>
                 </>
               ) : (
-                <td colSpan={2} style={{ fontWeight: row.isInclHybridTotal ? 700 : undefined }}>{label2}</td>
+                <td colSpan={2} style={{ fontWeight: row.isInclHybridTotal ? 700 : undefined, textAlign: !isRegionPrimary ? 'center' : undefined }}>{label2}</td>
               )}
               {enabled.map(c => {
                 // CONTD-4 is plant-level: render it once per hybrid group, merged
@@ -299,8 +303,8 @@ function Contd4Table({ contd4Study, scopeRegionCode, cols }) {
     <table>
       <thead>
         <tr>
-          <th style={{ width: 60, textAlign: 'left' }}>Region</th>
-          <th style={{ width: 70, textAlign: 'left' }}>Source</th>
+          <th style={{ width: 40, textAlign: 'center' }}>Region</th>
+          <th style={{ width: 82, textAlign: 'left' }}>Source</th>
           {enabled.map(c => (
             <th key={c.key} style={{ width: c.width }}>{c.label}</th>
           ))}
@@ -318,7 +322,7 @@ function Contd4Table({ contd4Study, scopeRegionCode, cols }) {
               {!skip[i] && (
                 <td
                   rowSpan={span[i] > 1 ? span[i] : undefined}
-                  style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400, verticalAlign: 'middle', textAlign: span[i] > 1 ? 'center' : 'left' }}
+                  style={{ fontWeight: row.isSubtotal || row.isTotal ? 700 : 400, verticalAlign: 'middle', textAlign: 'center' }}
                 >
                   {label1}
                 </td>
@@ -362,8 +366,8 @@ function TransmissionTable({ transmissionRows, cols }) {
     <table>
       <thead>
         <tr>
-          <th style={{ width: 48, textAlign: 'left' }}>Region</th>
-          <th style={{ width: 150, textAlign: 'left' }}>Element Type</th>
+          <th style={{ width: 36, textAlign: 'center' }}>Region</th>
+          <th style={{ width: 162, textAlign: 'left' }}>Element Type</th>
           {enabled.map(c => (
             <th key={c.key} style={{ width: c.width }}>{c.label}</th>
           ))}
@@ -372,7 +376,7 @@ function TransmissionTable({ transmissionRows, cols }) {
       <tbody>
         {transmissionRows.map((row, i) => (
           <tr key={i} className={i % 2 === 1 ? 'stripe' : ''}>
-            <td>{row.region}</td>
+            <td style={{ textAlign: 'center' }}>{row.region}</td>
             <td>{CAT_LABEL[row.category] ?? row.category}</td>
             {enabled.map(c => (
               <td key={c.key} style={{ textAlign: 'right' }}>{cell(row, c.key)}</td>
@@ -548,8 +552,8 @@ function HybridTable({ hybridRows, scopeRegionCode, cols }) {
     <table>
       <thead>
         <tr>
-          <th style={{ width: 40, textAlign: 'left' }}>Region</th>
-          <th style={{ width: 110, textAlign: 'left' }}>Hybrid Type</th>
+          <th style={{ width: 34, textAlign: 'center' }}>Region</th>
+          <th style={{ width: 116, textAlign: 'left' }}>Hybrid Type</th>
           <th style={{ width: 60, textAlign: 'left' }}>Source (Type)</th>
           {enabled.map(c => (
             <th key={c.key} style={{ width: c.width }}>{c.label}</th>
