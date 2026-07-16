@@ -119,7 +119,7 @@ export function FtcPageClient({
         {/* overflow-y-visible: don't clip the project-picker dropdown (which is
             portaled into this dialog); the scroll for tall forms lives on the
             DialogBody below instead. */}
-        <DialogContent className="max-w-4xl overflow-y-visible">
+        <DialogContent className="max-w-5xl overflow-y-visible">
           <DialogHeader>
             <DialogTitle>
               {mode === 'create' ? 'Create New Generating Station' : 'Add Source / Component'}
@@ -132,7 +132,7 @@ export function FtcPageClient({
               </DialogDescription>
             )}
           </DialogHeader>
-          <DialogBody className="max-h-[72vh] overflow-y-auto">
+          <DialogBody className="max-h-[80vh] overflow-y-auto">
             {mode === 'create' ? (
               <>
                 <button
