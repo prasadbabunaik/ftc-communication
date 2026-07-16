@@ -779,10 +779,11 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const mwhTotal = watchedEvents.reduce((s, e) => s + (parseFloat(e.mwh) || 0), 0);
   const st = MILESTONE_STYLES[milestone];
-  // BESS carries an energy (MWh) column parallel to MW, each with its OWN date
-  // (MW date + MWh date) — the energy quantum can be reached on a different day.
-  const gridCls = isBess ? 'grid-cols-[1fr_1fr_128px_128px_1fr_28px]' : 'grid-cols-[1fr_140px_1fr_28px]';
-  const colSpanN = isBess ? 6 : 4;
+  // Non-BESS rows use a simple MW | Date | Remarks grid. BESS rows use a grouped
+  // Power/Energy layout (below) so the extra MWh + MWh-date fields don't crowd
+  // the row — each quantum can be reached on a different day.
+  const gridCls = 'grid-cols-[1fr_140px_1fr_28px]';
+  const colSpanN = 4;
 
   // Cumulative MW limit check for THIS milestone (FTC ≤ Applied, TOC ≤ FTC,
   // COD ≤ TOC). limitMw can be undefined for FTC's first-time use where
@@ -848,15 +849,84 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
       {/* Event rows */}
       {fields.length > 0 && (
         <div className="rounded-md border border-border overflow-hidden bg-white">
-          <div className={`grid ${gridCls} gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5`}>
-            <span>MW</span>{isBess && <span>MWh</span>}<span>{isBess ? 'MW Date' : 'Date'}</span>{isBess && <span>MWh Date</span>}<span>Remarks</span><span />
-          </div>
+          {isBess ? (
+            /* BESS: two grouped clusters — Power (MW + date) and Energy (MWh +
+               date) — separated by a divider so the row reads as two dated
+               measurements instead of five loose fields. */
+            <div className="flex items-center gap-2 px-2.5 py-1.5 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-50 border-b">
+              <span className="w-[192px] shrink-0 whitespace-nowrap">Power (MW) &amp; date</span>
+              <span className="w-px h-3 shrink-0" />
+              <span className="w-[192px] shrink-0 whitespace-nowrap">Energy (MWh) &amp; date</span>
+              <span className="flex-1 min-w-0">Remarks</span>
+              <span className="w-7 shrink-0" />
+            </div>
+          ) : (
+            <div className={`grid ${gridCls} gap-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50 border-b px-2 py-1.5`}>
+              <span>MW</span><span>Date</span><span>Remarks</span><span />
+            </div>
+          )}
           {fields.map((field, ei) => {
             // Per-row validation errors ("phases.<i>.<milestone>Events.<ei>")
             // — highlight the offending field so it's obvious why Save is
             // disabled (e.g. a legacy-hydrated event still missing its date).
             const [, pIdx, evKey] = prefix.split('.');
             const rowErr = form.formState.errors?.phases?.[pIdx]?.[evKey]?.[ei];
+            const errText = rowErr && (
+              <p className="px-2.5 pb-1.5 text-[11px] text-red-600">
+                ⚠ {[rowErr.mw?.message, rowErr.date?.message && `${rowErr.date.message} — pick the actual ${milestone} date for this ${form.watch(`${prefix}.${ei}.mw`) || ''} MW entry`].filter(Boolean).join(' · ')}
+              </p>
+            );
+
+            if (isBess) {
+              return (
+                <div key={field.id} className="border-b last:border-b-0">
+                  <div className="flex items-center gap-2 px-2.5 py-1.5">
+                    {/* Power (MW) */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Input
+                        type="number" step="0.01" placeholder="MW"
+                        {...form.register(`${prefix}.${ei}.mw`)}
+                        className={`w-[68px] h-8 text-xs font-mono ${rowErr?.mw ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+                      />
+                      <DatePicker
+                        value={form.watch(`${prefix}.${ei}.date`) ?? ''}
+                        onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
+                        className={`w-[120px] h-8 text-xs ${rowErr?.date ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+                      />
+                    </div>
+                    <span className="w-px h-6 bg-slate-200 shrink-0" />
+                    {/* Energy (MWh) */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Input
+                        type="number" step="0.01" placeholder="MWh"
+                        {...form.register(`${prefix}.${ei}.mwh`)}
+                        className="w-[68px] h-8 text-xs font-mono"
+                      />
+                      <DatePicker
+                        value={form.watch(`${prefix}.${ei}.mwhDate`) ?? ''}
+                        onChange={(v) => form.setValue(`${prefix}.${ei}.mwhDate`, v, { shouldValidate: true })}
+                        className="w-[120px] h-8 text-xs"
+                      />
+                    </div>
+                    {/* Remarks */}
+                    <Input
+                      type="text" placeholder="Remarks (optional)"
+                      {...form.register(`${prefix}.${ei}.remarks`)}
+                      className="flex-1 min-w-0 h-8 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => remove(ei)}
+                      className="size-7 shrink-0 flex items-center justify-center text-muted-foreground hover:text-red-600 transition-colors rounded"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                  {errText}
+                </div>
+              );
+            }
+
             return (
             <div key={field.id} className={`grid ${gridCls} gap-1 items-center px-2 py-1.5 border-b last:border-b-0`}>
               <Input
@@ -866,26 +936,11 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                 {...form.register(`${prefix}.${ei}.mw`)}
                 className={`h-8 text-xs font-mono ${rowErr?.mw ? 'border-red-400 ring-1 ring-red-300' : ''}`}
               />
-              {isBess && (
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="MWh"
-                  {...form.register(`${prefix}.${ei}.mwh`)}
-                  className="h-8 text-xs font-mono"
-                />
-              )}
               <DatePicker
                 value={form.watch(`${prefix}.${ei}.date`) ?? ''}
                 onChange={(v) => form.setValue(`${prefix}.${ei}.date`, v, { shouldValidate: true })}
                 className={rowErr?.date ? 'border-red-400 ring-1 ring-red-300' : undefined}
               />
-              {isBess && (
-                <DatePicker
-                  value={form.watch(`${prefix}.${ei}.mwhDate`) ?? ''}
-                  onChange={(v) => form.setValue(`${prefix}.${ei}.mwhDate`, v, { shouldValidate: true })}
-                />
-              )}
               <Input
                 type="text"
                 placeholder="Remarks (optional)"
