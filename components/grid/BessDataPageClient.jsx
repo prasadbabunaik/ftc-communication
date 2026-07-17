@@ -6,7 +6,7 @@
 // on-screen view.
 
 import { useState, useMemo } from 'react';
-import { BatteryCharging, Sheet, Printer, CalendarRange } from 'lucide-react';
+import { BatteryCharging, Sheet, Printer, CalendarRange, Search, X } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { useSettings } from '@/providers/settings-provider';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -180,12 +180,26 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate]     = useState('');
   const dateActive = !!(fromDate || toDate);
-  const filteredProjects = useMemo(() => {
+  const dateFilteredProjects = useMemo(() => {
     if (!dateActive) return bessProjects ?? [];
     return (bessProjects ?? []).filter((p) =>
       projectCodDates(p).some((d) => (!fromDate || d >= fromDate) && (!toDate || d <= toDate)),
     );
   }, [bessProjects, fromDate, toDate, dateActive]);
+
+  // Free-text search over the visible columns (project, pooling station, plant
+  // type, region, state). Applied on top of the date filter.
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const searchActive = q.length > 0;
+  const filteredProjects = useMemo(() => {
+    if (!searchActive) return dateFilteredProjects;
+    return dateFilteredProjects.filter((p) => {
+      const hay = [p.name, p.poolingStation?.name, p.plantType?.label, p.region?.code, p.stateName]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }, [dateFilteredProjects, q, searchActive]);
   const applyRange = ({ from, to }) => { setFromDate(from ?? ''); setToDate(to ?? ''); };
   const presetRange = (days) => {
     const now = new Date();
@@ -270,7 +284,7 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
           to={toDate}
           onChange={applyRange}
           placeholder="Pick a COD date range"
-          className="h-9"
+          className="h-9 w-64"
         />
         {COD_PRESETS.map(({ days, label }) => (
           <button
@@ -288,15 +302,40 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
         ))}
         {dateActive && (
           <span className="text-muted-foreground">
-            {prepared.rows.length} project{prepared.rows.length === 1 ? '' : 's'} with COD in range
+            {dateFilteredProjects.length} project{dateFilteredProjects.length === 1 ? '' : 's'} with COD in range
           </span>
         )}
+
+        {/* Free-text search — pushed to the right edge of the filter row */}
+        <div className="relative ml-auto">
+          <Search className="size-4 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search project, station, state…"
+            className="h-9 w-64 rounded-md border border-input bg-background pl-8 pr-8 text-[12px] ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            aria-label="Search BESS projects"
+          />
+          {searchActive && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto">
-        {dateActive && !hasRows ? (
+        {(dateActive || searchActive) && !hasRows ? (
           <div className="py-16 text-center text-sm text-muted-foreground">
-            No BESS projects have a COD declared in the selected date range.
+            {searchActive
+              ? `No BESS projects match “${query.trim()}”${dateActive ? ' in the selected date range' : ''}.`
+              : 'No BESS projects have a COD declared in the selected date range.'}
           </div>
         ) : (
           <BessDataTab
