@@ -129,6 +129,15 @@ export function buildRow(p, referenceMonth, range = null) {
         }
       }
     }
+    // COD Date Declared (MWh) — intra-state records energy phase-wise in
+    // energyPhasesJson too (MWh may be entered without MW). Mirror the
+    // inter-state display: "<mwh> MWh on <date>", or with no date when blank.
+    codDateLinesMwh = jsonPhases
+      .filter((ph) => ph?.mwh != null && Number(ph.mwh) > 0)
+      .map((ph) => {
+        const d = ph.date ? String(ph.date).slice(0, 10) : null;
+        return d ? `${fmt(ph.mwh)} MWh on ${fmtDate(d)}` : `${fmt(ph.mwh)} MWh`;
+      });
   }
 
   // COD declared WITHIN the active date-range filter, split by calendar month
