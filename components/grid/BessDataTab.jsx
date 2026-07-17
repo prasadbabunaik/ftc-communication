@@ -80,7 +80,9 @@ export function buildRow(p, referenceMonth, range = null) {
     const sorted = [...bessCodEvents].sort((a, b) => String(a.eventDate ?? '').localeCompare(String(b.eventDate ?? '')));
     codDeclared   = sorted.reduce((s, e) => s + Number(e.capacityMw ?? 0), 0);
     codInRefMonth = sorted.reduce((s, e) => s + (inMonth(e.eventDate, referenceMonth) ? Number(e.capacityMw ?? 0) : 0), 0);
-    codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
+    // MWh-only events carry 0 MW — omit them from the MW date column (their
+    // energy shows in the MWh date column instead).
+    codDateLines  = sorted.filter((e) => Number(e.capacityMw ?? 0) > 0).map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
     codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate, mwh: Number(e.capacityMwh ?? 0), id: e.id, remarks: e.remarks ?? '' }));
     // Energy (MWh) per COD event — the FTC-tracker source of truth for BESS.
     codMwhTotal     = sorted.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);

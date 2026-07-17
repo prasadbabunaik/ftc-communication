@@ -1630,15 +1630,22 @@ export async function upsertProjectPhases(projectId, formData) {
       otherRemarks:       p.otherRemarks || null,
     };
   };
+  // An event must carry at least one quantum (MW or MWh). For BESS either may be
+  // entered without the other, so we default a missing MW to 0 (keeps the column
+  // non-null; adds nothing to MW sums) and anchor a MWh-only event on its MWh
+  // date when no MW date was given.
+  const evHas      = (v) => v != null && String(v).trim() !== '';
+  const evNonEmpty = (e) => evHas(e.mw) || evHas(e.mwh);
+  const eventToData = (e) => ({
+    eventDate:   parseDate(e.date || e.mwhDate),
+    capacityMw:  evHas(e.mw) ? parseFloat(e.mw) : 0,
+    capacityMwh: parseDecimal(e.mwh),
+    mwhDate:     parseDate(e.mwhDate),
+    remarks:     e.remarks || null,
+  });
   const eventCreateMany = (evs) => ({
     createMany: {
-      data: (evs ?? []).map((e) => ({
-        eventDate:   parseDate(e.date),
-        capacityMw:  parseFloat(e.mw),
-        capacityMwh: parseDecimal(e.mwh),
-        mwhDate:     parseDate(e.mwhDate),
-        remarks:     e.remarks || null,
-      })),
+      data: (evs ?? []).filter(evNonEmpty).map(eventToData),
     },
   });
 
@@ -1647,8 +1654,11 @@ export async function upsertProjectPhases(projectId, formData) {
   // an `id` are inserted as new. Events that existed before but aren't in
   // the form payload are deleted.
   async function reconcileEvents(tx, model, phaseId, incoming) {
-    const incomingIds = new Set((incoming ?? []).map((e) => e.id).filter(Boolean));
-    // Delete any DB event whose id isn't in the incoming list.
+    // Drop rows the user cleared out (no MW and no MWh) so they neither persist
+    // nor block deletion of the corresponding DB row.
+    const rows = (incoming ?? []).filter(evNonEmpty);
+    const incomingIds = new Set(rows.map((e) => e.id).filter(Boolean));
+    // Delete any DB event whose id isn't in the (non-empty) incoming list.
     await tx[model].deleteMany({
       where: {
         phaseId,
@@ -1656,14 +1666,8 @@ export async function upsertProjectPhases(projectId, formData) {
       },
     });
     // Update existing events; create new ones.
-    for (const e of (incoming ?? [])) {
-      const data = {
-        eventDate:   parseDate(e.date),
-        capacityMw:  parseFloat(e.mw),
-        capacityMwh: parseDecimal(e.mwh),
-        mwhDate:     parseDate(e.mwhDate),
-        remarks:     e.remarks || null,
-      };
+    for (const e of rows) {
+      const data = eventToData(e);
       if (e.id) {
         await tx[model].update({ where: { id: e.id }, data });
       } else {
