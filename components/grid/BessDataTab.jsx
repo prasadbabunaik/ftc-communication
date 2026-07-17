@@ -71,7 +71,26 @@ export function buildRow(p, referenceMonth, range = null) {
   // the reference-month cell and the COD-date-range breakdown.
   let codDated = [];
 
-  if (isHybrid && bessComp) {
+  // BESS COD figures (MW, MWh, dates) come from the phase-level COD events — the
+  // live single source of truth — for BOTH plain BESS and hybrids. The seeded
+  // hybridComponentsJson is only a frozen snapshot, used solely as a fallback for
+  // a hybrid that has no COD events yet.
+  const bessCodEvents = codPhases.flatMap((ph) => ph.codEvents ?? []);
+  if (bessCodEvents.length) {
+    const sorted = [...bessCodEvents].sort((a, b) => String(a.eventDate ?? '').localeCompare(String(b.eventDate ?? '')));
+    codDeclared   = sorted.reduce((s, e) => s + Number(e.capacityMw ?? 0), 0);
+    codInRefMonth = sorted.reduce((s, e) => s + (inMonth(e.eventDate, referenceMonth) ? Number(e.capacityMw ?? 0) : 0), 0);
+    codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
+    codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate, mwh: Number(e.capacityMwh ?? 0), id: e.id, remarks: e.remarks ?? '' }));
+    // Energy (MWh) per COD event — the FTC-tracker source of truth for BESS.
+    codMwhTotal     = sorted.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);
+    codDateLinesMwh = sorted
+      .filter((e) => e.capacityMwh != null && Number(e.capacityMwh) > 0)
+      // The MWh carries its own date; when it has none (e.g. the energy total
+      // backfilled onto the first COD phase) show the MWh with no date.
+      .map((e) => e.mwhDate ? `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.mwhDate)}` : `${fmt(e.capacityMwh)} MWh`);
+  } else if (isHybrid && bessComp) {
+    // Frozen-seed fallback: a hybrid whose BESS component has no COD events yet.
     codDeclared = Number(bessComp.codMw ?? 0);
     if (inMonth(bessComp.codDate, referenceMonth)) codInRefMonth = codDeclared;
     if (bessComp.codDate && codDeclared > 0) {
@@ -79,26 +98,8 @@ export function buildRow(p, referenceMonth, range = null) {
       codDated = [{ mw: codDeclared, date: bessComp.codDate }];
     }
   } else {
-    // No segregation JSON (e.g. a hybrid added via the UI) — derive the BESS
-    // figures from the BESS phase's own COD events.
-    const events = codPhases.flatMap((ph) => ph.codEvents ?? []);
-    if (events.length) {
-      const sorted = [...events].sort((a, b) => String(a.eventDate ?? '').localeCompare(String(b.eventDate ?? '')));
-      codDeclared   = sorted.reduce((s, e) => s + Number(e.capacityMw ?? 0), 0);
-      codInRefMonth = sorted.reduce((s, e) => s + (inMonth(e.eventDate, referenceMonth) ? Number(e.capacityMw ?? 0) : 0), 0);
-      codDateLines  = sorted.map((e) => `${fmt(e.capacityMw)} MW on ${fmtDate(e.eventDate)}`);
-      codDated      = sorted.map((e) => ({ mw: Number(e.capacityMw ?? 0), date: e.eventDate, mwh: Number(e.capacityMwh ?? 0), id: e.id, remarks: e.remarks ?? '' }));
-      // Energy (MWh) per COD event — the FTC-tracker source of truth for BESS.
-      codMwhTotal     = sorted.reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0);
-      codDateLinesMwh = sorted
-        .filter((e) => e.capacityMwh != null && Number(e.capacityMwh) > 0)
-        // The MWh carries its own date; when it has none (e.g. the energy total
-        // backfilled onto the first COD phase) show the MWh with no date.
-        .map((e) => e.mwhDate ? `${fmt(e.capacityMwh)} MWh on ${fmtDate(e.mwhDate)}` : `${fmt(e.capacityMwh)} MWh`);
-    } else {
-      // Legacy / intra-state rows: cached phase totals, no dated events.
-      codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
-    }
+    // Legacy rows: cached phase totals, no dated events.
+    codDeclared = codPhases.reduce((s, ph) => s + Number(ph.codDeclaredMw ?? 0), 0);
   }
 
   // Intra-state phase-wise MW override. Intra-state rows record their COD
@@ -149,15 +150,11 @@ export function buildRow(p, referenceMonth, range = null) {
 
   // Energy Commissioned (MWh) — derived LIVE from a single source per row type,
   // never a cached column, so it always tracks the underlying entries:
-  //   • intra-state           → Σ phase-wise MWh (energyPhasesJson)
-  //   • inter-state plain BESS → Σ FTC-tracker COD-event MWh (codMwhTotal)
-  //   • hybrid BESS           → per-component MWh isn't tracked in the pipeline
-  //                             yet, so the stored value is the only source (follow-up)
+  //   • intra-state → Σ phase-wise MWh (energyPhasesJson)
+  //   • otherwise (plain BESS + hybrids) → Σ FTC-tracker COD-event MWh (codMwhTotal)
   const energyMwh = p.isIntrastate
     ? (() => { const s = jsonPhases.reduce((a, ph) => a + (Number(ph?.mwh) || 0), 0); return s > 0 ? s : null; })()
-    : isHybrid
-      ? (p.energyCommissionedMwh != null ? Number(p.energyCommissionedMwh) : null)
-      : (codMwhTotal > 0 ? codMwhTotal : null);
+    : (codMwhTotal > 0 ? codMwhTotal : null);
 
   return {
     id: p.id,
