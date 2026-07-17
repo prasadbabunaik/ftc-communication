@@ -236,7 +236,12 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
           {isTotal
             ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
             : isAllIndia
-              ? <span className="text-[12px] font-bold text-slate-600">All India</span>
+              // The consolidated breakdown is 'All India' for a multi-region view,
+              // but carries the region code (e.g. 'SR') when scoped to one RLDC —
+              // show the region chip in that case so it reads as the user's region.
+              ? (REGION_BADGE[primary]
+                  ? <Chip label={primary} colorCls={REGION_BADGE[primary]} />
+                  : <span className="text-[12px] font-bold text-slate-600">All India</span>)
               : <Chip label={primary} colorCls={isRegionPrimary ? REGION_BADGE[primary] : SOURCE_BADGE[primary]} />}
         </td>
       )}
@@ -544,7 +549,9 @@ function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, all
         className={`px-3 py-2 sticky left-0 z-[4] text-center border-r border-gray-200 ${bg}`}
       >
         {!sameRegion && !isSubtotal && !isTotal && !isAllIndiaBreakdown && <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />}
-        {isFirstAllIndiaBreakdown && <span className="text-[11px] font-bold text-slate-600">All India</span>}
+        {isFirstAllIndiaBreakdown && (REGION_BADGE[row.region]
+          ? <Chip label={row.region} colorCls={REGION_BADGE[row.region]} />
+          : <span className="text-[11px] font-bold text-slate-600">All India</span>)}
       </td>
       <td
         style={{ ...cellStyle, left: 76 }}
