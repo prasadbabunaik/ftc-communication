@@ -34,8 +34,27 @@ model User {
   projectNotes         ProjectNote[]          @relation("NoteAuthor")
   transmissionAuditLogs TransmissionAuditLog[] @relation("TxAuditAuthor")
   notifications        Notification[]
+  authActivity         AuthActivity[]         @relation("UserAuthActivity")
 
   @@map("users")
+}
+
+// Login / logout audit trail — one row per successful sign-in or sign-out.
+// Admin-only view (Administration → Login Activity). Fail-safe: recording a
+// row must never block the auth flow, so writes are best-effort.
+model AuthActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserAuthActivity", fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // 'LOGIN' | 'LOGOUT'
+  method    String?  // 'PASSWORD' | 'ENTRA' | 'SSO' (login only)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("auth_activity")
 }
 
 model RefreshToken {

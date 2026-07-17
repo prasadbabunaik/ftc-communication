@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signAccessToken, signRefreshToken, setAuthCookies } from '@/lib/auth';
+import { recordAuthActivity } from '@/lib/auth-activity';
 import {
   getEntraConfig,
   exchangeCodeForTokens,
@@ -108,6 +109,9 @@ export async function GET(req) {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
+
+  // Audit trail — record the SSO sign-in (best-effort; never blocks the flow).
+  await recordAuthActivity({ userId: user.id, action: 'LOGIN', method: 'SSO', request: req });
 
   // The client AuthProvider hydrates from /api/auth/me on load, so a plain
   // redirect with the auth cookies set logs the user straight in.

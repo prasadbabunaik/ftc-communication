@@ -5,6 +5,7 @@ import {
   Cable,
   FileText,
   Grid3x3,
+  History,
   LayoutGrid,
   Settings,
   Shield,
@@ -68,6 +69,12 @@ export const MENU_SIDEBAR = [
     icon: Shield,
     path: '/dashboard/access',
     roles: ['ADMIN', 'NLDC'],
+  },
+  {
+    title: 'Login Activity',
+    icon: History,
+    path: '/dashboard/activity',
+    roles: ['ADMIN'],
   },
   {
     title: 'Settings',

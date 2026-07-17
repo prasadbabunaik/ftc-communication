@@ -6,6 +6,7 @@ import {
   rateLimit, recordFailure, failureCount, clearFailures, getClientIp,
 } from '@/lib/rate-limit';
 import { getEntraConfig, entraPasswordLogin, emailFromClaims, EntraAuthError } from '@/lib/entra';
+import { recordAuthActivity } from '@/lib/auth-activity';
 import bcrypt from 'bcryptjs';
 
 // When ENTRA_ROPC_ENABLED=true, the email + password typed on the login form are
@@ -163,6 +164,14 @@ export async function POST(request) {
         userId: user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
+    });
+
+    // Audit trail — record the successful sign-in (best-effort; never blocks).
+    await recordAuthActivity({
+      userId: user.id,
+      action: 'LOGIN',
+      method: (entraPasswordEnabled() && entraCfg) ? 'ENTRA' : 'PASSWORD',
+      request,
     });
 
     const response = NextResponse.json({
