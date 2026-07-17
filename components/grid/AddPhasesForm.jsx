@@ -854,9 +854,9 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                date) — separated by a divider so the row reads as two dated
                measurements instead of five loose fields. */
             <div className="flex items-center gap-3 px-3 py-1.5 text-[9.5px] font-semibold uppercase tracking-wide bg-slate-50 border-b">
-              <span className="w-[252px] shrink-0 whitespace-nowrap text-slate-500">Power (MW) &amp; Date</span>
+              <span className="w-[280px] shrink-0 whitespace-nowrap text-slate-500">Power (MW) &amp; Date</span>
               <span className="w-px h-3 shrink-0" />
-              <span className="w-[252px] shrink-0 whitespace-nowrap text-indigo-500">Energy (MWh) &amp; Date</span>
+              <span className="w-[280px] shrink-0 whitespace-nowrap text-indigo-500">Energy (MWh) &amp; Date</span>
               <span className="flex-1 min-w-0 text-slate-500">Remarks</span>
               <span className="w-7 shrink-0" />
             </div>
@@ -883,7 +883,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                   <div className="flex items-center gap-3 px-3 py-2">
                     {/* Power (MW): value (with MW unit suffix) + its date */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="relative w-[96px]">
+                      <div className="relative w-[124px]">
                         <Input
                           type="number" step="0.01" placeholder="0"
                           {...form.register(`${prefix}.${ei}.mw`)}
@@ -900,7 +900,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                     <span className="w-px h-7 bg-slate-200 shrink-0" />
                     {/* Energy (MWh): value (with MWh unit suffix) + its date */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="relative w-[96px]">
+                      <div className="relative w-[124px]">
                         <Input
                           type="number" step="0.01" placeholder="0"
                           {...form.register(`${prefix}.${ei}.mwh`)}
@@ -918,7 +918,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                     <Input
                       type="text" placeholder="Remarks (optional)"
                       {...form.register(`${prefix}.${ei}.remarks`)}
-                      className="flex-1 min-w-0 h-8 text-xs"
+                      className="flex-1 min-w-0 max-w-[380px] h-8 text-xs"
                     />
                     <button
                       type="button"
