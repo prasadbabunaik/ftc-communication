@@ -153,27 +153,19 @@ export function BessEditModal({ row, open, onOpenChange }) {
     }
     startTransition(async () => {
       const payload = { stateName };
-      if (codReadOnly) {
-        // Inter-state: write the MWh + remarks straight back to the COD events
-        // (the FTC-tracker source). MW / date stay pipeline-derived and untouched.
-        payload.codEventEnergy = phases
-          .filter((p) => p.id)
-          .map((p) => ({
-            id: p.id,
-            mwh: String(p.mwh).trim() !== '' ? p.mwh : null,
-            remarks: p.remarks || null,
-          }));
-      } else {
-        // Intra-state (pure): MW + MWh + date maintained here as energy phases.
+      // Only intra-state storage maintains its MW/MWh phases here; inter-state COD
+      // + energy now live in the FTC tracker, so for those rows this modal edits
+      // just the State (situated).
+      if (mwEditable) {
         payload.energyPhases = phases
           .filter((p) => String(p.mw).trim() !== '' || String(p.mwh).trim() !== '')
           .map((p) => ({
-            mw: mwEditable && String(p.mw).trim() !== '' ? p.mw : null,
+            mw: String(p.mw).trim() !== '' ? p.mw : null,
             mwh: String(p.mwh).trim() !== '' ? p.mwh : null,
             date: p.date || null,
             remarks: p.remarks || null,
           }));
-        if (intra) payload.totalCapacityMw = totalCapacity;
+        payload.totalCapacityMw = totalCapacity;
       }
 
       const res = await updateBessRowFields(row.id, payload);
@@ -203,9 +195,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
           <DialogDescription>
             {mwEditable
               ? 'Intra-state storage: edit the Total Capacity and record COD capacity (MW) & energy (MWh) phase-wise. Each phase needs a COD date.'
-              : codReadOnly
-                ? `COD commissioning phases (MW + date) are derived from the FTC pipeline and read-only. Edit ${intra ? 'the Total Capacity, ' : ''}the Energy Commissioned (MWh) and Remarks against each phase.`
-                : 'Only the manually-maintained fields are editable. Capacity and COD figures are derived from the FTC pipeline / CONTD-4 and shown for reference.'}
+              : 'COD capacity and Energy Commissioned (MWh) are managed in the FTC Tracker. Only the State (situated) is editable here.'}
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
@@ -254,7 +244,9 @@ export function BessEditModal({ row, open, onOpenChange }) {
                 )}
               </div>
 
-              {/* Phase-wise editor */}
+              {/* Phase-wise editor — intra-state only. Inter-state COD capacity
+                  and Energy Commissioned (MWh) are managed in the FTC Tracker. */}
+              {mwEditable ? (
               <div className="rounded-lg border border-border p-3">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
@@ -377,6 +369,13 @@ export function BessEditModal({ row, open, onOpenChange }) {
                   </p>
                 )}
               </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-[12px] leading-relaxed text-muted-foreground">
+                  COD phases and <span className="font-semibold text-foreground">Energy Commissioned (MWh)</span> for this
+                  inter-state BESS are managed in the <span className="font-semibold text-foreground">FTC Tracker</span> —
+                  add or edit the per-phase MW / MWh there. Only the State (situated) is editable here.
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-3 border-t">
                 <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isPending}>
