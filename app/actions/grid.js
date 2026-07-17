@@ -1539,7 +1539,8 @@ export async function upsertProjectPhases(projectId, formData) {
 
   const project = await prisma.generationProject.findUniqueOrThrow({
     where: { id: projectId },
-    include: { phases: true, plantType: true },
+    // Events are included so the audit can diff old→new MWh per milestone.
+    include: { phases: { include: { ftcEvents: true, tocEvents: true, codEvents: true } }, plantType: true },
   });
 
   const scope = await buildRegionScope(user.role);
@@ -1706,9 +1707,37 @@ export async function upsertProjectPhases(projectId, formData) {
     return { error: 'Failed to save phases. Please try again.' };
   }
 
-  // Audit log — one entry per affected phase, distinguishing update vs create.
+  // Audit log — for each UPDATED phase, record which exact milestone moved so
+  // the Day-wise Changes feed shows the field (Applied / FTC / TOC / COD, MW and
+  // MWh) instead of a blank "—". diffFields keeps only the values that actually
+  // changed. The generic summary note is kept as a fallback: the audit route
+  // surfaces it only when a save produced no field-level diffs.
+  const qMw  = (v) => (v != null && Number(v) !== 0 ? `${+Number(v).toFixed(2)} MW`  : '—');
+  const qMwh = (v) => (v != null && Number(v) !== 0 ? `${+Number(v).toFixed(2)} MWh` : '—');
+  const evMw    = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mw)  || 0), 0); // new (form)
+  const evMwhF  = (evs) => (evs ?? []).reduce((s, e) => s + (parseFloat(e.mwh) || 0), 0); // new (form)
+  const evMwhDb = (evs) => (evs ?? []).reduce((s, e) => s + Number(e.capacityMwh ?? 0), 0); // old (DB)
+
+  const phaseFieldNotes = [];
+  for (const p of updatedPhases) {
+    const old = existingByOwnId.get(p.existingId);
+    if (!old) continue;
+    const s = p.sourceType;
+    phaseFieldNotes.push(...diffFields([
+      { field: `${s} Applied`,       old: qMw(old.capacityAppliedMw),       new: qMw(p.capacityAppliedMw) },
+      { field: `${s} Applied (MWh)`, old: qMwh(old.capacityAppliedMwh),     new: qMwh(p.capacityAppliedMwh) },
+      { field: `${s} FTC`,           old: qMw(old.ftcCompletedMw),          new: qMw(evMw(p.ftcEvents)) },
+      { field: `${s} FTC (MWh)`,     old: qMwh(evMwhDb(old.ftcEvents)),     new: qMwh(evMwhF(p.ftcEvents)) },
+      { field: `${s} TOC`,           old: qMw(old.tocIssuedMw),             new: qMw(evMw(p.tocEvents)) },
+      { field: `${s} TOC (MWh)`,     old: qMwh(evMwhDb(old.tocEvents)),     new: qMwh(evMwhF(p.tocEvents)) },
+      { field: `${s} COD`,           old: qMw(old.codDeclaredMw),           new: qMw(evMw(p.codEvents)) },
+      { field: `${s} COD (MWh)`,     old: qMwh(evMwhDb(old.codEvents)),     new: qMwh(evMwhF(p.codEvents)) },
+    ], projectId, user.id, p.existingId));
+  }
+
   await prisma.projectNote.createMany({
     data: [
+      ...phaseFieldNotes,
       ...updatedPhases.map((p) => ({
         projectId,
         phaseId: p.existingId,
