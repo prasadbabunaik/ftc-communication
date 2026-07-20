@@ -859,7 +859,12 @@ function buildPipelineGroups(projects, asOf = null) {
       agg.utoc    += num(ph.capacityUnderTocMw);
       agg.pendcod += num(ph.capacityPendingCodMw);
       agg.exp     += num(ph.expectedApr26Mw);
-      const fe = (ph.ftcEvents ?? []).map(mapEv), te = (ph.tocEvents ?? []).map(mapEv), ce = (ph.codEvents ?? []).map(mapEv);
+      // Dated cells list MW milestones only — drop MWh-only (0 MW) events so
+      // they never render as a bare, MW-less date (same rule as the Activity tab).
+      const keepMw = (ev) => ev.mw > 0;
+      const fe = (ph.ftcEvents ?? []).map(mapEv).filter(keepMw);
+      const te = (ph.tocEvents ?? []).map(mapEv).filter(keepMw);
+      const ce = (ph.codEvents ?? []).map(mapEv).filter(keepMw);
       ftcEvents.push(...fe); tocEvents.push(...te); codEvents.push(...ce);
       // One bifurcation sub-row per source component (hybrids only). Pending
       // columns are funnel gaps (clamped ≥ 0), matching the matrix.
