@@ -1178,12 +1178,17 @@ function buildActivityGroups(projects, from, to) {
     // carry the full funnel (every milestone up to the window end).
     const ftcEvents = [], tocEvents = [], codEvents = [];
     let anyInRange = false;
+    // This tab is the MW milestone funnel. An MWh-only event (0 MW, e.g. a BESS
+    // energy entry) is not a MW milestone, so it is never shown as a standalone
+    // date — only events carrying MW appear in the cells. Inclusion still counts
+    // any in-range event so a project isn't dropped for having energy activity.
     for (const ph of (p.phases ?? [])) {
-      for (const e of (ph.ftcEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; if (achieved(e.eventDate)) ftcEvents.push(mapEv(e)); }
-      for (const e of (ph.tocEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; if (achieved(e.eventDate)) tocEvents.push(mapEv(e)); }
-      for (const e of (ph.codEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; if (achieved(e.eventDate)) codEvents.push(mapEv(e)); }
+      for (const e of (ph.ftcEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; const m = mapEv(e); if (m.mw > 0 && achieved(e.eventDate)) ftcEvents.push(m); }
+      for (const e of (ph.tocEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; const m = mapEv(e); if (m.mw > 0 && achieved(e.eventDate)) tocEvents.push(m); }
+      for (const e of (ph.codEvents ?? [])) { if (inRange(e.eventDate)) anyInRange = true; const m = mapEv(e); if (m.mw > 0 && achieved(e.eventDate)) codEvents.push(m); }
     }
-    if (!anyInRange) continue;
+    // Skip only when there is no MW milestone to show at all (pure energy).
+    if (!anyInRange || (ftcEvents.length + tocEvents.length + codEvents.length) === 0) continue;
     const key = `${region}|${source}`;
     if (!groups[key]) groups[key] = { region, source, contributors: [] };
     groups[key].contributors.push({
