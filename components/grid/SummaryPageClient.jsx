@@ -797,13 +797,17 @@ function buildHybridDisplayRows(rows) {
     allIndiaGrand = sumFields(allIndiaGrand, regionGrand);
   }
 
-  // All India per-source rows + grand total.
-  const allOrderedSrcs = HYBRID_SRC_ORDER.filter((s) => allIndiaBySrc[s])
-    .concat(Object.keys(allIndiaBySrc).filter((s) => !HYBRID_SRC_ORDER.includes(s)));
-  for (const s of allOrderedSrcs) {
-    out.push({ kind: 'allIndiaSource', sourceType: s, label: `Total ${s.charAt(0) + s.slice(1).toLowerCase()}`, ...allIndiaBySrc[s] });
+  // All India per-source rows + grand total — only when the view spans more than
+  // one region. For a single-region scope (an RLDC) the footer would just repeat
+  // that region's own grand total under a wrong "All India" label, so omit it.
+  if (regions.length > 1) {
+    const allOrderedSrcs = HYBRID_SRC_ORDER.filter((s) => allIndiaBySrc[s])
+      .concat(Object.keys(allIndiaBySrc).filter((s) => !HYBRID_SRC_ORDER.includes(s)));
+    for (const s of allOrderedSrcs) {
+      out.push({ kind: 'allIndiaSource', sourceType: s, label: `Total ${s.charAt(0) + s.slice(1).toLowerCase()}`, ...allIndiaBySrc[s] });
+    }
+    out.push({ kind: 'allIndiaGrand', label: 'Grand Total', ...allIndiaGrand });
   }
-  out.push({ kind: 'allIndiaGrand', label: 'Grand Total', ...allIndiaGrand });
 
   return out;
 }
