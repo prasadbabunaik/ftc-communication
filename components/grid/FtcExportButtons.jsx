@@ -155,24 +155,75 @@ function exportExcel(rows, cols, regionLabel, asOnLabel) {
 }
 
 const FTC_TITLE = 'Generation Capacity Under Process of FTC';
+
+// Column → group, and the two-row grouped header layout. Multi-column groups
+// (Project / Capacity / FTC / TOC / COD) show a group name over their sub-column
+// labels; single columns (Expected / Status / Remarks) span both header rows.
+const FTC_COL_GROUP = {
+  num: 'proj', station: 'proj', region: 'proj', pooling: 'proj', type: 'proj',
+  total: 'cap', contd4: 'cap',
+  applied: 'ftc', approvedMw: 'ftc', approvedOn: 'ftc', ftcPending: 'ftc',
+  tocIssued: 'toc', tocOn: 'toc', tocPending: 'toc',
+  codDone: 'cod', codOn: 'cod', codPending: 'cod',
+  expected: 'exp', status: 'st', remarks: 'rm',
+};
+const GROUP_BG = { ftc: 'grp-ftc', toc: 'grp-toc', cod: 'grp-cod', exp: 'grp-exp' };
+const HEADER_GROUPS = [
+  { key: 'proj', label: 'Project',  cols: ['num', 'station', 'region', 'pooling', 'type'] },
+  { key: 'cap',  label: 'Capacity', cols: ['total', 'contd4'] },
+  { key: 'ftc',  label: 'FTC',      cols: ['applied', 'approvedMw', 'approvedOn', 'ftcPending'], cls: 'g-ftc' },
+  { key: 'toc',  label: 'TOC',      cols: ['tocIssued', 'tocOn', 'tocPending'], cls: 'g-toc' },
+  { key: 'cod',  label: 'COD',      cols: ['codDone', 'codOn', 'codPending'], cls: 'g-cod' },
+  { key: 'exp',  label: '', cols: ['expected'], single: true, cls: 'g-exp' },
+  { key: 'st',   label: '', cols: ['status'],   single: true },
+  { key: 'rm',   label: '', cols: ['remarks'],  single: true },
+];
+
 const FTC_TABLE_CSS = `
+  table { min-width: 2000px; }
+  thead .grp th { background: #1e3a5f; color: #fff; font-weight: 700; text-align: center; font-size: 9px; letter-spacing: .4px; padding: 5px 6px; border: 1px solid #33517a; }
+  thead .grp th.g-ftc { background: #1d4ed8; }
+  thead .grp th.g-toc { background: #6d28d9; }
+  thead .grp th.g-cod { background: #047857; }
+  thead .grp th.g-exp { background: #b45309; font-size: 7.5px; font-weight: 600; }
+  thead .grp th[rowspan] { font-size: 7.5px; font-weight: 600; vertical-align: middle; }
+  thead .lbl th { background: #eef2f7; color: #1e293b; font-weight: 600; text-align: center; font-size: 7.5px; padding: 3px 5px; border: 1px solid #cbd5e1; }
+  tbody tr:nth-child(even) { background: transparent; }
+  td.grp-ftc { background: #eff6ff; } td.grp-toc { background: #f6f4ff; }
+  td.grp-cod { background: #edfdf4; } td.grp-exp { background: #fffbeb; }
   td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
-  td.d div { text-align: left; line-height: 1.35; }
-  td.d .src { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
-  td.sm { font-size: 8px; color: #475569; max-width: 300px; white-space: normal; }
+  td.d div { text-align: left; line-height: 1.4; }
+  td.d .src { font-size: 6.5px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
+  td.sm { font-size: 8px; color: #334155; max-width: 280px; white-space: normal; text-align: left; }
   .ok { color: #047857; font-weight: 700; } .wip { color: #b45309; font-weight: 700; }
 `;
 
 // Renders ALL columns tagged with data-col; `hiddenKeys` start hidden and the
-// preview's Customize panel toggles them live. Uses the shared dashboard-style
-// print shell (navy DocHeader + navy table headers).
+// preview's Customize panel toggles them live. Grouped two-row header (Project /
+// Capacity / FTC / TOC / COD) with colour-coded milestone bands.
 function printPdf(rows, allCols, hiddenKeys, regionLabel, asOnLabel) {
-  const th = allCols.map((c) => `<th data-col="${c.key}">${esc(c.label)}</th>`).join('');
+  const colByKey = Object.fromEntries(allCols.map((c) => [c.key, c]));
+  const grpRow = HEADER_GROUPS.map((g) => {
+    if (g.single) {
+      const c = colByKey[g.cols[0]];
+      return `<th rowspan="2" data-col="${c.key}"${g.cls ? ` class="${g.cls}"` : ''}>${esc(c.label)}</th>`;
+    }
+    return `<th colspan="${g.cols.length}"${g.cls ? ` class="${g.cls}"` : ''}>${esc(g.label)}</th>`;
+  }).join('');
+  const lblRow = HEADER_GROUPS.filter((g) => !g.single)
+    .flatMap((g) => g.cols.map((k) => `<th data-col="${k}">${esc(colByKey[k].label)}</th>`))
+    .join('');
   const trs = rows.map((r, i) => `<tr>${allCols.map((c) => {
-    const cls = c.cls ? ` class="${c.cls}"` : '';
-    return `<td${cls} data-col="${c.key}">${c.html(r, i)}</td>`;
+    const bg = GROUP_BG[FTC_COL_GROUP[c.key]] || '';
+    const cls = [c.cls, bg].filter(Boolean).join(' ');
+    return `<td${cls ? ` class="${cls}"` : ''} data-col="${c.key}">${c.html(r, i)}</td>`;
   }).join('')}</tr>`).join('');
-  const tableHtml = `<table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
+  const tableHtml = `<table>
+    <thead>
+      <tr class="grp">${grpRow}</tr>
+      <tr class="lbl">${lblRow}</tr>
+    </thead>
+    <tbody>${trs}</tbody></table>`;
 
   openPrintReport({
     documentTitle: `${FTC_TITLE} — ${asOnLabel}`,
@@ -182,7 +233,7 @@ function printPdf(rows, allCols, hiddenKeys, regionLabel, asOnLabel) {
     page: { size: 'A3', orientation: 'landscape' },
     columns: allCols,
     initiallyHidden: hiddenKeys,
-    tableMinWidth: 1950,
+    tableMinWidth: 2000,
     tableHtml,
     tableCss: FTC_TABLE_CSS,
   });
