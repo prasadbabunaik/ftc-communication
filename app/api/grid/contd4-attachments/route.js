@@ -42,20 +42,28 @@ export async function POST(request) {
   const remarksRaw = form.get('remarks');
   const remarks = remarksRaw != null && String(remarksRaw).trim()
     ? String(remarksRaw).trim().slice(0, 2000) : null;
-  const file = form.get('file');
+  // Accept one or many files under the `file` key — the remark applies to each.
+  const files = form.getAll('file').filter((f) => f && typeof f !== 'string' && typeof f.arrayBuffer === 'function');
 
   if (!projectId) return NextResponse.json({ error: 'Missing project.' }, { status: 400 });
-  if (!file || typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
-    return NextResponse.json({ error: 'Please choose a file to upload.' }, { status: 400 });
-  }
-  if (file.size === 0) return NextResponse.json({ error: 'The selected file is empty.' }, { status: 400 });
-  if (file.size > MAX_ATTACHMENT_BYTES) {
-    return NextResponse.json({ error: `File too large — maximum ${Math.round(MAX_ATTACHMENT_BYTES / (1024 * 1024))} MB.` }, { status: 413 });
+  if (files.length === 0) {
+    return NextResponse.json({ error: 'Please choose at least one file to upload.' }, { status: 400 });
   }
 
-  const mimeType = String(file.type || 'application/octet-stream');
-  if (!ALLOWED_ATTACHMENT_TYPES.has(mimeType)) {
-    return NextResponse.json({ error: 'Unsupported file type. Allowed: PDF, images, Word/Excel, text/CSV.' }, { status: 415 });
+  // Validate every file before writing any, so a bad file rejects the batch
+  // cleanly instead of leaving a partial upload.
+  const prepared = [];
+  for (const file of files) {
+    const name = (String(file.name || 'attachment').replace(/[\r\n"]/g, '').trim() || 'attachment').slice(0, 255);
+    if (file.size === 0) return NextResponse.json({ error: `"${name}" is empty.` }, { status: 400 });
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      return NextResponse.json({ error: `"${name}" is too large — maximum ${Math.round(MAX_ATTACHMENT_BYTES / (1024 * 1024))} MB per file.` }, { status: 413 });
+    }
+    const mimeType = String(file.type || 'application/octet-stream');
+    if (!ALLOWED_ATTACHMENT_TYPES.has(mimeType)) {
+      return NextResponse.json({ error: `"${name}" is an unsupported file type. Allowed: PDF, images, Word/Excel, text/CSV.` }, { status: 415 });
+    }
+    prepared.push({ name, mimeType, file });
   }
 
   const project = await prisma.generationProject.findUnique({
@@ -69,25 +77,29 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Access denied.' }, { status: 403 });
   }
 
-  const filename = (String(file.name || 'attachment').replace(/[\r\n"]/g, '').trim() || 'attachment').slice(0, 255);
-  const bytes = Buffer.from(await file.arrayBuffer());
+  // Read all bytes, then persist the whole batch in one transaction.
+  const withBytes = await Promise.all(prepared.map(async (p) => ({
+    ...p, bytes: Buffer.from(await p.file.arrayBuffer()),
+  })));
 
   await prisma.$transaction(async (tx) => {
-    await tx.contd4Attachment.create({
-      data: {
-        projectId, filename, mimeType, sizeBytes: bytes.length,
-        data: bytes, remarks, uploadedById: user.id,
-      },
-    });
-    await tx.projectNote.create({
-      data: {
-        projectId, projectName: project.name, userId: user.id,
-        text: `File attached: ${filename}${remarks ? ` — ${remarks}` : ''}`,
-        source: 'SYSTEM',
-      },
-    });
+    for (const { name, mimeType, bytes } of withBytes) {
+      await tx.contd4Attachment.create({
+        data: {
+          projectId, filename: name, mimeType, sizeBytes: bytes.length,
+          data: bytes, remarks, uploadedById: user.id,
+        },
+      });
+      await tx.projectNote.create({
+        data: {
+          projectId, projectName: project.name, userId: user.id,
+          text: `File attached: ${name}${remarks ? ` — ${remarks}` : ''}`,
+          source: 'SYSTEM',
+        },
+      });
+    }
   });
 
   revalidateGridPages(projectId);
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, count: withBytes.length });
 }

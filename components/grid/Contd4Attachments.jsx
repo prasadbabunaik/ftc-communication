@@ -27,34 +27,44 @@ function fmtDate(v) {
 export function Contd4Attachments({ projectId, attachments = [], canEdit }) {
   const router = useRouter();
   const fileRef = useRef(null);
-  const [file, setFile]       = useState(null);
+  const [files, setFiles]     = useState([]);
   const [remarks, setRemarks] = useState('');
   const [isPending, startTransition] = useTransition();
   const [toDelete, setToDelete] = useState(null);
   const [isDeleting, startDelete] = useTransition();
 
-  function pickFile(e) {
-    const f = e.target.files?.[0] ?? null;
-    if (f && f.size > MAX_BYTES) {
-      toast.error(`File too large — maximum ${Math.round(MAX_BYTES / (1024 * 1024))} MB.`);
-      e.target.value = '';
-      return;
+  function pickFiles(e) {
+    const picked = Array.from(e.target.files ?? []);
+    const tooBig = picked.filter((f) => f.size > MAX_BYTES);
+    if (tooBig.length) {
+      toast.error(`${tooBig.length === 1 ? `"${tooBig[0].name}" is` : `${tooBig.length} files are`} over the ${Math.round(MAX_BYTES / (1024 * 1024))} MB limit.`);
     }
-    setFile(f);
+    const ok = picked.filter((f) => f.size <= MAX_BYTES);
+    // Merge with any already-selected files, de-duplicating by name+size.
+    setFiles((prev) => {
+      const seen = new Set(prev.map((f) => `${f.name}:${f.size}`));
+      return [...prev, ...ok.filter((f) => !seen.has(`${f.name}:${f.size}`))];
+    });
+    // Reset the input so re-picking the same file fires onChange again.
+    if (fileRef.current) fileRef.current.value = '';
   }
 
-  function clearFile() {
-    setFile(null);
+  function removeFile(idx) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function clearFiles() {
+    setFiles([]);
     if (fileRef.current) fileRef.current.value = '';
   }
 
   function upload() {
-    if (!file) { toast.error('Please choose a file to upload.'); return; }
+    if (!files.length) { toast.error('Please choose at least one file to upload.'); return; }
     startTransition(async () => {
       const fd = new FormData();
       fd.append('projectId', projectId);
       fd.append('remarks', remarks);
-      fd.append('file', file);
+      for (const f of files) fd.append('file', f);
       let result;
       try {
         const resp = await fetch('/api/grid/contd4-attachments', { method: 'POST', body: fd });
@@ -65,8 +75,9 @@ export function Contd4Attachments({ projectId, attachments = [], canEdit }) {
       }
       if (result?.error) toast.error(result.error);
       else {
-        toast.success('File uploaded.');
-        clearFile();
+        const n = result.count ?? files.length;
+        toast.success(`${n} file${n === 1 ? '' : 's'} uploaded.`);
+        clearFiles();
         setRemarks('');
         router.refresh();
       }
@@ -169,25 +180,17 @@ export function Contd4Attachments({ projectId, attachments = [], canEdit }) {
             <input
               ref={fileRef}
               type="file"
-              onChange={pickFile}
+              multiple
+              onChange={pickFiles}
               className="hidden"
               accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.txt,.csv"
             />
             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_2fr_auto] gap-2 items-end">
               <div>
-                <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">File *</p>
-                {file ? (
-                  <div className="h-10 flex items-center justify-between gap-2 px-3 rounded-md border border-input bg-background text-sm">
-                    <span className="truncate">{file.name}</span>
-                    <button type="button" onClick={clearFile} className="text-slate-400 hover:text-rose-600 shrink-0" title="Clear">
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <Button type="button" variant="outline" size="sm" className="h-10 w-full justify-start font-normal text-muted-foreground" onClick={() => fileRef.current?.click()}>
-                    <Upload className="size-3.5 mr-2" /> Choose file…
-                  </Button>
-                )}
+                <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Files *</p>
+                <Button type="button" variant="outline" size="sm" className="h-10 w-full justify-start font-normal text-muted-foreground" onClick={() => fileRef.current?.click()}>
+                  <Upload className="size-3.5 mr-2" /> {files.length ? 'Add more files…' : 'Choose files…'}
+                </Button>
               </div>
               <div>
                 <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Remarks</p>
@@ -197,12 +200,32 @@ export function Contd4Attachments({ projectId, attachments = [], canEdit }) {
                   onChange={(e) => setRemarks(e.target.value)}
                 />
               </div>
-              <Button type="button" size="sm" className="h-10" onClick={upload} disabled={isPending || !file}>
-                {isPending ? 'Uploading…' : 'Upload'}
+              <Button type="button" size="sm" className="h-10" onClick={upload} disabled={isPending || !files.length}>
+                {isPending ? 'Uploading…' : files.length > 1 ? `Upload ${files.length}` : 'Upload'}
               </Button>
             </div>
+
+            {/* Selected-file chips (removable) — shown before upload */}
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {files.map((f, idx) => (
+                  <span key={`${f.name}:${f.size}:${idx}`} className="inline-flex items-center gap-1.5 max-w-[240px] pl-2 pr-1 py-1 rounded border border-input bg-background text-xs">
+                    <FileText className="size-3 shrink-0 text-slate-400" />
+                    <span className="truncate">{f.name}</span>
+                    <span className="text-[10px] text-slate-400 shrink-0">{fmtBytes(f.size)}</span>
+                    <button type="button" onClick={() => removeFile(idx)} className="text-slate-400 hover:text-rose-600 shrink-0" title="Remove">
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                ))}
+                <button type="button" onClick={clearFiles} className="text-[10px] text-slate-400 hover:text-rose-600 underline ml-1 self-center">
+                  clear all
+                </button>
+              </div>
+            )}
+
             <p className="text-[10px] text-muted-foreground mt-1.5">
-              PDF, images, Word/Excel, or text — up to {Math.round(MAX_BYTES / (1024 * 1024))} MB per file.
+              Select one or more files — PDF, images, Word/Excel, or text — up to {Math.round(MAX_BYTES / (1024 * 1024))} MB each. The remark applies to every file in this upload.
             </p>
           </div>
         )}

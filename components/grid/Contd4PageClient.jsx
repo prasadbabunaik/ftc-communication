@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Contd4ApplicationTable } from '@/components/grid/Contd4ApplicationTable';
 import { Contd4DetailModal } from '@/components/grid/Contd4DetailModal';
 import { CreateProjectForm } from '@/components/grid/CreateProjectForm';
-import { ExportButtons } from '@/components/grid/ExportButtons';
+import { Contd4ExportButtons } from '@/components/grid/Contd4ExportButtons';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
@@ -53,7 +53,7 @@ export function Contd4PageClient({
               Add Project
             </Button>
           )}
-          <ExportButtons asOf={asOf} size="sm" />
+          <Contd4ExportButtons projects={projects} size="sm" />
         </div>
       </div>
 
