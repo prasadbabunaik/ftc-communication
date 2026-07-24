@@ -223,25 +223,17 @@ export function sumRows(rows) {
 // modal (same interaction as the FTC tracker's clickable rows). The modal —
 // not the row — owns which fields can be changed (State, Energy Commissioned).
 // The "COD Declared in <month>" cell: the reference-month total by default, or
-// — when a COD date-range filter is active — the in-range COD, broken down per
-// calendar month when the range spans more than one (rangeMonths.length > 1).
+// — when a COD date-range filter is active — the combined in-range COD total
+// (matching the print/Excel exports, which show a single range total).
 function CodMonthCell({ row, rangeMonths }) {
   if (!rangeMonths) return <>{fmt(row.codInRefMonth)}</>;
   if (rangeMonths.length <= 1) {
     const ym = rangeMonths[0];
     return <>{fmt(row.codRangeMonths?.[ym] ?? 0)}</>;
   }
-  const present = rangeMonths.filter((ym) => (row.codRangeMonths?.[ym] ?? 0) > 0);
-  if (!present.length) return <span className="text-slate-300">0</span>;
-  return (
-    <div className="flex flex-col items-center gap-0.5 leading-tight">
-      {present.map((ym) => (
-        <span key={ym} className="whitespace-nowrap text-[10px]">
-          <span className="text-slate-400">{bMonthLabel(ym)}:</span> {fmt(row.codRangeMonths[ym])}
-        </span>
-      ))}
-    </div>
-  );
+  const total = rangeMonths.reduce((s, ym) => s + (row.codRangeMonths?.[ym] ?? 0), 0);
+  if (!total) return <span className="text-slate-300">0</span>;
+  return <>{fmt(total)}</>;
 }
 
 function DataRow({ row, sr, intrastate, editable, onEdit, rangeMonths = null }) {
