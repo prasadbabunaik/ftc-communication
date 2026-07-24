@@ -101,6 +101,9 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
     && canClearProject(userRole, regionCode);
 
   const canBackdate = userRole === 'ADMIN' || userRole === 'NLDC';
+  // Deleting a CONTD-4 phase is national-tier only; RLDCs may edit but not delete
+  // (server enforces the same via canDeleteGridData).
+  const canDelete   = userRole === 'ADMIN' || userRole === 'NLDC';
   const todayISO    = new Date().toISOString().slice(0, 10);
 
   // Pre-fill Effective Date with the back-date applied on the LAST save.
@@ -342,7 +345,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
                       <th className="px-2.5 py-1.5 text-right font-semibold">Capacity (MW)</th>
                       <th className="px-2.5 py-1.5 text-left font-semibold">Target Month</th>
                       <th className="px-2.5 py-1.5 text-left font-semibold">Remarks</th>
-                      {canEdit && <th className="px-2 py-1.5 w-8" />}
+                      {canDelete && <th className="px-2 py-1.5 w-8" />}
                     </tr>
                   </thead>
                   <tbody>
@@ -354,7 +357,7 @@ export function Contd4Card({ contd4, projectId, canEdit, userRole, regionCode, n
                         <td className="px-2.5 py-1.5 text-right tabular-nums font-semibold text-foreground">{Number(p.capacityMw).toFixed(1)}</td>
                         <td className="px-2.5 py-1.5">{p.capacityMonth ? monthLabel(p.capacityMonth) : <span className="text-slate-400">—</span>}</td>
                         <td className="px-2.5 py-1.5 text-slate-600 truncate max-w-[200px]" title={p.remarks ?? ''}>{p.remarks ?? <span className="text-slate-300">—</span>}</td>
-                        {canEdit && (
+                        {canDelete && (
                           <td className="px-2 py-1.5 text-right">
                             <button
                               type="button"

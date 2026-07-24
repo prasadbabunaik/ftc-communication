@@ -89,6 +89,9 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
   const PER_PAGE = 10;
 
   const canEdit = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'].includes(userRole);
+  // Deleting a project is national-tier only — RLDCs can edit their region's
+  // data but must not delete it (server enforces the same via canDeleteGridData).
+  const canDelete = userRole === 'ADMIN' || userRole === 'NLDC';
 
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
   // Roll up every hybrid sub-type (Hybrid (Wind+Solar), Hybrid (Solar+BESS),
@@ -413,7 +416,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                     })()}
                   </td>
                   <td className="px-3 py-3">
-                    {canEdit && (
+                    {canDelete && (
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}

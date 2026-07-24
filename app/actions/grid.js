@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireServerUser, buildRegionScope, canEditGridData, isAdmin } from '@/lib/server-auth';
+import { requireServerUser, buildRegionScope, canEditGridData, canDeleteGridData, isAdmin } from '@/lib/server-auth';
 import { prisma } from '@/lib/prisma';
 import {
   createProjectSchema,
@@ -746,7 +746,8 @@ export async function updateBessRowFields(projectId, fields) {
 export async function deleteGenerationProject(projectId, opts = {}) {
   const user = await authedUser();
   if (!user) return { error: 'Session expired. Please log in again.' };
-  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+  // Deletion is national-tier only (ADMIN / NLDC); RLDCs can edit but not delete.
+  if (!canDeleteGridData(user.role)) return { error: 'Only Administrator or NLDC accounts can delete projects.' };
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
   if (!project) return { error: 'Project not found.' };
 
@@ -1058,7 +1059,8 @@ export async function deleteContd4Phase(phaseId) {
   let user;
   try { user = await requireServerUser(); }
   catch { return { error: 'Session expired. Please log in again.' }; }
-  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+  // Deletion is national-tier only (ADMIN / NLDC); RLDCs can edit but not delete.
+  if (!canDeleteGridData(user.role)) return { error: 'Only Administrator or NLDC accounts can delete CONTD-4 phases.' };
 
   const phase = await prisma.contd4Phase.findUnique({
     where: { id: phaseId },
