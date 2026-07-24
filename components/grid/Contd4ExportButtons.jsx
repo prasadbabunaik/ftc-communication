@@ -167,49 +167,36 @@ function downloadExcel(rows, cols) {
 
 // ── Print preview (HTML → browser Print / Save as PDF) ──────────────────────────
 // Renders ALL columns tagged with data-col; `hiddenKeys` start hidden and the
-// preview's Customize panel toggles them live. Uses the shared print shell.
+// preview's Customize panel toggles them live. Uses the shared dashboard-style
+// print shell (navy DocHeader + navy table headers).
 const CONTD4_TABLE_CSS = `
-  th, td { border: 1px solid #b0b7c3; padding: 3px 5px; vertical-align: middle; font-size: 8.5px; }
-  thead .title th { background: #ffff00; color: #1f3864; font-size: 13px; font-weight: 700; text-align: center; padding: 6px; }
-  thead .cols th { background: #bdd7ee; color: #1f3864; font-weight: 700; text-align: center; font-size: 8px; }
-  thead .cols th .hh { font-weight: 400; font-size: 7px; }
-  td.c { text-align: center; } td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  thead th .hh { font-weight: 400; font-size: 7px; opacity: .9; }
   td.rmk { font-size: 8px; color: #334155; max-width: 340px; }
-  tbody tr:nth-child(even) { background: #f8fafc; }
 `;
 
-function openPrintView(rows, allCols, hiddenKeys) {
-  const dataCols = allCols.filter((c) => c.key !== 'srno');
-  const headerCells = dataCols.map((c) => `<th data-col="${c.key}">${c.headerHtml || esc(c.header)}</th>`).join('');
-  const body = rows.map((r, i) => `<tr>
-    <td class="c" data-col="srno">${i + 1}</td>
-    ${dataCols.map((c) => {
-      const v = c.get(r, i);
-      const cls = `${c.align === 'center' ? 'c ' : ''}${c.num ? 'n ' : ''}${c.key === 'remarks' ? 'rmk' : ''}`.trim();
-      const val = c.key === 'remarks' ? esc(v).replace(/\n/g, '<br>') : esc(v);
-      return `<td${cls ? ` class="${cls}"` : ''} data-col="${c.key}">${val}</td>`;
-    }).join('')}
-  </tr>`).join('');
+function openPrintView(rows, allCols, hiddenKeys, regionLabel) {
+  const headerCells = allCols.map((c) => `<th data-col="${c.key}">${c.headerHtml || esc(c.header)}</th>`).join('');
+  const body = rows.map((r, i) => `<tr>${allCols.map((c) => {
+    const v = c.get(r, i);
+    const cls = `${c.align === 'center' ? 'c ' : ''}${c.num ? 'n ' : ''}${c.key === 'remarks' ? 'rmk' : ''}`.trim();
+    const val = c.key === 'remarks' ? esc(v).replace(/\n/g, '<br>') : esc(v);
+    return `<td${cls ? ` class="${cls}"` : ''} data-col="${c.key}">${val}</td>`;
+  }).join('')}</tr>`).join('');
+  const tableHtml = `<table><thead><tr>${headerCells}</tr></thead><tbody>${body}</tbody></table>`;
 
   const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const bodyHtml = `
-    <div class="sub">National / Regional Load Despatch Centre · As on ${dateStr} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div>
-    <table>
-      <thead>
-        <tr class="title"><th rowspan="2" data-col="srno">Sr. No</th><th colspan="${dataCols.length}">${esc(TITLE)}</th></tr>
-        <tr class="cols">${headerCells}</tr>
-      </thead>
-      <tbody>${body}</tbody>
-    </table>`;
+  const subtitle = `${regionLabel ? `${regionLabel} · ` : ''}${rows.length} project${rows.length === 1 ? '' : 's'}`;
 
   openPrintReport({
     documentTitle: TITLE,
-    toolbarLabel: 'CONTD-4 — Print Preview',
+    toolbarTitle: 'CONTD-4 Report',
+    dateLabel: dateStr,
+    header: { title: TITLE, subtitle },
     page: { size: 'A4', orientation: 'landscape' },
     columns: allCols,
     initiallyHidden: hiddenKeys,
     tableMinWidth: 1150,
-    bodyHtml,
+    tableHtml,
     tableCss: CONTD4_TABLE_CSS,
   });
 }
@@ -234,7 +221,7 @@ export function Contd4ExportButtons({ projects, size = 'sm' }) {
   const onExcel = () => downloadExcel(buildRows(projects, refMonth), visibleCols);
   // Print renders all columns; those hidden in the page picker start hidden but
   // can be re-enabled live via the preview's own Customize panel.
-  const onPrint = () => openPrintView(buildRows(projects, refMonth), allCols, [...hidden]);
+  const onPrint = () => openPrintView(buildRows(projects, refMonth), allCols, [...hidden], null);
 
   return (
     <div className="flex items-center gap-2">

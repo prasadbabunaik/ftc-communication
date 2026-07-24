@@ -154,44 +154,36 @@ function exportExcel(rows, cols, regionLabel, asOnLabel) {
   XLSX.writeFile(wb, `FTC_Tracker_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
+const FTC_TITLE = 'Generation Capacity Under Process of FTC';
 const FTC_TABLE_CSS = `
-  .head { border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
-  .head .org { font-size: 10px; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
-  .head h1 { font-size: 18px; margin: 2px 0; }
-  .head .hsub { font-size: 12px; color: #475569; }
-  th, td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; font-size: 8.5px; }
-  th { background: #1e293b; color: #fff; font-size: 8px; white-space: nowrap; }
-  td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td.c { text-align: center; } td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
+  td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
   td.d div { text-align: left; line-height: 1.35; }
   td.d .src { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
   td.sm { font-size: 8px; color: #475569; max-width: 300px; white-space: normal; }
   .ok { color: #047857; font-weight: 700; } .wip { color: #b45309; font-weight: 700; }
-  tbody tr:nth-child(even) { background: #f8fafc; }
 `;
 
 // Renders ALL columns tagged with data-col; `hiddenKeys` start hidden and the
-// preview's Customize panel toggles them live. Uses the shared print shell.
+// preview's Customize panel toggles them live. Uses the shared dashboard-style
+// print shell (navy DocHeader + navy table headers).
 function printPdf(rows, allCols, hiddenKeys, regionLabel, asOnLabel) {
   const th = allCols.map((c) => `<th data-col="${c.key}">${esc(c.label)}</th>`).join('');
   const trs = rows.map((r, i) => `<tr>${allCols.map((c) => {
     const cls = c.cls ? ` class="${c.cls}"` : '';
     return `<td${cls} data-col="${c.key}">${c.html(r, i)}</td>`;
   }).join('')}</tr>`).join('');
-  const bodyHtml = `
-    <div class="head"><div class="org">National / Regional Load Despatch Centre</div>
-      <h1>Generation Capacity Under Process of FTC</h1>
-      <div class="hsub">${esc(regionLabel || 'All India')} · As on ${asOnLabel} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div></div>
-    <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
+  const tableHtml = `<table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
 
   openPrintReport({
-    documentTitle: `FTC Tracker — ${asOnLabel}`,
-    toolbarLabel: 'FTC Tracker — Print Preview',
+    documentTitle: `${FTC_TITLE} — ${asOnLabel}`,
+    toolbarTitle: 'FTC Tracker',
+    dateLabel: asOnLabel,
+    header: { title: FTC_TITLE, subtitle: `${regionLabel || 'All India'} · ${rows.length} project${rows.length === 1 ? '' : 's'}` },
     page: { size: 'A3', orientation: 'landscape' },
     columns: allCols,
     initiallyHidden: hiddenKeys,
     tableMinWidth: 1950,
-    bodyHtml,
+    tableHtml,
     tableCss: FTC_TABLE_CSS,
   });
 }
