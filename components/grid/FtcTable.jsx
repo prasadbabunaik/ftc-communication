@@ -9,34 +9,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { contd4CapacityOf } from '@/lib/grid-computations';
-import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
 
 function mw(val) {
   if (val == null) return '—';
   return Number(val).toFixed(1);
 }
-
-// Column model for the show/hide customizer. Order mirrors the table's colgroup.
-// `locked` columns (row number, station identity, and the hybrid expand chevron)
-// always render and don't appear in the picker. `group` drives the grouped
-// header-row colSpans, recomputed from the currently-visible columns.
-const FTC_COLUMNS = [
-  { key: 'num',        label: '#',                    group: 'Project',  locked: true },
-  { key: 'station',    label: 'Station',              group: 'Project',  locked: true },
-  { key: 'region',     label: 'Region',               group: 'Project' },
-  { key: 'total',      label: 'Total (MW)',           group: 'Project' },
-  { key: 'contd4',     label: 'CONTD-4 (MW)',         group: 'Project' },
-  { key: 'applied',    label: 'FTC · Applied',        group: 'FTC' },
-  { key: 'approved',   label: 'FTC · Approved',       group: 'FTC' },
-  { key: 'ftcPending', label: 'FTC · Pending',        group: 'FTC' },
-  { key: 'tocIssued',  label: 'TOC · Issued',         group: 'TOC' },
-  { key: 'tocPending', label: 'TOC · Pending',        group: 'TOC' },
-  { key: 'codDeclared',label: 'COD · Done',           group: 'COD' },
-  { key: 'codPending', label: 'COD · Pending',        group: 'COD' },
-  { key: 'expected',   label: 'Expected (ref. month)',group: 'Expected' },
-  { key: 'history',    label: 'History / Remarks',    group: 'Remarks' },
-  { key: 'expand',     label: 'Expand',               group: '',         locked: true },
-];
 
 // Roll every hybrid sub-type (Hybrid (Wind+Solar), Hybrid (Solar+BESS) …) up
 // into a single "Hybrid" option in the Plant Type filter — same behaviour as
@@ -188,14 +165,6 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   const [expanded, setExpanded]         = useState({});
   const PER_PAGE = 10;
 
-  const { hidden, isVisible: vis, toggle, reset } = useColumnVisibility('ftc-tracker', FTC_COLUMNS);
-  const visibleColCount = FTC_COLUMNS.filter((c) => vis(c.key)).length;
-  // Grouped-header colSpans, recomputed from the currently-visible columns.
-  const projectSpan = 2 + ['region', 'total', 'contd4'].filter(vis).length; // # + Station always
-  const ftcSpan     = ['applied', 'approved', 'ftcPending'].filter(vis).length;
-  const tocSpan     = ['tocIssued', 'tocPending'].filter(vis).length;
-  const codSpan     = ['codDeclared', 'codPending'].filter(vis).length;
-
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
   const types   = useMemo(() => ['All', ...new Set(projects.map((p) => displayType(p.plantType.label)))], [projects]);
 
@@ -344,9 +313,6 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         <span className="text-sm text-muted-foreground self-center">
           {filtered.length} project{filtered.length !== 1 ? 's' : ''}
         </span>
-        <div className="self-center ml-auto">
-          <ColumnCustomizer columns={FTC_COLUMNS} hidden={hidden} onToggle={toggle} onReset={reset} />
-        </div>
       </div>
 
       {/* Table */}
@@ -358,75 +324,65 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
           <colgroup>
             <col className="w-[44px]" />{/* # */}
             <col className="w-[200px]" />{/* Station */}
-            {vis('region')     && <col className="w-[68px]" />}{/* Region */}
-            {vis('total')      && <col className="w-[86px]" />}{/* Total */}
-            {vis('contd4')     && <col className="w-[98px]" />}{/* CONTD-4 */}
-            {vis('applied')    && <col className="w-[78px]" />}{/* Applied */}
-            {vis('approved')   && <col className="w-[80px]" />}{/* Approved */}
-            {vis('ftcPending') && <col className="w-[78px]" />}{/* FTC Pending */}
-            {vis('tocIssued')  && <col className="w-[75px]" />}{/* TOC Issued */}
-            {vis('tocPending') && <col className="w-[78px]" />}{/* TOC Pending */}
-            {vis('codDeclared')&& <col className="w-[75px]" />}{/* COD Done */}
-            {vis('codPending') && <col className="w-[78px]" />}{/* COD Pending */}
-            {vis('expected')   && <col className="w-[92px]" />}{/* Expected */}
-            {vis('history')    && <col className="w-[280px]" />}{/* History */}
+            <col className="w-[68px]" />{/* Region */}
+            <col className="w-[86px]" />{/* Total */}
+            <col className="w-[98px]" />{/* CONTD-4 */}
+            <col className="w-[78px]" />{/* Applied */}
+            <col className="w-[80px]" />{/* Approved */}
+            <col className="w-[78px]" />{/* FTC Pending */}
+            <col className="w-[75px]" />{/* TOC Issued */}
+            <col className="w-[78px]" />{/* TOC Pending */}
+            <col className="w-[75px]" />{/* COD Done */}
+            <col className="w-[78px]" />{/* COD Pending */}
+            <col className="w-[92px]" />{/* Expected */}
+            <col className="w-[280px]" />{/* History */}
             <col className="w-[40px]" />{/* expand */}
           </colgroup>
           <thead className="bg-muted/30 border-b">
-            {/* Group header row — colSpans track the visible columns per group */}
+            {/* Group header row */}
             <tr className="border-b border-border/40">
-              <th colSpan={projectSpan} className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
+              <th colSpan={5} className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
                 Project
               </th>
-              {ftcSpan > 0 && (
-                <th colSpan={ftcSpan} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-blue-50/60 text-blue-700">
-                  FTC
-                </th>
-              )}
-              {tocSpan > 0 && (
-                <th colSpan={tocSpan} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-violet-50/60 text-violet-700">
-                  TOC
-                </th>
-              )}
-              {codSpan > 0 && (
-                <th colSpan={codSpan} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-emerald-50/60 text-emerald-700">
-                  COD
-                </th>
-              )}
-              {vis('expected') && (
-                <th className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest text-amber-700 bg-amber-50/60 border-r border-border/40" />
-              )}
+              <th colSpan={3} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-blue-50/60 text-blue-700">
+                FTC
+              </th>
+              <th colSpan={2} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-violet-50/60 text-violet-700">
+                TOC
+              </th>
+              <th colSpan={2} className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest border-r border-border/40 bg-emerald-50/60 text-emerald-700">
+                COD
+              </th>
+              <th className="px-3 py-1.5 text-center text-[10px] font-semibold uppercase tracking-widest text-amber-700 bg-amber-50/60 border-r border-border/40" />
               {/* Remarks group */}
-              {vis('history') && (
-                <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
-                  Remarks
-                </th>
-              )}
+              <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-r border-border/40">
+                Remarks
+              </th>
               <th className="w-[40px]" />
             </tr>
             {/* Column labels */}
             <tr>
               <Th label="#"                  className="w-[44px]" />
               <SortableTh label="Station"    field="name"      className="min-w-[180px]" {...sp} />
-              {vis('region')     && <SortableTh label="Region"     field="region"    className="w-[68px]"      {...sp} />}
-              {vis('total')      && <SortableTh label="Total (MW)" field="totalCap"  className="w-[80px]"      {...sp} />}
-              {vis('contd4')     && <ThPink label="CONTD-4 (MW)"   className="w-[80px] border-r border-border/40" />}
-              {vis('applied')    && <SortableTh label="Applied"    field="applied"    className="w-[75px] bg-blue-50/30"  {...sp} />}
-              {vis('approved')   && <SortableTh label="Approved"   field="approved"   className="w-[75px] bg-blue-50/30"  {...sp} />}
-              {vis('ftcPending') && <SortableTh label="Pending"    field="ftcPending" className="w-[75px] bg-blue-50/30 border-r border-border/40" {...sp} />}
-              {vis('tocIssued')  && <Th label="Issued"             className="w-[75px] bg-violet-50/30" />}
-              {vis('tocPending') && <Th label="Pending"            className="w-[75px] bg-violet-50/30 border-r border-border/40" />}
-              {vis('codDeclared')&& <SortableTh label="Done"       field="codDeclared" className="w-[75px] bg-emerald-50/30" {...sp} />}
-              {vis('codPending') && <Th label="Pending"            className="w-[75px] bg-emerald-50/30 border-r border-border/40" />}
-              {vis('expected')   && <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30 border-r border-border/40" />}
-              {vis('history')    && <Th label="History"            className="min-w-[260px]" />}
+              <SortableTh label="Region"     field="region"    className="w-[68px]"      {...sp} />
+              <SortableTh label="Total (MW)" field="totalCap"  className="w-[80px]"      {...sp} />
+              <ThPink label="CONTD-4 (MW)"   className="w-[80px] border-r border-border/40" />
+              <SortableTh label="Applied"    field="applied"    className="w-[75px] bg-blue-50/30"  {...sp} />
+              <SortableTh label="Approved"   field="approved"   className="w-[75px] bg-blue-50/30"  {...sp} />
+              <SortableTh label="Pending"    field="ftcPending" className="w-[75px] bg-blue-50/30 border-r border-border/40" {...sp} />
+              <Th label="Issued"             className="w-[75px] bg-violet-50/30" />
+              <Th label="Pending"            className="w-[75px] bg-violet-50/30 border-r border-border/40" />
+              <SortableTh label="Done"       field="codDeclared" className="w-[75px] bg-emerald-50/30" {...sp} />
+              <Th label="Pending"            className="w-[75px] bg-emerald-50/30 border-r border-border/40" />
+              <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30 border-r border-border/40" />
+              <Th label="History"            className="min-w-[260px]" />
               <Th label=""                   className="w-[40px]" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={visibleColCount} className="px-4 py-12 text-center text-sm">
+                <td colSpan={15} className="px-4 py-12 text-center text-sm">
                   <p className="text-muted-foreground font-medium">
                     {search || regionFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All'
                       ? 'No FTC-pipeline projects match your search / filters.'
@@ -483,57 +439,40 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         )}
                       </div>
                     </td>
-                    {vis('region') && (
                     <td className="px-3 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                         {p.region.code}
                       </span>
                     </td>
-                    )}
-                    {vis('total')  && <td className="px-2 py-3 font-mono text-xs tabular-nums text-right">{mw(p.totalCapacityMw)}</td>}
-                    {vis('contd4') && <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-pink-50/40 border-r border-border/30">{mw(p._contd4Cap)}</td>}
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right">{mw(p.totalCapacityMw)}</td>
+                    <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-pink-50/40 border-r border-border/30">{mw(p._contd4Cap)}</td>
                     {/* FTC */}
-                    {vis('applied') && (
                     <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-blue-50/20">
                       {hasPhases ? mw(p._appliedMw) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
-                    {vis('approved') && (
                     <td className={`px-2 py-3 font-mono text-xs tabular-nums text-right bg-blue-50/20 ${p._approvedMw > 0 ? 'text-blue-700' : ''}`}>
                       {hasPhases ? (p._approvedMw > 0 ? mw(p._approvedMw) : <span className="text-muted-foreground/40">—</span>) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
-                    {vis('ftcPending') && (
                     <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-blue-50/20 border-r border-border/30">
                       {hasPhases && p._ftcPendingMw > 0 ? <span className="text-blue-500">{mw(p._ftcPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
                     {/* TOC */}
-                    {vis('tocIssued') && numCell(p._tocIssuedMw, 'bg-violet-50/20')}
-                    {vis('tocPending') && (
+                    {numCell(p._tocIssuedMw, 'bg-violet-50/20')}
                     <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-violet-50/20 border-r border-border/30">
                       {hasPhases && p._tocPendingMw > 0 ? <span className="text-amber-600">{mw(p._tocPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
                     {/* COD */}
-                    {vis('codDeclared') && (
                     <td className={`px-2 py-3 font-mono text-xs tabular-nums text-right bg-emerald-50/20 ${p._codDeclaredMw > 0 ? 'text-emerald-700' : ''}`}>
                       {hasPhases ? (p._codDeclaredMw > 0 ? mw(p._codDeclaredMw) : <span className="text-muted-foreground/40">—</span>) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
-                    {vis('codPending') && (
                     <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-emerald-50/20 border-r border-border/30">
                       {hasPhases && p._codPendingMw > 0 ? <span className="text-orange-600">{mw(p._codPendingMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
                     {/* Expected */}
-                    {vis('expected') && (
                     <td className="px-2 py-3 font-mono text-xs tabular-nums text-right bg-amber-50/20 border-r border-border/30">
                       {hasPhases && p._expectedMw > 0 ? <span className="text-amber-700 font-semibold">{mw(p._expectedMw)}</span> : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    )}
                     {/* Remarks — per-phase dated history, same pattern as the CONTD-4 list */}
-                    {vis('history') && (
                     <td
                       className="px-3 py-2 text-xs text-muted-foreground align-top border-r border-border/30"
                       onClick={(e) => e.stopPropagation()}
@@ -590,7 +529,6 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         );
                       })()}
                     </td>
-                    )}
                     <td className="px-2 py-3">
                       {hasPhases && isHybrid && (
                         <button
@@ -612,18 +550,17 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         <td className="px-3 py-2 pl-8">
                           <SourceBadge source={sr.sourceType} />
                         </td>
-                        {vis('region') && <td />}
-                        {vis('total')  && <td />}
-                        {vis('contd4') && <td className="bg-pink-50/20 border-r border-border/30" />}
-                        {vis('applied')    && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-muted-foreground bg-blue-50/10">{mw(sr.applied)}</td>}
-                        {vis('approved')   && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-blue-600 bg-blue-50/10">{mw(sr.ftcApproved)}</td>}
-                        {vis('ftcPending') && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-blue-500 bg-blue-50/10 border-r border-border/30">{sr.ftcPending > 0 ? mw(sr.ftcPending) : '—'}</td>}
-                        {vis('tocIssued')  && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-violet-600 bg-violet-50/10">{mw(sr.tocIssued)}</td>}
-                        {vis('tocPending') && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-600 bg-violet-50/10 border-r border-border/30">{sr.tocPending > 0 ? mw(sr.tocPending) : '—'}</td>}
-                        {vis('codDeclared')&& <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-emerald-600 bg-emerald-50/10">{mw(sr.codDeclared)}</td>}
-                        {vis('codPending') && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-orange-600 bg-emerald-50/10 border-r border-border/30">{sr.codPending > 0 ? mw(sr.codPending) : '—'}</td>}
-                        {vis('expected')   && <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-700 bg-amber-50/10 border-r border-border/30">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>}
-                        {vis('history')    && <td />}{/* Remarks column placeholder for expanded sub-row */}
+                        <td /><td />
+                        <td className="bg-pink-50/20 border-r border-border/30" />
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-muted-foreground bg-blue-50/10">{mw(sr.applied)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-blue-600 bg-blue-50/10">{mw(sr.ftcApproved)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-blue-500 bg-blue-50/10 border-r border-border/30">{sr.ftcPending > 0 ? mw(sr.ftcPending) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-violet-600 bg-violet-50/10">{mw(sr.tocIssued)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-600 bg-violet-50/10 border-r border-border/30">{sr.tocPending > 0 ? mw(sr.tocPending) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-emerald-600 bg-emerald-50/10">{mw(sr.codDeclared)}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-orange-600 bg-emerald-50/10 border-r border-border/30">{sr.codPending > 0 ? mw(sr.codPending) : '—'}</td>
+                        <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-700 bg-amber-50/10 border-r border-border/30">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>
+                        <td />  {/* Remarks column placeholder for expanded sub-row */}
                         <td />
                       </tr>
                     ))

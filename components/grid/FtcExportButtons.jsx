@@ -3,6 +3,7 @@
 import { FileSpreadsheet, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { contd4CapacityOf } from '@/lib/grid-computations';
+import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
 
 // FTC-tracker-specific export (Excel + Print/PDF) — exports the "Generation
 // Capacity Under Process of FTC" table itself, NOT the dashboard summary. The
@@ -104,6 +105,112 @@ function buildRows(projects, cutoff) {
   });
 }
 
+// Column model. `locked` columns (# + Station identity) always export and don't
+// appear in the picker. `excel` yields the Excel cell value; `html`/`cls` render
+// the print cell; `w` is the Excel column width.
+function reportColumns(expHeader) {
+  return [
+    { key: 'num',        label: '#',                 locked: true, excel: (r, i) => i + 1, html: (r, i) => i + 1, cls: 'c', w: 5 },
+    { key: 'station',    label: 'Generating Station',locked: true, excel: (r) => r.station, html: (r) => esc(r.station), cls: '', w: 38 },
+    { key: 'region',     label: 'Region',            excel: (r) => r.region, html: (r) => esc(r.region), cls: 'c', w: 9 },
+    { key: 'pooling',    label: 'Pooling Station',   excel: (r) => r.pooling, html: (r) => esc(r.pooling), cls: '', w: 18 },
+    { key: 'type',       label: 'Plant Type',        excel: (r) => r.type, html: (r) => esc(r.type), cls: '', w: 14 },
+    { key: 'total',      label: 'Total (MW)',        excel: (r) => num(r.total), html: (r) => fmt1(r.total), cls: 'n', w: 11 },
+    { key: 'contd4',     label: 'CONTD-4 (MW)',      excel: (r) => num(r.contd4), html: (r) => fmt1(r.contd4), cls: 'n', w: 13 },
+    { key: 'applied',    label: 'Applied (MW)',      excel: (r) => num(r.applied), html: (r) => fmt1(r.applied), cls: 'n', w: 11 },
+    { key: 'approvedMw', label: 'FTC Approved (MW)', excel: (r) => num(r.approved), html: (r) => fmt1(r.approved), cls: 'n', w: 13 },
+    { key: 'approvedOn', label: 'FTC Approved On',   excel: (r) => dateListText(r.ftcDates), html: (r) => dateListHtml(r.ftcDates), cls: 'c d', w: 16 },
+    { key: 'ftcPending', label: 'FTC Pending (MW)',  excel: (r) => num(r.ftcPending), html: (r) => (r.ftcPending ? fmt1(r.ftcPending) : '—'), cls: 'n o', w: 13 },
+    { key: 'tocIssued',  label: 'TOC Issued (MW)',   excel: (r) => num(r.toc), html: (r) => fmt1(r.toc), cls: 'n', w: 12 },
+    { key: 'tocOn',      label: 'TOC Issued On',     excel: (r) => dateListText(r.tocDates), html: (r) => dateListHtml(r.tocDates), cls: 'c d', w: 16 },
+    { key: 'tocPending', label: 'TOC Pending (MW)',  excel: (r) => num(r.tocPending), html: (r) => (r.tocPending ? fmt1(r.tocPending) : '—'), cls: 'n o', w: 13 },
+    { key: 'codDone',    label: 'COD Done (MW)',     excel: (r) => num(r.cod), html: (r) => fmt1(r.cod), cls: 'n', w: 12 },
+    { key: 'codOn',      label: 'COD Completed On',  excel: (r) => dateListText(r.codDates), html: (r) => dateListHtml(r.codDates), cls: 'c d', w: 16 },
+    { key: 'codPending', label: 'COD Pending (MW)',  excel: (r) => num(r.codPending), html: (r) => (r.codPending ? fmt1(r.codPending) : '—'), cls: 'n o', w: 13 },
+    { key: 'expected',   label: expHeader,           excel: (r) => num(r.expected), html: (r) => (r.expected ? fmt1(r.expected) : '—'), cls: 'n', w: 14 },
+    { key: 'status',     label: 'Status',            excel: (r) => r.status, html: (r) => `<span class="${r.status === 'Commissioned' ? 'ok' : 'wip'}">${esc(r.status)}</span>`, cls: 'c', w: 14 },
+    { key: 'remarks',    label: 'Remarks',           excel: (r) => r.remarks, html: (r) => esc(r.remarks), cls: 'sm', w: 40 },
+  ];
+}
+
+function exportExcel(rows, cols, regionLabel, asOnLabel) {
+  const aoa = [
+    ['Generation Capacity Under Process of FTC'],
+    [`${regionLabel || 'All India'} · As on ${asOnLabel}`],
+    [],
+    cols.map((c) => c.label),
+    ...rows.map((r, i) => cols.map((c) => c.excel(r, i))),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = cols.map((c) => ({ wch: c.w }));
+  for (let c = 0; c < cols.length; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: 3, c })];
+    if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'E2E8F0' } } };
+  }
+  if (ws['A1']) ws['A1'].s = { font: { bold: true, sz: 14 } };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'FTC Tracker');
+  XLSX.writeFile(wb, `FTC_Tracker_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+function printPdf(rows, cols, regionLabel, asOnLabel) {
+  const th = cols.map((c) => `<th>${esc(c.label)}</th>`).join('');
+  const trs = rows.map((r, i) => `<tr>${cols.map((c) => {
+    const cls = c.cls ? ` class="${c.cls}"` : '';
+    return `<td${cls}>${c.html(r, i)}</td>`;
+  }).join('')}</tr>`).join('');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>FTC Tracker — ${asOnLabel}</title>
+    <style>
+      @page { size: A3 landscape; margin: 10mm; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; background: #f1f5f9; }
+      .toolbar { position: fixed; top: 0; left: 0; right: 0; height: 46px; background: #1e293b; color: #fff;
+        display: flex; align-items: center; gap: 12px; padding: 0 18px; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+      .toolbar .tt { font-weight: 600; font-size: 13px; margin-right: auto; }
+      .toolbar button { border: 0; border-radius: 6px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+      .toolbar .print { background: #2563eb; color: #fff; }
+      .toolbar .print:hover { background: #1d4ed8; }
+      .toolbar .close { background: #475569; color: #fff; }
+      .toolbar .close:hover { background: #334155; }
+      .sheet { background: #fff; max-width: 1680px; margin: 16px auto; padding: 18px 22px; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+      .head { border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
+      .head .org { font-size: 10px; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
+      .head h1 { font-size: 18px; margin: 2px 0; }
+      .head .sub { font-size: 12px; color: #475569; }
+      table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
+      th, td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; }
+      th { background: #1e293b; color: #fff; font-size: 8px; }
+      td.n, th { white-space: nowrap; } td.n { text-align: right; font-variant-numeric: tabular-nums; }
+      td.c { text-align: center; } td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
+      td.d div { text-align: left; line-height: 1.35; }
+      td.d .src { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
+      td.sm { font-size: 8px; color: #475569; }
+      .ok { color: #047857; font-weight: 700; } .wip { color: #b45309; font-weight: 700; }
+      tbody tr:nth-child(even) { background: #f8fafc; }
+      @media screen { body { padding-top: 46px; } }
+      @media print {
+        body { background: #fff !important; padding-top: 0 !important; }
+        .no-print { display: none !important; }
+        .sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; }
+      }
+    </style></head><body>
+    <div class="toolbar no-print">
+      <span class="tt">FTC Tracker — Print Preview</span>
+      <button class="print" onclick="window.print()">Print / Save as PDF</button>
+      <button class="close" onclick="window.close()">Close</button>
+    </div>
+    <div class="sheet">
+      <div class="head"><div class="org">National / Regional Load Despatch Centre</div>
+        <h1>Generation Capacity Under Process of FTC</h1>
+        <div class="sub">${esc(regionLabel || 'All India')} · As on ${asOnLabel} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div></div>
+      <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>
+    </div>
+    </body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow pop-ups for this site to open the print preview.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
 export function FtcExportButtons({ projects = [], regionLabel = '', refMonthLabel = 'Expected', asOf = null, size = 'sm' }) {
   const expHeader = refMonthLabel?.startsWith('Exp. ') ? `Expected ${refMonthLabel.slice(5)} (MW)` : 'Expected (MW)';
   // Cutoff that gates the milestone dates: the requested asOf, else "today".
@@ -112,99 +219,24 @@ export function FtcExportButtons({ projects = [], regionLabel = '', refMonthLabe
     ? new Date(`${asOf}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : cutoff.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-  // Column layout — milestone date sits right after its MW figure.
-  const HEADERS = [
-    '#', 'Generating Station', 'Region', 'Pooling Station', 'Plant Type',
-    'Total (MW)', 'CONTD-4 (MW)', 'Applied (MW)',
-    'FTC Approved (MW)', 'FTC Approved On', 'FTC Pending (MW)',
-    'TOC Issued (MW)', 'TOC Issued On', 'TOC Pending (MW)',
-    'COD Done (MW)', 'COD Completed On', 'COD Pending (MW)',
-    expHeader, 'Status', 'Remarks',
-  ];
-
-  function exportExcel() {
-    const rows = buildRows(projects, cutoff);
-    const aoa = [
-      ['Generation Capacity Under Process of FTC'],
-      [`${regionLabel || 'All India'} · As on ${asOnLabel}`],
-      [],
-      HEADERS,
-      ...rows.map((r, i) => [
-        i + 1, r.station, r.region, r.pooling, r.type,
-        num(r.total), num(r.contd4), num(r.applied),
-        num(r.approved), dateListText(r.ftcDates), num(r.ftcPending),
-        num(r.toc), dateListText(r.tocDates), num(r.tocPending),
-        num(r.cod), dateListText(r.codDates), num(r.codPending),
-        num(r.expected), r.status, r.remarks,
-      ]),
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = HEADERS.map((h, i) => ({
-      wch: i === 1 ? 38 : i === 3 ? 18 : i === 19 ? 40 : Math.max(11, h.length + 1),
-    }));
-    for (let c = 0; c < HEADERS.length; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: 3, c })];
-      if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: 'E2E8F0' } } };
-    }
-    ws['A1'].s = { font: { bold: true, sz: 14 } };
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'FTC Tracker');
-    XLSX.writeFile(wb, `FTC_Tracker_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  }
-
-  function printPdf() {
-    const rows = buildRows(projects, cutoff);
-    const th = HEADERS.map((h) => `<th>${esc(h)}</th>`).join('');
-    const trs = rows.map((r, i) => `<tr>
-      <td class="c">${i + 1}</td><td>${esc(r.station)}</td><td class="c">${esc(r.region)}</td>
-      <td>${esc(r.pooling)}</td><td>${esc(r.type)}</td>
-      <td class="n">${fmt1(r.total)}</td><td class="n">${fmt1(r.contd4)}</td><td class="n">${fmt1(r.applied)}</td>
-      <td class="n">${fmt1(r.approved)}</td><td class="c d">${dateListHtml(r.ftcDates)}</td><td class="n o">${r.ftcPending ? fmt1(r.ftcPending) : '—'}</td>
-      <td class="n">${fmt1(r.toc)}</td><td class="c d">${dateListHtml(r.tocDates)}</td><td class="n o">${r.tocPending ? fmt1(r.tocPending) : '—'}</td>
-      <td class="n">${fmt1(r.cod)}</td><td class="c d">${dateListHtml(r.codDates)}</td><td class="n o">${r.codPending ? fmt1(r.codPending) : '—'}</td>
-      <td class="n">${r.expected ? fmt1(r.expected) : '—'}</td>
-      <td class="c"><span class="${r.status === 'Commissioned' ? 'ok' : 'wip'}">${r.status}</span></td>
-      <td class="sm">${esc(r.remarks)}</td></tr>`).join('');
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>FTC Tracker — ${asOnLabel}</title>
-      <style>
-        @page { size: A3 landscape; margin: 10mm; }
-        * { box-sizing: border-box; }
-        body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; }
-        .head { border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
-        .head .org { font-size: 10px; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
-        .head h1 { font-size: 18px; margin: 2px 0; }
-        .head .sub { font-size: 12px; color: #475569; }
-        table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
-        th, td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; }
-        th { background: #1e293b; color: #fff; font-size: 8px; }
-        td.n, th { white-space: nowrap; } td.n { text-align: right; font-variant-numeric: tabular-nums; }
-        td.c { text-align: center; } td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
-        td.d div { text-align: left; line-height: 1.35; }
-        td.d .src { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
-        td.sm { font-size: 8px; color: #475569; }
-        .ok { color: #047857; font-weight: 700; } .wip { color: #b45309; font-weight: 700; }
-        tbody tr:nth-child(even) { background: #f8fafc; }
-      </style></head><body>
-      <div class="head"><div class="org">National / Regional Load Despatch Centre</div>
-        <h1>Generation Capacity Under Process of FTC</h1>
-        <div class="sub">${esc(regionLabel || 'All India')} · As on ${asOnLabel} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div></div>
-      <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>
-      <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
-      </body></html>`;
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.open(); w.document.write(html); w.document.close();
-  }
+  const allCols = reportColumns(expHeader);
+  const { hidden, isVisible, toggle, reset } = useColumnVisibility('ftc-report', allCols);
+  const visibleCols = allCols.filter((c) => isVisible(c.key));
 
   const btnSize = size === 'sm' ? 'size-9' : 'size-11';
   const iconSize = size === 'sm' ? 'size-4' : 'size-5';
+
+  const onExcel = () => exportExcel(buildRows(projects, cutoff), visibleCols, regionLabel, asOnLabel);
+  const onPrint = () => printPdf(buildRows(projects, cutoff), visibleCols, regionLabel, asOnLabel);
+
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={exportExcel} title="Download FTC tracker as Excel" aria-label="Download as Excel"
+      <ColumnCustomizer columns={allCols} hidden={hidden} onToggle={toggle} onReset={reset} size={size} />
+      <button type="button" onClick={onExcel} title="Download FTC tracker as Excel" aria-label="Download as Excel"
         className={`inline-flex items-center justify-center ${btnSize} rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors`}>
         <FileSpreadsheet className={iconSize} />
       </button>
-      <button type="button" onClick={printPdf} title="Print / Save FTC tracker as PDF" aria-label="Print / PDF"
+      <button type="button" onClick={onPrint} title="Print / Save FTC tracker as PDF" aria-label="Print / PDF"
         className={`inline-flex items-center justify-center ${btnSize} rounded-lg bg-slate-700 hover:bg-slate-800 text-white shadow-sm transition-colors`}>
         <Printer className={iconSize} />
       </button>
