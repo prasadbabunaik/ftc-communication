@@ -13,8 +13,23 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody,
 } from '@/components/ui/dialog';
 import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS, contd4CapacityOf } from '@/lib/grid-computations';
+import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
 
 const STATUS_OPTIONS = ['UNDER_PROCESS', 'CLEARED', 'REJECTED'];
+
+// Column model for the show/hide customizer. `locked` columns (identity + row
+// actions) always render and don't appear in the picker.
+const CONTD4_COLUMNS = [
+  { key: 'srno',     label: 'Sr. No',                     locked: true },
+  { key: 'name',     label: 'Generating Station',         locked: true },
+  { key: 'psdev',    label: 'Pooling Station / Developer' },
+  { key: 'region',   label: 'Region' },
+  { key: 'type',     label: 'Generation Type' },
+  { key: 'capacity', label: 'Declared Cap (MW)' },
+  { key: 'status',   label: 'Status' },
+  { key: 'remarks',  label: 'Remarks' },
+  { key: 'actions',  label: 'Actions',                    locked: true },
+];
 
 function SortableTh({ label, field, sortField, sortDir, onSort, className = '' }) {
   const active = sortField === field;
@@ -92,6 +107,9 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
   // Deleting a project is national-tier only — RLDCs can edit their region's
   // data but must not delete it (server enforces the same via canDeleteGridData).
   const canDelete = userRole === 'ADMIN' || userRole === 'NLDC';
+
+  const { hidden, isVisible, toggle, reset } = useColumnVisibility('contd4-applications', CONTD4_COLUMNS);
+  const visibleColCount = CONTD4_COLUMNS.filter((c) => isVisible(c.key)).length;
 
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
   // Roll up every hybrid sub-type (Hybrid (Wind+Solar), Hybrid (Solar+BESS),
@@ -316,6 +334,14 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
             {filtersActive && <span className="ml-1 text-amber-700">· filtered</span>}
           </span>
         </div>
+
+        {/* Column show/hide */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+            Columns
+          </label>
+          <ColumnCustomizer columns={CONTD4_COLUMNS} hidden={hidden} onToggle={toggle} onReset={reset} />
+        </div>
       </div>
 
       {/* Table */}
@@ -327,19 +353,19 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
             <tr>
               <Th label="Sr. No"  className="w-[52px]" />
               <SortableTh label="Generating Station" field="name"      className="w-[240px]"  {...sortProps} />
-              <Th label="Pooling Station / Developer" className="w-[200px]" />
-              <SortableTh label="Region"             field="region"    className="w-[75px]"   {...sortProps} />
-              <SortableTh label="Generation Type"    field="type"      className="w-[160px]"  {...sortProps} />
-              <SortableTh label="Declared Cap (MW)"  field="capacity"  className="w-[140px]"  {...sortProps} />
-              <SortableTh label="Status"             field="status"    className="w-[110px]"  {...sortProps} />
-              <Th label="Remarks"                                       className="w-[300px]" />
+              {isVisible('psdev')    && <Th label="Pooling Station / Developer" className="w-[200px]" />}
+              {isVisible('region')   && <SortableTh label="Region"             field="region"    className="w-[75px]"   {...sortProps} />}
+              {isVisible('type')     && <SortableTh label="Generation Type"    field="type"      className="w-[160px]"  {...sortProps} />}
+              {isVisible('capacity') && <SortableTh label="Declared Cap (MW)"  field="capacity"  className="w-[140px]"  {...sortProps} />}
+              {isVisible('status')   && <SortableTh label="Status"             field="status"    className="w-[110px]"  {...sortProps} />}
+              {isVisible('remarks')  && <Th label="Remarks"                                       className="w-[300px]" />}
               <Th label="Actions" className="w-[110px] text-right pr-4" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                <td colSpan={visibleColCount} className="px-4 py-12 text-center text-muted-foreground text-sm">
                   No CONTD-4 applications found.
                 </td>
               </tr>
@@ -348,13 +374,16 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                 <tr key={p.id} onClick={() => onView?.(p)} className="hover:bg-muted/20 transition-colors cursor-pointer">
                   <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{offset + i + 1}</td>
                   <td className="px-3 py-3 text-sm font-medium text-foreground truncate" title={p.name}>{p.name}</td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={psDevLabel(p)}>{psDevLabel(p)}</td>
+                  {isVisible('psdev') && <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={psDevLabel(p)}>{psDevLabel(p)}</td>}
+                  {isVisible('region') && (
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {p.region.code}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={p.plantType.label}>{p.plantType.label}</td>
+                  )}
+                  {isVisible('type') && <td className="px-3 py-3 text-xs text-muted-foreground truncate" title={p.plantType.label}>{p.plantType.label}</td>}
+                  {isVisible('capacity') && (
                   <td className="px-3 py-3 tabular-nums">
                     {!p.contd4
                       ? <span className="font-mono text-sm text-muted-foreground">—</span>
@@ -363,6 +392,8 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                         : <span className="font-mono text-sm text-muted-foreground">{Number(p.totalCapacityMw).toFixed(1)}</span>}
                     <span className="block text-[10px] text-muted-foreground font-sans">of {Number(p.totalCapacityMw).toFixed(1)} MW</span>
                   </td>
+                  )}
+                  {isVisible('status') && (
                   <td className="px-3 py-3">
                     {p.contd4 ? (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${STATUS_COLORS[p.contd4.status] ?? ''}`}>
@@ -372,9 +403,11 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                       <span className="text-xs text-muted-foreground italic">No application</span>
                     )}
                   </td>
+                  )}
                   {/* Remarks column — phase-wise stack of dated remarks, plus
                       the application-level remark (if any). Ordered most recent
                       first so the latest update is the first thing the user sees. */}
+                  {isVisible('remarks') && (
                   <td className="px-3 py-3 text-xs text-muted-foreground align-top">
                     {(() => {
                       const phaseRemarks = (p.contd4?.phases ?? [])
@@ -422,6 +455,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                       );
                     })()}
                   </td>
+                  )}
                   <td className="px-3 py-3">
                     {canDelete && (
                       <div className="flex items-center justify-end gap-1">
