@@ -853,6 +853,45 @@ export async function deleteContd4Application(projectId) {
   return { success: true, ftcRetained: hasFtcData };
 }
 
+// ─── CONTD-4 ATTACHMENTS ────────────────────────────────────────────────────
+// Project documents uploaded from the CONTD-4 module, each with an optional
+// remark. Bytes are stored in the DB (see the Contd4Attachment model comment).
+// These are independent of the CONTD-4 application record and the FTC tracker.
+//
+// Uploading (multipart, with the file bytes) is handled by the API route
+// POST /api/grid/contd4-attachments — route handlers parse multipart bodies
+// natively and reliably, without the Server-Action body-size quirks. Deletion
+// stays a Server Action since it only needs an id.
+
+export async function deleteContd4Attachment(attachmentId) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only for grid data.' };
+
+  const att = await prisma.contd4Attachment.findUnique({
+    where: { id: attachmentId },
+    select: { id: true, filename: true, projectId: true, project: { select: { name: true, regionId: true } } },
+  });
+  if (!att) return { error: 'Attachment not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== att.project.regionId) return { error: 'Access denied.' };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.contd4Attachment.delete({ where: { id: attachmentId } });
+    await tx.projectNote.create({
+      data: {
+        projectId: att.projectId, projectName: att.project.name, userId: user.id,
+        text: `File removed: ${att.filename}`,
+        source: 'SYSTEM',
+      },
+    });
+  });
+
+  revalidateGridPages(att.projectId);
+  return { success: true };
+}
+
 // ─── CONTD-4 ──────────────────────────────────────────────────────────────────
 
 export async function upsertContd4(projectId, formData) {

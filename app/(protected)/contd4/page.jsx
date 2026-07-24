@@ -45,6 +45,17 @@ export default async function Contd4Page({ searchParams }) {
         },
         phases:         { orderBy: { createdAt: 'asc' } },
         notes:          { include: { user: true }, orderBy: { createdAt: 'desc' } },
+        // Attachment metadata only — never the `data` bytea, which would bloat
+        // the page payload. The file bytes are fetched on demand via the
+        // /api/grid/contd4-attachments/[id] route.
+        attachments: {
+          select: {
+            id: true, filename: true, mimeType: true, sizeBytes: true,
+            remarks: true, createdAt: true,
+            uploadedBy: { select: { name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     }),

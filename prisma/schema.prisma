@@ -35,6 +35,7 @@ model User {
   transmissionAuditLogs TransmissionAuditLog[] @relation("TxAuditAuthor")
   notifications        Notification[]
   authActivity         AuthActivity[]         @relation("UserAuthActivity")
+  contd4Attachments    Contd4Attachment[]     @relation("AttachmentUploader")
 
   @@map("users")
 }
@@ -193,6 +194,7 @@ model GenerationProject {
   contd4 Contd4Application?
   phases CommissioningPhase[]
   notes  ProjectNote[]
+  attachments Contd4Attachment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,6 +202,34 @@ model GenerationProject {
   @@index([regionId])
   @@index([activeFrom, activeUntil])
   @@map("generation_projects")
+}
+
+// A document uploaded against a project from the CONTD-4 module, with an
+// optional free-text remark. The file bytes are stored inline in the DB
+// (bytea) rather than on disk — the app runs from two separate directories
+// (dev + prod) that share ONE database, so DB storage keeps every attachment
+// reachable from both environments and across rebuilds. Cascade-deletes only
+// when the project itself is hard-deleted (soft-delete via activeUntil keeps
+// the files). Independent of the CONTD-4 application record, mirroring how
+// CONTD-4 and FTC-tracker data are kept independent.
+model Contd4Attachment {
+  id           String            @id @default(cuid())
+  projectId    String
+  project      GenerationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  data         Bytes
+  remarks      String?
+
+  uploadedById String
+  uploadedBy   User   @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@map("contd4_attachments")
 }
 
 model Contd4Application {

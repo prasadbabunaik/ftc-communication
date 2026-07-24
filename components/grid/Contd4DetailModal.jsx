@@ -2,6 +2,7 @@
 
 import { FileText, X } from 'lucide-react';
 import { Contd4Card } from '@/components/grid/Contd4Card';
+import { Contd4Attachments } from '@/components/grid/Contd4Attachments';
 import { AuditFeed } from '@/components/grid/AuditFeed';
 import { ProjectHistory } from '@/components/grid/ProjectHistory';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -106,6 +107,14 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
             regionCode={project.region.code}
             notes={project.notes ?? []}
             onClose={() => onOpenChange(false)}
+          />
+
+          {/* Project documents — file uploads with remarks, independent of the
+              CONTD-4 application record */}
+          <Contd4Attachments
+            projectId={project.id}
+            attachments={project.attachments ?? []}
+            canEdit={canEdit}
           />
 
           {/* Day-wise CONTD-4 history */}
