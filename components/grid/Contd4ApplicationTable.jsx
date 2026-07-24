@@ -6,7 +6,7 @@ import { Search, Trash2, ChevronsUpDown, ChevronUp, ChevronDown, ChevronLeft, Ch
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
-import { deleteGenerationProject } from '@/app/actions/grid';
+import { deleteContd4Application } from '@/app/actions/grid';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -157,10 +157,17 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
   function confirmDelete() {
     if (!deleteTarget) return;
     startTransition(async () => {
-      const result = await deleteGenerationProject(deleteTarget.id);
+      // Removes ONLY the CONTD-4 application. If the project also has FTC-tracker
+      // data it stays in the FTC tracker (server returns ftcRetained).
+      const result = await deleteContd4Application(deleteTarget.id);
       setDeleteTarget(null);
       if (result?.error) toast.error(result.error);
-      else { toast.success(`"${deleteTarget.name}" deleted.`); router.refresh(); }
+      else {
+        toast.success(result.ftcRetained
+          ? `CONTD-4 application for "${deleteTarget.name}" removed. Its FTC-tracker data was kept.`
+          : `CONTD-4 application for "${deleteTarget.name}" deleted.`);
+        router.refresh();
+      }
     });
   }
 
@@ -441,10 +448,12 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-4" /> Delete Project
+              <AlertTriangle className="size-4" /> Delete CONTD-4 Application
             </DialogTitle>
             <DialogDescription>
-              This will permanently delete <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span> and all associated CONTD-4 data, phases, and notes. This action cannot be undone.
+              This removes the CONTD-4 application for <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span> and its dated declarations.
+              {' '}Any <span className="font-semibold text-foreground">FTC-tracker data</span> (commissioning phases, FTC / TOC / COD milestones) is <span className="font-semibold text-foreground">kept</span> — the two are independent.
+              {' '}If the project has no FTC-tracker data, it is removed. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
@@ -453,7 +462,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
                 Cancel
               </Button>
               <Button variant="destructive" size="sm" onClick={confirmDelete} disabled={isPending}>
-                {isPending ? 'Deleting…' : 'Delete Project'}
+                {isPending ? 'Deleting…' : 'Delete Application'}
               </Button>
             </div>
           </DialogBody>

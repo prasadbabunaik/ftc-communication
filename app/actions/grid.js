@@ -786,6 +786,73 @@ export async function deleteGenerationProject(projectId, opts = {}) {
   return { success: true, deactivated: !opts.hard };
 }
 
+// Delete a CONTD-4 APPLICATION only. CONTD-4 and the FTC tracker are independent
+// facets of a project that merely CAN be linked — so removing the CONTD-4
+// application must never take the FTC-tracker rows with it. If the project
+// carries FTC data (phases with FTC/TOC/COD milestones) it stays active in the
+// FTC tracker, and its pipeline membership is pinned (inFtcPipeline=true) so it
+// no longer depends on the now-deleted CONTD-4=CLEARED bridge. A project that
+// exists ONLY as a CONTD-4 application (no FTC data) is deactivated, since
+// nothing else remains. National-tier only (ADMIN / NLDC).
+export async function deleteContd4Application(projectId) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canDeleteGridData(user.role)) return { error: 'Only Administrator or NLDC accounts can delete CONTD-4 applications.' };
+
+  const project = await prisma.generationProject.findUnique({
+    where: { id: projectId },
+    include: {
+      contd4: { select: { id: true } },
+      phases: {
+        select: {
+          ftcCompletedMw: true, tocIssuedMw: true, codDeclaredMw: true,
+          _count: { select: { ftcEvents: true, tocEvents: true, codEvents: true } },
+        },
+      },
+    },
+  });
+  if (!project) return { error: 'Project not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) return { error: 'Access denied.' };
+
+  const hasFtcData = (project.phases ?? []).some((ph) =>
+    ph._count.ftcEvents > 0 || ph._count.tocEvents > 0 || ph._count.codEvents > 0 ||
+    Number(ph.ftcCompletedMw ?? 0) > 0 || Number(ph.tocIssuedMw ?? 0) > 0 || Number(ph.codDeclaredMw ?? 0) > 0
+  );
+
+  await prisma.$transaction(async (tx) => {
+    // Remove the CONTD-4 application (cascades its dated CONTD-4 phases). The
+    // project's own commissioning phases + FTC/TOC/COD events are untouched.
+    if (project.contd4) {
+      await tx.contd4Application.delete({ where: { id: project.contd4.id } });
+    }
+    if (hasFtcData) {
+      // Keep the project in the FTC tracker independently of the (now-gone)
+      // CONTD-4 clearance bridge.
+      if (!project.inFtcPipeline) {
+        await tx.generationProject.update({ where: { id: projectId }, data: { inFtcPipeline: true } });
+      }
+    } else {
+      // Pure CONTD-4 record — nothing else to keep, so deactivate the project.
+      await tx.generationProject.update({ where: { id: projectId }, data: { activeUntil: new Date() } });
+    }
+    await tx.projectNote.create({
+      data: {
+        projectId, projectName: project.name, userId: user.id,
+        text: hasFtcData
+          ? 'CONTD-4 application deleted (FTC-tracker data retained).'
+          : 'CONTD-4 application deleted; project deactivated (no FTC-tracker data).',
+        source: 'SYSTEM',
+      },
+    });
+  });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true, ftcRetained: hasFtcData };
+}
+
 // ─── CONTD-4 ──────────────────────────────────────────────────────────────────
 
 export async function upsertContd4(projectId, formData) {
