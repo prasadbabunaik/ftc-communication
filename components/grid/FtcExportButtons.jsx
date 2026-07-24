@@ -4,6 +4,7 @@ import { FileSpreadsheet, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { contd4CapacityOf } from '@/lib/grid-computations';
 import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
+import { openPrintReport, esc } from '@/lib/print-report';
 
 // FTC-tracker-specific export (Excel + Print/PDF) — exports the "Generation
 // Capacity Under Process of FTC" table itself, NOT the dashboard summary. The
@@ -153,62 +154,46 @@ function exportExcel(rows, cols, regionLabel, asOnLabel) {
   XLSX.writeFile(wb, `FTC_Tracker_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-function printPdf(rows, cols, regionLabel, asOnLabel) {
-  const th = cols.map((c) => `<th>${esc(c.label)}</th>`).join('');
-  const trs = rows.map((r, i) => `<tr>${cols.map((c) => {
+const FTC_TABLE_CSS = `
+  .head { border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
+  .head .org { font-size: 10px; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
+  .head h1 { font-size: 18px; margin: 2px 0; }
+  .head .hsub { font-size: 12px; color: #475569; }
+  th, td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; font-size: 8.5px; }
+  th { background: #1e293b; color: #fff; font-size: 8px; white-space: nowrap; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.c { text-align: center; } td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
+  td.d div { text-align: left; line-height: 1.35; }
+  td.d .src { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
+  td.sm { font-size: 8px; color: #475569; max-width: 300px; white-space: normal; }
+  .ok { color: #047857; font-weight: 700; } .wip { color: #b45309; font-weight: 700; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+`;
+
+// Renders ALL columns tagged with data-col; `hiddenKeys` start hidden and the
+// preview's Customize panel toggles them live. Uses the shared print shell.
+function printPdf(rows, allCols, hiddenKeys, regionLabel, asOnLabel) {
+  const th = allCols.map((c) => `<th data-col="${c.key}">${esc(c.label)}</th>`).join('');
+  const trs = rows.map((r, i) => `<tr>${allCols.map((c) => {
     const cls = c.cls ? ` class="${c.cls}"` : '';
-    return `<td${cls}>${c.html(r, i)}</td>`;
+    return `<td${cls} data-col="${c.key}">${c.html(r, i)}</td>`;
   }).join('')}</tr>`).join('');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>FTC Tracker — ${asOnLabel}</title>
-    <style>
-      @page { size: A3 landscape; margin: 10mm; }
-      * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; background: #f1f5f9; }
-      .toolbar { position: fixed; top: 0; left: 0; right: 0; height: 46px; background: #1e293b; color: #fff;
-        display: flex; align-items: center; gap: 12px; padding: 0 18px; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-      .toolbar .tt { font-weight: 600; font-size: 13px; margin-right: auto; }
-      .toolbar button { border: 0; border-radius: 6px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-      .toolbar .print { background: #2563eb; color: #fff; }
-      .toolbar .print:hover { background: #1d4ed8; }
-      .toolbar .close { background: #475569; color: #fff; }
-      .toolbar .close:hover { background: #334155; }
-      .sheet { background: #fff; max-width: 1680px; margin: 16px auto; padding: 18px 22px; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
-      .head { border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
-      .head .org { font-size: 10px; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
-      .head h1 { font-size: 18px; margin: 2px 0; }
-      .head .sub { font-size: 12px; color: #475569; }
-      table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
-      th, td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; }
-      th { background: #1e293b; color: #fff; font-size: 8px; }
-      td.n, th { white-space: nowrap; } td.n { text-align: right; font-variant-numeric: tabular-nums; }
-      td.c { text-align: center; } td.o { color: #c2410c; } td.d { color: #1d4ed8; white-space: nowrap; }
-      td.d div { text-align: left; line-height: 1.35; }
-      td.d .src { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 2px; }
-      td.sm { font-size: 8px; color: #475569; }
-      .ok { color: #047857; font-weight: 700; } .wip { color: #b45309; font-weight: 700; }
-      tbody tr:nth-child(even) { background: #f8fafc; }
-      @media screen { body { padding-top: 46px; } }
-      @media print {
-        body { background: #fff !important; padding-top: 0 !important; }
-        .no-print { display: none !important; }
-        .sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; }
-      }
-    </style></head><body>
-    <div class="toolbar no-print">
-      <span class="tt">FTC Tracker — Print Preview</span>
-      <button class="print" onclick="window.print()">Print / Save as PDF</button>
-      <button class="close" onclick="window.close()">Close</button>
-    </div>
-    <div class="sheet">
-      <div class="head"><div class="org">National / Regional Load Despatch Centre</div>
-        <h1>Generation Capacity Under Process of FTC</h1>
-        <div class="sub">${esc(regionLabel || 'All India')} · As on ${asOnLabel} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div></div>
-      <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>
-    </div>
-    </body></html>`;
-  const w = window.open('', '_blank');
-  if (!w) { alert('Please allow pop-ups for this site to open the print preview.'); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  const bodyHtml = `
+    <div class="head"><div class="org">National / Regional Load Despatch Centre</div>
+      <h1>Generation Capacity Under Process of FTC</h1>
+      <div class="hsub">${esc(regionLabel || 'All India')} · As on ${asOnLabel} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div></div>
+    <table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
+
+  openPrintReport({
+    documentTitle: `FTC Tracker — ${asOnLabel}`,
+    toolbarLabel: 'FTC Tracker — Print Preview',
+    page: { size: 'A3', orientation: 'landscape' },
+    columns: allCols,
+    initiallyHidden: hiddenKeys,
+    tableMinWidth: 1950,
+    bodyHtml,
+    tableCss: FTC_TABLE_CSS,
+  });
 }
 
 export function FtcExportButtons({ projects = [], regionLabel = '', refMonthLabel = 'Expected', asOf = null, size = 'sm' }) {
@@ -227,7 +212,9 @@ export function FtcExportButtons({ projects = [], regionLabel = '', refMonthLabe
   const iconSize = size === 'sm' ? 'size-4' : 'size-5';
 
   const onExcel = () => exportExcel(buildRows(projects, cutoff), visibleCols, regionLabel, asOnLabel);
-  const onPrint = () => printPdf(buildRows(projects, cutoff), visibleCols, regionLabel, asOnLabel);
+  // Print renders all columns; those hidden in the page picker start hidden but
+  // can be re-enabled live via the preview's own Customize panel.
+  const onPrint = () => printPdf(buildRows(projects, cutoff), allCols, [...hidden], regionLabel, asOnLabel);
 
   return (
     <div className="flex items-center gap-2">
@@ -242,8 +229,4 @@ export function FtcExportButtons({ projects = [], regionLabel = '', refMonthLabe
       </button>
     </div>
   );
-}
-
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

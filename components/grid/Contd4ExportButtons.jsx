@@ -5,6 +5,7 @@ import { FileSpreadsheet, Printer } from 'lucide-react';
 import { useSettings } from '@/providers/settings-provider';
 import { contd4CapacityOf } from '@/lib/grid-computations';
 import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
+import { openPrintReport, esc } from '@/lib/print-report';
 
 // ── report shaping ─────────────────────────────────────────────────────────────
 // Builds the "Generation Capacity Under Process of CONTD-4" register exactly as
@@ -129,10 +130,6 @@ function reportColumns(refLabel) {
   ];
 }
 
-function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 // ── Excel ───────────────────────────────────────────────────────────────────────
 function downloadExcel(rows, cols) {
   const border = { style: 'thin', color: { rgb: 'B0B7C3' } };
@@ -169,70 +166,52 @@ function downloadExcel(rows, cols) {
 }
 
 // ── Print preview (HTML → browser Print / Save as PDF) ──────────────────────────
-// Opens a branded print-preview page in a new tab (like the dashboard print
-// view) with a Print / Save-as-PDF toolbar — it does NOT auto-download.
-function openPrintView(rows, cols) {
-  const dataCols = cols.filter((c) => c.key !== 'srno');
-  const headerCells = dataCols.map((c) => `<th>${c.headerHtml || esc(c.header)}</th>`).join('');
+// Renders ALL columns tagged with data-col; `hiddenKeys` start hidden and the
+// preview's Customize panel toggles them live. Uses the shared print shell.
+const CONTD4_TABLE_CSS = `
+  th, td { border: 1px solid #b0b7c3; padding: 3px 5px; vertical-align: middle; font-size: 8.5px; }
+  thead .title th { background: #ffff00; color: #1f3864; font-size: 13px; font-weight: 700; text-align: center; padding: 6px; }
+  thead .cols th { background: #bdd7ee; color: #1f3864; font-weight: 700; text-align: center; font-size: 8px; }
+  thead .cols th .hh { font-weight: 400; font-size: 7px; }
+  td.c { text-align: center; } td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.rmk { font-size: 8px; color: #334155; max-width: 340px; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+`;
+
+function openPrintView(rows, allCols, hiddenKeys) {
+  const dataCols = allCols.filter((c) => c.key !== 'srno');
+  const headerCells = dataCols.map((c) => `<th data-col="${c.key}">${c.headerHtml || esc(c.header)}</th>`).join('');
   const body = rows.map((r, i) => `<tr>
-    <td class="c">${i + 1}</td>
+    <td class="c" data-col="srno">${i + 1}</td>
     ${dataCols.map((c) => {
       const v = c.get(r, i);
       const cls = `${c.align === 'center' ? 'c ' : ''}${c.num ? 'n ' : ''}${c.key === 'remarks' ? 'rmk' : ''}`.trim();
       const val = c.key === 'remarks' ? esc(v).replace(/\n/g, '<br>') : esc(v);
-      return `<td${cls ? ` class="${cls}"` : ''}>${val}</td>`;
+      return `<td${cls ? ` class="${cls}"` : ''} data-col="${c.key}">${val}</td>`;
     }).join('')}
   </tr>`).join('');
 
   const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(TITLE)}</title>
-    <style>
-      @page { size: A4 landscape; margin: 8mm; }
-      * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; background: #f1f5f9; }
-      .toolbar { position: fixed; top: 0; left: 0; right: 0; height: 46px; background: #1e293b; color: #fff;
-        display: flex; align-items: center; gap: 12px; padding: 0 18px; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-      .toolbar .tt { font-weight: 600; font-size: 13px; margin-right: auto; }
-      .toolbar button { border: 0; border-radius: 6px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-      .toolbar .print { background: #2563eb; color: #fff; } .toolbar .print:hover { background: #1d4ed8; }
-      .toolbar .close { background: #475569; color: #fff; } .toolbar .close:hover { background: #334155; }
-      .sheet { background: #fff; max-width: 1500px; margin: 16px auto; padding: 16px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.12); }
-      .sub { font-size: 11px; color: #475569; margin: 2px 0 10px; }
-      table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
-      th, td { border: 1px solid #b0b7c3; padding: 3px 5px; vertical-align: middle; }
-      thead .title th { background: #ffff00; color: #1f3864; font-size: 13px; font-weight: 700; text-align: center; padding: 6px; }
-      thead .cols th { background: #bdd7ee; color: #1f3864; font-weight: 700; text-align: center; font-size: 8px; }
-      thead .cols th .hh { font-weight: 400; font-size: 7px; }
-      td.c { text-align: center; } td.n { font-variant-numeric: tabular-nums; }
-      td.rmk { font-size: 8px; color: #334155; }
-      tbody tr:nth-child(even) { background: #f8fafc; }
-      @media screen { body { padding-top: 46px; } }
-      @media print {
-        body { background: #fff !important; padding-top: 0 !important; }
-        .no-print { display: none !important; }
-        .sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; }
-      }
-    </style></head><body>
-    <div class="toolbar no-print">
-      <span class="tt">CONTD-4 — Print Preview</span>
-      <button class="print" onclick="window.print()">Print / Save as PDF</button>
-      <button class="close" onclick="window.close()">Close</button>
-    </div>
-    <div class="sheet">
-      <div class="sub">National / Regional Load Despatch Centre · As on ${dateStr} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div>
-      <table>
-        <thead>
-          <tr class="title"><th rowspan="2">Sr. No</th><th colspan="${dataCols.length}">${esc(TITLE)}</th></tr>
-          <tr class="cols">${headerCells}</tr>
-        </thead>
-        <tbody>${body}</tbody>
-      </table>
-    </div>
-    </body></html>`;
+  const bodyHtml = `
+    <div class="sub">National / Regional Load Despatch Centre · As on ${dateStr} · ${rows.length} project${rows.length === 1 ? '' : 's'}</div>
+    <table>
+      <thead>
+        <tr class="title"><th rowspan="2" data-col="srno">Sr. No</th><th colspan="${dataCols.length}">${esc(TITLE)}</th></tr>
+        <tr class="cols">${headerCells}</tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>`;
 
-  const w = window.open('', '_blank');
-  if (!w) { alert('Please allow pop-ups for this site to open the print preview.'); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  openPrintReport({
+    documentTitle: TITLE,
+    toolbarLabel: 'CONTD-4 — Print Preview',
+    page: { size: 'A4', orientation: 'landscape' },
+    columns: allCols,
+    initiallyHidden: hiddenKeys,
+    tableMinWidth: 1150,
+    bodyHtml,
+    tableCss: CONTD4_TABLE_CSS,
+  });
 }
 
 /**
@@ -253,7 +232,9 @@ export function Contd4ExportButtons({ projects, size = 'sm' }) {
   const iconSize = size === 'sm' ? 'size-4' : 'size-5';
 
   const onExcel = () => downloadExcel(buildRows(projects, refMonth), visibleCols);
-  const onPrint = () => openPrintView(buildRows(projects, refMonth), visibleCols);
+  // Print renders all columns; those hidden in the page picker start hidden but
+  // can be re-enabled live via the preview's own Customize panel.
+  const onPrint = () => openPrintView(buildRows(projects, refMonth), allCols, [...hidden]);
 
   return (
     <div className="flex items-center gap-2">
