@@ -587,6 +587,114 @@ export async function updateProjectCapacities(projectId, caps) {
   return { success: true };
 }
 
+// ─── HYBRID CAPACITY EDIT ────────────────────────────────────────────────────
+// Per-source capacities exist only as Wind/Solar/BESS columns, so the hybrid-
+// capacity editor is limited to those three sources. Editing them re-derives
+// the plant type (find-or-create) and refreshes the segregation JSON so the
+// BESS tab / dashboard / FTC folding stay consistent with the edited columns.
+const WSB_ORDER = ['WIND', 'SOLAR', 'BESS'];
+const WSB_LABEL = { WIND: 'Wind', SOLAR: 'Solar', BESS: 'BESS' };
+const WSB_CODE = {
+  'WIND': 'WIND', 'SOLAR': 'SOLAR', 'BESS': 'BESS',
+  'SOLAR,WIND': 'HYBRID_WS', 'BESS,SOLAR': 'HYBRID_SB',
+  'BESS,WIND': 'HYBRID_WB', 'BESS,SOLAR,WIND': 'HYBRID_WSB',
+};
+
+function deriveWsbPlantType(sources) {
+  const ordered = WSB_ORDER.filter((s) => sources.includes(s));
+  const key = [...sources].sort().join(',');
+  const code = WSB_CODE[key] ?? ordered[0];
+  const isHybrid = ordered.length > 1;
+  const label = isHybrid
+    ? `Hybrid (${ordered.map((s) => WSB_LABEL[s]).join('+')})`
+    : WSB_LABEL[ordered[0]];
+  // WSB combos are RENEWABLE unless the only source is BESS (STORAGE).
+  const category = ordered.some((s) => s === 'WIND' || s === 'SOLAR') ? 'RENEWABLE' : 'STORAGE';
+  return { code, label, isHybrid, category };
+}
+
+export async function updateHybridComponents(projectId, payload) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+
+  const project = await prisma.generationProject.findUnique({
+    where: { id: projectId },
+    include: { plantType: true, phases: { select: { sourceType: true } } },
+  });
+  if (!project) return { error: 'Project not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'You cannot edit projects outside your assigned region.' };
+  }
+
+  const toMw = (v) => {
+    if (v == null || v === '') return 0;
+    const n = parseFloat(v);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+  };
+  const caps = { WIND: toMw(payload.wind), SOLAR: toMw(payload.solar), BESS: toMw(payload.bess) };
+  const sources = WSB_ORDER.filter((s) => caps[s] > 0);
+  if (sources.length === 0) {
+    return { error: 'Enter at least one component capacity greater than zero.' };
+  }
+
+  // Don't silently drop a source that already has FTC/TOC/COD phases — its
+  // milestone data would be orphaned and phase validation would reject it.
+  const phaseSources = new Set((project.phases ?? []).map((p) => p.sourceType));
+  for (const s of WSB_ORDER) {
+    if (phaseSources.has(s) && caps[s] <= 0) {
+      return { error: `${WSB_LABEL[s]} has recorded FTC/TOC/COD phases and can't be removed. Delete those phases first.` };
+    }
+  }
+
+  const total = Math.round((caps.WIND + caps.SOLAR + caps.BESS) * 100) / 100;
+  const pt = deriveWsbPlantType(sources);
+  let plantType = await prisma.plantType.findFirst({ where: { code: pt.code } });
+  if (!plantType) {
+    plantType = await prisma.plantType.create({
+      data: { code: pt.code, label: pt.label, isHybrid: pt.isHybrid, category: pt.category },
+    });
+  }
+
+  // Rebuild the segregation JSON: preserve existing milestone fields per source,
+  // refresh totalMw, drop removed sources. Cleared to null when no longer hybrid.
+  const prevComps = project.hybridComponentsJson?.components ?? [];
+  const components = sources.map((s) => {
+    const prev = prevComps.find((c) => c.sourceType === s) ?? {};
+    return { ...prev, sourceType: s, totalMw: caps[s] };
+  });
+  const hybridComponentsJson = pt.isHybrid ? { hybridType: plantType.label, components } : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.generationProject.update({
+      where: { id: projectId },
+      data: {
+        windCapacityMw:  caps.WIND  > 0 ? caps.WIND  : null,
+        solarCapacityMw: caps.SOLAR > 0 ? caps.SOLAR : null,
+        bessCapacityMw:  caps.BESS  > 0 ? caps.BESS  : null,
+        totalCapacityMw: total,
+        plantTypeId: plantType.id,
+        hybridComponentsJson,
+      },
+    });
+    const tracked = [
+      { field: 'Wind Capacity',  old: fmtMw(project.windCapacityMw),  new: fmtMw(caps.WIND  > 0 ? caps.WIND  : null) },
+      { field: 'Solar Capacity', old: fmtMw(project.solarCapacityMw), new: fmtMw(caps.SOLAR > 0 ? caps.SOLAR : null) },
+      { field: 'BESS Capacity',  old: fmtMw(project.bessCapacityMw),  new: fmtMw(caps.BESS  > 0 ? caps.BESS  : null) },
+      { field: 'Total Capacity', old: fmtMw(project.totalCapacityMw), new: fmtMw(total) },
+      { field: 'Plant Type',     old: project.plantType.label,        new: plantType.label },
+    ];
+    const logs = diffFields(tracked, projectId, user.id);
+    if (logs.length) await tx.projectNote.createMany({ data: logs });
+  });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true, plantTypeLabel: plantType.label };
+}
+
 // BESS Data tab — inline edit of the two columns that are NOT sourced from the
 // FTC pipeline / CONTD-4 and so have no other edit surface in the app:
 //   • State (situated)         → stateName

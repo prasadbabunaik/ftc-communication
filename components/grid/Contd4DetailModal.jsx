@@ -2,6 +2,7 @@
 
 import { FileText, X } from 'lucide-react';
 import { Contd4Card } from '@/components/grid/Contd4Card';
+import { HybridCapacityEditor } from '@/components/grid/HybridCapacityEditor';
 import { Contd4Attachments } from '@/components/grid/Contd4Attachments';
 import { AuditFeed } from '@/components/grid/AuditFeed';
 import { ProjectHistory } from '@/components/grid/ProjectHistory';
@@ -69,33 +70,9 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
             <InfoRow label="Total Capacity"  value={`${Number(project.totalCapacityMw).toFixed(1)} MW`} />
           </div>
 
-          {/* Hybrid breakdown */}
+          {/* Hybrid breakdown — editable (Wind/Solar/BESS) */}
           {project.plantType.isHybrid && (
-            <div className="rounded-xl border bg-card p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                Hybrid Capacity Breakdown
-              </p>
-              <div className="flex gap-8">
-                {project.windCapacityMw  != null && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Wind</p>
-                    <p className="font-semibold text-sm">{Number(project.windCapacityMw).toFixed(1)} MW</p>
-                  </div>
-                )}
-                {project.solarCapacityMw != null && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Solar</p>
-                    <p className="font-semibold text-sm">{Number(project.solarCapacityMw).toFixed(1)} MW</p>
-                  </div>
-                )}
-                {project.bessCapacityMw  != null && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">BESS</p>
-                    <p className="font-semibold text-sm">{Number(project.bessCapacityMw).toFixed(1)} MW</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <HybridCapacityEditor project={project} canEdit={canEdit} />
           )}
 
           {/* CONTD-4 application — the only tracking section here */}
