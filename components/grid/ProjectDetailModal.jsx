@@ -688,7 +688,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                 className="border-rose-300 text-rose-700 hover:bg-rose-50"
                 title="Remove this project from the FTC tracker (its CONTD-4 application, if any, is kept)"
               >
-                <Trash2 className="size-3.5 mr-1.5" /> Delete FTC Row
+                <Trash2 className="size-3.5 mr-1.5" /> Remove from FTC Tracker
               </Button>
             )}
             <button
@@ -863,7 +863,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-rose-700">
-            <AlertTriangle className="size-4" /> Delete FTC-tracker row?
+            <AlertTriangle className="size-4" /> Remove from FTC tracker?
           </DialogTitle>
           <DialogDescription>
             This removes <span className="font-semibold text-foreground">{project.name}</span> from the FTC
@@ -889,7 +889,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
             </Button>
             <Button type="button" variant="destructive" size="sm" onClick={handleDeleteRow} disabled={isDeleting}>
               <Trash2 className="size-3.5 mr-1.5" />
-              {isDeleting ? 'Deleting…' : 'Delete FTC Row'}
+              {isDeleting ? 'Removing…' : 'Remove from Tracker'}
             </Button>
           </div>
         </DialogBody>

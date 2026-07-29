@@ -579,7 +579,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
                           disabled={isDeleting}
-                          title="Delete FTC-tracker row (its CONTD-4 application, if any, is kept)"
+                          title="Remove from FTC tracker (its CONTD-4 application, if any, is kept)"
                           className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
                         >
                           <Trash2 className="size-3.5" />
@@ -666,7 +666,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-rose-700">
-              <AlertTriangle className="size-4" /> Delete FTC-tracker row?
+              <AlertTriangle className="size-4" /> Remove from FTC tracker?
             </DialogTitle>
             <DialogDescription>
               {deleteTarget && (
@@ -696,7 +696,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
               </Button>
               <Button type="button" variant="destructive" size="sm" onClick={confirmDeleteRow} disabled={isDeleting}>
                 <Trash2 className="size-3.5 mr-1.5" />
-                {isDeleting ? 'Deleting…' : 'Delete FTC Row'}
+                {isDeleting ? 'Removing…' : 'Remove from Tracker'}
               </Button>
             </div>
           </DialogBody>
