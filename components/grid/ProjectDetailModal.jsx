@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers, CheckCircle2, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers, CheckCircle2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { setProjectCommissioned, deleteFtcTrackerRow } from '@/app/actions/grid';
+import { setProjectCommissioned } from '@/app/actions/grid';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { ProjectPhaseTimeline } from '@/components/grid/ProjectPhaseTimeline';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
 import { AuditFeed } from '@/components/grid/AuditFeed';
 import { ProjectHistory } from '@/components/grid/ProjectHistory';
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription, DialogBody } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { CONTD4_STATUS_LABEL, CONTD4_STATUS_BADGE as STATUS_COLORS } from '@/lib/grid-computations';
 
 function SummaryCard({ label, value, sub, color }) {
@@ -533,27 +533,7 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
   // 'timeline' = dated FTC/TOC/COD milestones (when).
   const [detailView, setDetailView] = useState('source'); // 'source' | 'timeline'
   const [commissioning, setCommissioning] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [isDeleting, startDelete] = useTransition();
   const router = useRouter();
-
-  // Deleting an FTC-tracker row is national-tier only (ADMIN / NLDC); RLDCs may
-  // edit their region's data but not delete it (server enforces the same).
-  const canDelete = userRole === 'ADMIN' || userRole === 'NLDC';
-
-  function handleDeleteRow() {
-    if (!project) return;
-    startDelete(async () => {
-      const res = await deleteFtcTrackerRow(project.id);
-      if (res?.error) { toast.error(res.error); return; }
-      toast.success(res.contd4Retained
-        ? `"${project.name}" removed from the FTC tracker. Its CONTD-4 application was kept.`
-        : `"${project.name}" removed from the FTC tracker.`);
-      setConfirmDelete(false);
-      onOpenChange(false);
-      router.refresh();
-    });
-  }
 
   if (!project) return null;
 
@@ -592,7 +572,6 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
   }
 
   return (
-    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent className="max-w-6xl" showClose={false}>
 
@@ -678,17 +657,6 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
               <Button size="sm" onClick={() => setView('add-phase')}>
                 <Plus className="size-3.5 mr-1.5" />
                 Add Source / Component
-              </Button>
-            )}
-            {view === 'detail' && canDelete && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setConfirmDelete(true)}
-                className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                title="Remove this project from the FTC tracker (its CONTD-4 application, if any, is kept)"
-              >
-                <Trash2 className="size-3.5 mr-1.5" /> Remove from FTC Tracker
               </Button>
             )}
             <button
@@ -856,45 +824,5 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
         </div>
       </DialogContent>
     </Dialog>
-
-    {/* Confirm — delete this project's FTC-tracker row. Never cascades into the
-        linked CONTD-4 application. */}
-    <Dialog open={confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(false); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-rose-700">
-            <AlertTriangle className="size-4" /> Remove from FTC tracker?
-          </DialogTitle>
-          <DialogDescription>
-            This removes <span className="font-semibold text-foreground">{project.name}</span> from the FTC
-            tracker and deletes its FTC / TOC / COD commissioning data.
-            {project.contd4 ? (
-              <span className="block mt-2 text-emerald-700">
-                Its linked CONTD-4 application is <strong>kept</strong>
-                {project.contd4.status === 'CLEARED' ? ' and returns to “Under Process” in the CONTD-4 list' : ''} — the two
-                are independent, so this never deletes the CONTD-4 project.
-              </span>
-            ) : (
-              <span className="block mt-2 text-amber-700">
-                This project has no CONTD-4 application, so it will be deactivated.
-              </span>
-            )}
-            <span className="block mt-2 text-xs text-rose-600">This action is logged in the Activity feed.</span>
-          </DialogDescription>
-        </DialogHeader>
-        <DialogBody>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setConfirmDelete(false)} disabled={isDeleting}>
-              Cancel
-            </Button>
-            <Button type="button" variant="destructive" size="sm" onClick={handleDeleteRow} disabled={isDeleting}>
-              <Trash2 className="size-3.5 mr-1.5" />
-              {isDeleting ? 'Removing…' : 'Remove from Tracker'}
-            </Button>
-          </div>
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
-    </>
   );
 }
