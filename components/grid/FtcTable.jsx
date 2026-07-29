@@ -1,14 +1,19 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Search, ChevronsUpDown, ChevronUp, ChevronDown,
-  ChevronLeft, ChevronRight, AlertCircle,
+  ChevronLeft, ChevronRight, AlertCircle, Trash2, AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { contd4CapacityOf } from '@/lib/grid-computations';
+import { deleteFtcTrackerRow } from '@/app/actions/grid';
 
 function mw(val) {
   if (val == null) return '—';
@@ -163,7 +168,29 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   const [sortDir, setSortDir]           = useState('asc');
   const [page, setPage]                 = useState(1);
   const [expanded, setExpanded]         = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, startDelete]       = useTransition();
+  const router = useRouter();
   const PER_PAGE = 10;
+
+  // Deleting an FTC-tracker row is national-tier only (ADMIN / NLDC); the server
+  // enforces the same via canDeleteGridData.
+  const canDelete = userRole === 'ADMIN' || userRole === 'NLDC';
+  const NCOLS = canDelete ? 16 : 15;
+
+  function confirmDeleteRow() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    startDelete(async () => {
+      const res = await deleteFtcTrackerRow(target.id);
+      setDeleteTarget(null);
+      if (res?.error) { toast.error(res.error); return; }
+      toast.success(res.contd4Retained
+        ? `"${target.name}" removed from the FTC tracker. Its CONTD-4 application was kept.`
+        : `"${target.name}" removed from the FTC tracker.`);
+      router.refresh();
+    });
+  }
 
   const regions = useMemo(() => ['All', ...new Set(projects.map((p) => p.region.code))], [projects]);
   const types   = useMemo(() => ['All', ...new Set(projects.map((p) => displayType(p.plantType.label)))], [projects]);
@@ -337,6 +364,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             <col className="w-[92px]" />{/* Expected */}
             <col className="w-[280px]" />{/* History */}
             <col className="w-[40px]" />{/* expand */}
+            {canDelete && <col className="w-[56px]" />}{/* Actions */}
           </colgroup>
           <thead className="bg-muted/30 border-b">
             {/* Group header row */}
@@ -359,6 +387,11 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                 Remarks
               </th>
               <th className="w-[40px]" />
+              {canDelete && (
+                <th className="px-2 py-1.5 text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-widest w-[56px]">
+                  Actions
+                </th>
+              )}
             </tr>
             {/* Column labels */}
             <tr>
@@ -377,12 +410,13 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
               <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30 border-r border-border/40" />
               <Th label="History"            className="min-w-[260px]" />
               <Th label=""                   className="w-[40px]" />
+              {canDelete && <Th label="" className="w-[56px]" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={15} className="px-4 py-12 text-center text-sm">
+                <td colSpan={NCOLS} className="px-4 py-12 text-center text-sm">
                   <p className="text-muted-foreground font-medium">
                     {search || regionFilter !== 'All' || typeFilter !== 'All' || statusFilter !== 'All'
                       ? 'No FTC-pipeline projects match your search / filters.'
@@ -540,6 +574,18 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         </button>
                       )}
                     </td>
+                    {canDelete && (
+                      <td className="px-2 py-3 text-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
+                          disabled={isDeleting}
+                          title="Delete FTC-tracker row (its CONTD-4 application, if any, is kept)"
+                          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
 
@@ -562,6 +608,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
                         <td className="px-2 py-2 font-mono text-xs tabular-nums text-right text-amber-700 bg-amber-50/10 border-r border-border/30">{sr.expected > 0 ? mw(sr.expected) : '—'}</td>
                         <td />  {/* Remarks column placeholder for expanded sub-row */}
                         <td />
+                        {canDelete && <td />}
                       </tr>
                     ))
                   : [];
@@ -612,6 +659,49 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
           </button>
         </div>
       </div>
+
+      {/* Confirm — delete this project's FTC-tracker row. Never cascades into a
+          linked CONTD-4 application. */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-700">
+              <AlertTriangle className="size-4" /> Delete FTC-tracker row?
+            </DialogTitle>
+            <DialogDescription>
+              {deleteTarget && (
+                <>
+                  This removes <span className="font-semibold text-foreground">{deleteTarget.name}</span> from the FTC
+                  tracker and deletes its FTC / TOC / COD commissioning data.
+                  {deleteTarget.contd4 ? (
+                    <span className="block mt-2 text-emerald-700">
+                      Its linked CONTD-4 application is <strong>kept</strong>
+                      {deleteTarget.contd4.status === 'CLEARED' ? ' and returns to “Under Process” in the CONTD-4 list' : ''} —
+                      the two are independent, so this never deletes the CONTD-4 project.
+                    </span>
+                  ) : (
+                    <span className="block mt-2 text-amber-700">
+                      This project has no CONTD-4 application, so it will be deactivated.
+                    </span>
+                  )}
+                  <span className="block mt-2 text-xs text-rose-600">This action is logged in the Activity feed.</span>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" size="sm" onClick={confirmDeleteRow} disabled={isDeleting}>
+                <Trash2 className="size-3.5 mr-1.5" />
+                {isDeleting ? 'Deleting…' : 'Delete FTC Row'}
+              </Button>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
