@@ -3,6 +3,7 @@ import { requireServerUser, buildRegionScope, activePeriodFilter, getUserRegion 
 import { redirect } from 'next/navigation';
 import { serialize } from '@/lib/serialize';
 import { milestoneAsOf } from '@/lib/grid-computations';
+import { applyExpectedForecast, currentMonthKey, monthKeyOf } from '@/lib/expected-forecast';
 import { FtcPageClient } from '@/components/grid/FtcPageClient';
 
 export const metadata = { title: 'FTC Tracker — FTC Portal' };
@@ -132,6 +133,13 @@ export default async function FtcPage({ searchParams }) {
       })),
     }))
   );
+
+  // Roll the per-month expected forecast forward to the reference month
+  // (today, or the asOf month for a snapshot). This overwrites each phase's
+  // expectedApr26Mw with the effective current-month figure (entered +
+  // carried-forward) and stamps _expectedMonthly / _carriedExpected for the editor.
+  const expectedRefMonth = asOf ? monthKeyOf(asOf) : currentMonthKey();
+  applyExpectedForecast(projects, expectedRefMonth);
 
   const enriched = serialize(
     projects.map((p) => ({

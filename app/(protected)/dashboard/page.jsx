@@ -9,6 +9,7 @@ import {
   computeHybridBreakdown, computeMilestoneActivity, computeHybridComponentBreakup,
   getProjectSource, SOURCE_ORDER, isProjectCommissioned,
 } from '@/lib/grid-computations';
+import { applyExpectedForecast, currentMonthKey, monthKeyOf } from '@/lib/expected-forecast';
 
 // Returns ISO date strings (YYYY-MM-DD, UTC) for every day strictly between
 // `fromIso` (exclusive) and `toIso` (inclusive). Used to backfill snapshots
@@ -122,6 +123,12 @@ export default async function DashboardPage({ searchParams }) {
       orderBy: { snapshotDate: 'asc' },
     }),
   ]);
+
+  // Roll the per-month expected forecast forward to the reference month so the
+  // dashboard "Expected" column shows the effective current-month figure
+  // (operator entry + any unmet quantum carried forward). Overwrites each
+  // phase's expectedApr26Mw in place (all Expected consumers sum that field).
+  applyExpectedForecast(projects, asOf ? monthKeyOf(asOf) : currentMonthKey());
 
   // Generation tabs read from the source-filtered set; transmission does not.
   const viewProjects = selectedSources.length

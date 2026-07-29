@@ -14,6 +14,7 @@ import { GovLoader } from '@/components/ui/gov-loader';
 import { AlertCircle, Plus, Trash2, Lock, Pencil, Check, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSettings } from '@/providers/settings-provider';
+import { threeMonths, monthLabel } from '@/lib/expected-forecast';
 
 function fmtRefMonth(ym) {
   if (!ym) return 'Expected';
@@ -73,8 +74,9 @@ const EMPTY_PHASE = {
   proposedFtcDate:    '',
   capacityUnderFtcMw: '',
   capacityUnderTocMw: '',
-  expectedApr26Mw:    '0',
-  expectedMonth:      '',
+  // Rolling 3-month expected forecast: [{ month:'YYYY-MM', mw:'' }, …] for the
+  // current month + next two. Filled per-row at init (months are dynamic).
+  expectedMonths:     [],
   delayRemarks:       '',
   otherRemarks:       '',
   ftcEvents:          [],
@@ -126,7 +128,7 @@ function sumEventsAsOf(evs, cutoff) {
 // form pre-fills with the current state and the save handler routes to
 // an upsert action (existingId carries the phase identity so saving
 // modifies the existing row instead of creating a duplicate).
-function existingPhaseToFormRow(ph, defaultMonth) {
+function existingPhaseToFormRow(ph, three) {
   const ev = (e) => ({
     id: e.id,
     mw: e.capacityMw != null ? String(Number(e.capacityMw)) : '',
@@ -153,10 +155,13 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     }
     return rows;
   };
-  // A stored expected month that's already in the past rolls forward to the
-  // current reference month (same carry-forward convention as the dashboard).
-  const storedMonth = ph.expectedMonth ?? '';
-  const expectedMonth = storedMonth && storedMonth >= defaultMonth ? storedMonth : defaultMonth;
+  // Rolling 3-month expected: seed each of the current-window months from the
+  // phase's stored per-month entries (_expectedMonthly, stamped by the page).
+  const monthly = ph._expectedMonthly ?? {};
+  const expectedMonths = three.map((m) => ({
+    month: m,
+    mw: monthly[m] != null ? String(Number(monthly[m])) : '',
+  }));
   return {
     // Hidden marker — distinguishes "edit this existing phase" from "add a
     // new one". Server action upsertProjectPhases reads it.
@@ -167,8 +172,7 @@ function existingPhaseToFormRow(ph, defaultMonth) {
     proposedFtcDate:    ph.proposedFtcDate    ? new Date(ph.proposedFtcDate).toISOString().slice(0, 10) : '',
     capacityUnderFtcMw: ph.capacityUnderFtcMw != null ? String(Number(ph.capacityUnderFtcMw)) : '',
     capacityUnderTocMw: ph.capacityUnderTocMw != null ? String(Number(ph.capacityUnderTocMw)) : '',
-    expectedApr26Mw:    ph.expectedApr26Mw    != null ? String(Number(ph.expectedApr26Mw))    : '0',
-    expectedMonth,
+    expectedMonths,
     delayRemarks:       ph.delayRemarks ?? '',
     otherRemarks:       ph.otherRemarks ?? '',
     ftcEvents:          eventsOrLegacy(ph.ftcEvents, ph.ftcCompletedMw, ph.ftcCompletedDate),
@@ -222,6 +226,17 @@ export function AddPhasesForm({
   })();
   const canPickExpectedMonth = userRole === 'ADMIN' || userRole === 'NLDC';
   const refMonthLabel = fmtRefMonth(defaultExpectedMonth);
+  // The three editable months (current, +1, +2) for the rolling expected forecast.
+  const three = useMemo(() => threeMonths(defaultExpectedMonth), [defaultExpectedMonth]);
+  // MW carried into the current month from earlier unmet expected, per source
+  // (stamped on each existing phase by the page as `_carriedExpected`).
+  const carriedBySource = useMemo(() => {
+    const m = {};
+    for (const ph of existingPhases) {
+      if (!(ph.sourceType in m)) m[ph.sourceType] = Number(ph._carriedExpected ?? 0) || 0;
+    }
+    return m;
+  }, [existingPhases]);
 
   // Editable capacities. The plant's Total Capacity (and, for hybrids, each
   // component capacity) can be corrected inline here — e.g. to resolve an
@@ -315,13 +330,13 @@ export function AddPhasesForm({
       const ph = byType.get(src);
       byType.delete(src);
       return ph
-        ? existingPhaseToFormRow(ph, defaultExpectedMonth)
-        : { ...EMPTY_PHASE, sourceType: src, expectedMonth: defaultExpectedMonth };
+        ? existingPhaseToFormRow(ph, three)
+        : { ...EMPTY_PHASE, sourceType: src, expectedMonths: three.map((m) => ({ month: m, mw: '' })) };
     });
     // Surface any orphaned phases (sourceType not in plantSources) at the
     // end. Usually empty — but better than silently dropping data.
     for (const ph of byType.values()) {
-      rows.push(existingPhaseToFormRow(ph, defaultExpectedMonth));
+      rows.push(existingPhaseToFormRow(ph, three));
     }
     // The schema needs the flag per row to skip the COD ≤ TOC rule.
     return rows.map((r) => ({ ...r, isIntrastate }));
@@ -456,18 +471,22 @@ export function AddPhasesForm({
   const expectedErrors = useMemo(() => {
     const m = {};
     watchedPhases.forEach((p, i) => {
-      const expected = parseFloat(p.expectedApr26Mw || '0') || 0;
+      // Total forecast = the three entered months + any carried-forward quantum.
+      const entered = (p.expectedMonths ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+      const carried = carriedBySource[p.sourceType] ?? 0;
+      const expected = entered + carried;
       if (expected <= 0) return;
       const cap = capForSource(p.sourceType);
       if (cap == null) return;
       const cod = sumEvents(p.codEvents ?? []);
       const remaining = cap - cod;
       if (expected > remaining + 0.01) {
-        m[i] = `Exceeded: Expected (${expected.toFixed(1)} MW) is more than the remaining capacity (Total ${cap.toFixed(1)} − COD ${cod.toFixed(1)} = ${Math.max(0, remaining).toFixed(1)} MW)`;
+        const carriedNote = carried > 0 ? ` (incl. ${carried.toFixed(1)} carried)` : '';
+        m[i] = `Exceeded: total Expected (${expected.toFixed(1)} MW${carriedNote}) is more than the remaining capacity (Total ${cap.toFixed(1)} − COD ${cod.toFixed(1)} = ${Math.max(0, remaining).toFixed(1)} MW)`;
       }
     });
     return m;
-  }, [watchedPhases, caps, plantType.isHybrid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [watchedPhases, caps, plantType.isHybrid, carriedBySource]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasExpectedErrors = Object.keys(expectedErrors).length > 0;
 
   const saveDisabled = pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid;
@@ -740,6 +759,8 @@ export function AddPhasesForm({
             capForSource={capForSource}
             isIntrastate={isIntrastate}
             expectedError={expectedErrors[i]}
+            threeMonths={three}
+            carriedBySource={carriedBySource}
           />
         ))}
 
@@ -772,7 +793,7 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0 }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
@@ -985,34 +1006,39 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
               Add {st.label} Event
             </button>
           </div>
-          <div className="w-56">
-            <label className="text-[10px] font-medium text-foreground block mb-1 flex items-center gap-1">
-              Expected{' '}
-              {canPickExpectedMonth ? (
-                // ADMIN/NLDC: free month dropdown so back-dated entries can
-                // target any month (e.g. recording Apr'26 expected in May).
-                <select
-                  value={form.watch(`phases.${phaseIndex}.expectedMonth`) ?? ''}
-                  onChange={(e) => form.setValue(`phases.${phaseIndex}.expectedMonth`, e.target.value, { shouldValidate: false })}
-                  className="inline-flex h-5 rounded border border-input bg-background px-1 text-[10px] font-medium"
-                >
-                  {MONTH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              ) : (
-                // RLDC: locked to the current reference month — show the label only.
-                <span className="font-semibold">
-                  {fmtMonthShort(form.watch(`phases.${phaseIndex}.expectedMonth`)) || refMonthLabel.replace('Exp. ', '').replace(' (MW)', '')}
-                </span>
-              )}
-              <span>(MW)</span>
+          <div className="w-[420px]">
+            <label className="text-[10px] font-medium text-foreground block mb-1">
+              Expected commissioning (MW) — next 3 months
             </label>
-            <Input
-              type="number"
-              step="0.01"
-              {...form.register(`phases.${phaseIndex}.expectedApr26Mw`)}
-              className={`h-8 text-xs ${expectedError ? 'border-red-400' : ''}`}
-              placeholder="Expected MW"
-            />
+            <div className="grid grid-cols-3 gap-2">
+              {threeMonths.map((m, mi) => (
+                <div key={m}>
+                  <div className="text-[10px] font-semibold text-muted-foreground mb-0.5 flex items-center justify-between">
+                    <span>{monthLabel(m)}</span>
+                    {mi === 0 && carried > 0 && (
+                      <span
+                        className="text-[9px] font-medium text-amber-700"
+                        title={`${carried.toFixed(1)} MW carried forward from earlier unmet expected`}
+                      >
+                        +{carried.toFixed(1)} carried
+                      </span>
+                    )}
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...form.register(`phases.${phaseIndex}.expectedMonths.${mi}.mw`)}
+                    className={`h-8 text-xs ${expectedError ? 'border-red-400' : ''}`}
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
+            {carried > 0 && (
+              <p className="text-[10px] text-amber-700 mt-1">
+                {carried.toFixed(1)} MW carried into {monthLabel(threeMonths[0])} from earlier months not met — added to the {monthLabel(threeMonths[0])} figure.
+              </p>
+            )}
             {expectedError && (
               <p className="text-[10px] text-destructive mt-1">{expectedError}</p>
             )}
@@ -1033,7 +1059,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {} }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -1213,6 +1239,8 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         priorEvents={isIntrastate ? [] : watchedTocEvents}
         priorLabel="TOC"
         expectedError={expectedError}
+        threeMonths={threeMonths}
+        carried={carriedBySource[selectedSource] ?? 0}
       />
 
       {/* Remarks */}

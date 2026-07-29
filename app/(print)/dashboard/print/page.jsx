@@ -8,6 +8,7 @@ import {
   computeMilestoneActivity, isProjectCommissioned,
   computeHybridComponentBreakup, inclHybridSourceTotals, expandRegionRowsWithHybrid,
 } from '@/lib/grid-computations';
+import { applyExpectedForecast, currentMonthKey, monthKeyOf } from '@/lib/expected-forecast';
 
 export const metadata = { title: 'Print Summary — FTC Portal' };
 
@@ -56,6 +57,10 @@ export default async function PrintSummaryPage({ searchParams }) {
       include: { region: true },
     }),
   ]);
+
+  // Roll the per-month expected forecast to the reference month (matches the
+  // dashboard / FTC tracker "Expected" figures).
+  applyExpectedForecast(projects, asOf ? monthKeyOf(asOf) : currentMonthKey());
 
   // "Exclude Commissioned" narrows only the FTC pipeline tables (matching the
   // dashboard's scoping); CONTD-4 / transmission / hybrid / activity stay full.

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx-js-style';
 import { prisma } from '@/lib/prisma';
 import { requireServerUser, buildRegionScope, activePeriodFilter } from '@/lib/server-auth';
+import { applyExpectedForecast, currentMonthKey, monthKeyOf } from '@/lib/expected-forecast';
 import {
   n, REGION_ORDER, SOURCE_ORDER, getProjectSource, isInFtcPipeline,
   computePipelineMatrix, buildPipelineRows,
@@ -468,7 +469,7 @@ export async function GET(request) {
       where: { ...scope, ...activeFilter },
       include: {
         region: true, plantType: true, contd4: true,
-        phases: true, poolingStation: true,
+        phases: { include: { codEvents: true } }, poolingStation: true,
       },
     }),
     prisma.transmissionElement.findMany({
@@ -476,6 +477,10 @@ export async function GET(request) {
       include: { region: true },
     }),
   ]);
+
+  // Roll the per-month expected forecast to the reference month so the
+  // "Expected" figures match the dashboard / FTC tracker.
+  applyExpectedForecast(projects, asOf ? monthKeyOf(asOf) : currentMonthKey());
 
   // Build computations
   // "Exclude Commissioned" narrows only the FTC pipeline sheets (matching the

@@ -81,6 +81,26 @@ function parseDate(val) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Build the rolling per-month expected map { 'YYYY-MM': mw } for a phase.
+// Merges the form's current-window entries onto the existing stored map so
+// earlier months (which the form no longer shows) persist for carry-forward.
+// An empty/zero entry clears that month. Returns null when nothing remains.
+function buildExpectedMonthly(formMonths, existingJson) {
+  const map = (existingJson && typeof existingJson === 'object' && !Array.isArray(existingJson))
+    ? { ...existingJson } : {};
+  for (const em of formMonths ?? []) {
+    if (!em?.month || !/^\d{4}-\d{2}$/.test(em.month)) continue;
+    const mw = parseFloat(em.mw);
+    if (Number.isFinite(mw) && mw > 0) map[em.month] = Math.round(mw * 100) / 100;
+    else delete map[em.month];
+  }
+  const clean = {};
+  for (const [k, v] of Object.entries(map)) {
+    if (/^\d{4}-\d{2}$/.test(k) && Number(v) > 0) clean[k] = Number(v);
+  }
+  return Object.keys(clean).length ? clean : null;
+}
+
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const fmtMw   = (v) => (v != null && v !== '' ? `${Number(v).toFixed(2)} MW` : '—');
 const fmtStr  = (v) => (v != null && v !== '' ? String(v) : '—');
@@ -1748,8 +1768,9 @@ export async function addCommissioningPhases(projectId, formData) {
           capacityUnderTocMw: parseDecimal(p.capacityUnderTocMw),
           codDeclaredMw:      codTotal > 0 ? codTotal : null,
           codDeclaredDate:    evLatestDate(p.codEvents),
-          expectedApr26Mw:    parseDecimal(p.expectedApr26Mw),
-          expectedMonth:      p.expectedMonth || null,
+          expectedMonthlyJson: buildExpectedMonthly(p.expectedMonths, null),
+          expectedApr26Mw:    (p.expectedMonths ?? [])[0] ? parseDecimal((p.expectedMonths ?? [])[0].mw) : parseDecimal(p.expectedApr26Mw),
+          expectedMonth:      (p.expectedMonths ?? [])[0]?.month || p.expectedMonth || null,
           delayRemarks:       p.delayRemarks || null,
           otherRemarks:       p.otherRemarks || null,
           // Event records — one row per partial FTC / TOC / COD commissioning
@@ -1889,10 +1910,11 @@ export async function upsertProjectPhases(projectId, formData) {
     if (!dates.length) return null;
     return dates.reduce((max, d) => (d > max ? d : max));
   };
-  const phaseData = (p) => {
+  const phaseData = (p, existingJson = null) => {
     const ftcTotal = evSum(p.ftcEvents);
     const tocTotal = evSum(p.tocEvents);
     const codTotal = evSum(p.codEvents);
+    const firstMonth = (p.expectedMonths ?? [])[0];
     return {
       sourceType:         p.sourceType,
       capacityAppliedMw:  parseFloat(p.capacityAppliedMw),
@@ -1906,8 +1928,11 @@ export async function upsertProjectPhases(projectId, formData) {
       capacityUnderTocMw: parseDecimal(p.capacityUnderTocMw),
       codDeclaredMw:      codTotal > 0 ? codTotal : null,
       codDeclaredDate:    evLatestDate(p.codEvents),
-      expectedApr26Mw:    parseDecimal(p.expectedApr26Mw),
-      expectedMonth:      p.expectedMonth || null,
+      // Merge the form's 3 current-window months onto the stored map so earlier
+      // months persist for carry-forward. Legacy scalar kept as a rough cache.
+      expectedMonthlyJson: buildExpectedMonthly(p.expectedMonths, existingJson),
+      expectedApr26Mw:    firstMonth ? parseDecimal(firstMonth.mw) : parseDecimal(p.expectedApr26Mw),
+      expectedMonth:      firstMonth?.month || p.expectedMonth || null,
       delayRemarks:       p.delayRemarks || null,
       otherRemarks:       p.otherRemarks || null,
     };
@@ -1965,7 +1990,7 @@ export async function upsertProjectPhases(projectId, formData) {
       for (const p of updatedPhases) {
         const existing = existingByOwnId.get(p.existingId);
         if (!existing) continue;
-        await tx.commissioningPhase.update({ where: { id: p.existingId }, data: phaseData(p) });
+        await tx.commissioningPhase.update({ where: { id: p.existingId }, data: phaseData(p, existing.expectedMonthlyJson) });
         await reconcileEvents(tx, 'ftcEvent', p.existingId, p.ftcEvents);
         await reconcileEvents(tx, 'tocEvent', p.existingId, p.tocEvents);
         await reconcileEvents(tx, 'codEvent', p.existingId, p.codEvents);
@@ -2071,8 +2096,18 @@ export async function updateCommissioningPhase(phaseId, formData) {
       capacityUnderTocMw:  parseDecimal(formData.capacityUnderTocMw),
       codDeclaredMw:       parseDecimal(formData.codDeclaredMw),
       codDeclaredDate:     parseDate(formData.codDeclaredDate),
-      expectedApr26Mw:     parseDecimal(formData.expectedApr26Mw),
-      expectedMonth:       formData.expectedMonth || null,
+      // Merge the rolling months when provided; otherwise fall back to the
+      // legacy single expected scalar for callers that still send it.
+      ...(formData.expectedMonths
+        ? {
+            expectedMonthlyJson: buildExpectedMonthly(formData.expectedMonths, phase.expectedMonthlyJson),
+            expectedApr26Mw:     (formData.expectedMonths[0] ? parseDecimal(formData.expectedMonths[0].mw) : null),
+            expectedMonth:       formData.expectedMonths[0]?.month || null,
+          }
+        : {
+            expectedApr26Mw:     parseDecimal(formData.expectedApr26Mw),
+            expectedMonth:       formData.expectedMonth || null,
+          }),
       delayCategory:       formData.delayCategory || null,
       delayRemarks:        formData.delayRemarks || null,
       otherRemarks:        formData.otherRemarks || null,
@@ -2090,7 +2125,7 @@ export async function updateCommissioningPhase(phaseId, formData) {
     { field: `${prefix} — Under TOC`,        old: fmtMw(phase.capacityUnderTocMw),  new: fmtMw(formData.capacityUnderTocMw) },
     { field: `${prefix} — COD Declared`,     old: fmtMw(phase.codDeclaredMw),       new: fmtMw(formData.codDeclaredMw) },
     { field: `${prefix} — COD Date`,         old: fmtDate(phase.codDeclaredDate),   new: fmtDate(parseDate(formData.codDeclaredDate)) },
-    { field: `${prefix} — Expected`,         old: fmtMw(phase.expectedApr26Mw),     new: fmtMw(formData.expectedApr26Mw) },
+    { field: `${prefix} — Expected`,         old: fmtMw(phase.expectedApr26Mw),     new: fmtMw(formData.expectedMonths ? (formData.expectedMonths[0]?.mw) : formData.expectedApr26Mw) },
     { field: `${prefix} — Delay Category`,   old: fmtStr(phase.delayCategory),      new: fmtStr(formData.delayCategory) },
     { field: `${prefix} — Delay Remarks`,    old: fmtStr(phase.delayRemarks),       new: fmtStr(formData.delayRemarks) },
   ], phase.projectId, user.id, phaseId);

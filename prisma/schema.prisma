@@ -315,8 +315,16 @@ model CommissioningPhase {
   // entering back-dated data) record an "expected commissioning" against any
   // month, not just the rolling current month. Null falls back to today's
   // YYYY-MM at display time for backward compat with rows created before
-  // this column existed.
+  // this column existed. Legacy: superseded by expectedMonthlyJson.
   expectedMonth   String?
+  // Rolling 3-month expected-commissioning forecast, keyed by absolute month:
+  //   { "2026-07": 37.5, "2026-08": 50, "2026-09": 125 }
+  // The operator enters the current month + next two; earlier months persist so
+  // any unmet quantum (expected − COD commissioned that month) carries forward
+  // into the current month — computed live off the calendar (see
+  // lib/expected-forecast.js). Falls back to {expectedMonth: expectedApr26Mw}
+  // for phases created before this column existed.
+  expectedMonthlyJson Json?
 
   delayCategory String?
   delayRemarks  String?
