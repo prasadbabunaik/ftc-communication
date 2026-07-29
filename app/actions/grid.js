@@ -961,6 +961,71 @@ export async function deleteContd4Application(projectId) {
   return { success: true, ftcRetained: hasFtcData };
 }
 
+// Inverse of deleteContd4Application: removes a project's FTC-tracker footprint
+// (all commissioning phases + their FTC/TOC/COD events, and pipeline membership)
+// WITHOUT deleting a linked CONTD-4 application — the two are independent, so
+// deleting the FTC row must never cascade into CONTD-4. If the project has a
+// CONTD-4 application it is kept: a CLEARED clearance (the pipeline "bridge") is
+// reverted to Under Process so the row actually leaves the tracker while the
+// application itself is preserved. A pure FTC row (no CONTD-4) is deactivated.
+export async function deleteFtcTrackerRow(projectId) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canDeleteGridData(user.role)) return { error: 'Only Administrator or NLDC accounts can delete FTC-tracker rows.' };
+
+  const project = await prisma.generationProject.findUnique({
+    where: { id: projectId },
+    include: { contd4: { select: { id: true, status: true } } },
+  });
+  if (!project) return { error: 'Project not found.' };
+
+  const scope = await buildRegionScope(user.role);
+  if (scope.regionId && scope.regionId !== project.regionId) return { error: 'Access denied.' };
+
+  const hasContd4  = !!project.contd4;
+  const wasCleared = project.contd4?.status === 'CLEARED';
+
+  await prisma.$transaction(async (tx) => {
+    // Drop all FTC data — deleting the commissioning phases cascades their
+    // FTC/TOC/COD events. The CONTD-4 application + its dated phases are untouched.
+    await tx.commissioningPhase.deleteMany({ where: { projectId } });
+
+    const data = { inFtcPipeline: false };  // leave the flag side of the pipeline OR
+    if (hasContd4) {
+      // Keep the CONTD-4 application. If it was in via the CLEARED bridge, revert
+      // to Under Process so the row leaves the tracker (the application is kept).
+      if (wasCleared) {
+        await tx.contd4Application.update({ where: { id: project.contd4.id }, data: { status: 'UNDER_PROCESS' } });
+      }
+    } else {
+      // No CONTD-4 to fall back to — deactivate the now-empty project.
+      data.activeUntil = new Date();
+    }
+    await tx.generationProject.update({ where: { id: projectId }, data });
+
+    const notes = [{
+      projectId, projectName: project.name, userId: user.id, source: 'SYSTEM',
+      text: hasContd4
+        ? `FTC-tracker data deleted; CONTD-4 application retained${wasCleared ? ' (returned to Under Process).' : '.'}`
+        : 'FTC-tracker row deleted; project deactivated (no CONTD-4 application).',
+    }];
+    // Log the status revert as a field-level note so the CONTD-4 status replay
+    // (statusAsOf) stays consistent with the change.
+    if (wasCleared) {
+      notes.push({
+        projectId, projectName: project.name, userId: user.id, source: 'SYSTEM',
+        field: 'Status', oldValue: 'CLEARED', newValue: 'UNDER_PROCESS',
+        text: 'Status: CLEARED → UNDER_PROCESS (FTC-tracker row deleted)',
+      });
+    }
+    await tx.projectNote.createMany({ data: notes });
+  });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true, contd4Retained: hasContd4 };
+}
+
 // ─── CONTD-4 ATTACHMENTS ────────────────────────────────────────────────────
 // Project documents uploaded from the CONTD-4 module, each with an optional
 // remark. Bytes are stored in the DB (see the Contd4Attachment model comment).
