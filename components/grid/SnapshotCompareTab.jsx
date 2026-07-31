@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History, Search, X } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { apiFetch } from '@/lib/api-fetch';
 
@@ -450,6 +450,7 @@ function ChangeLog() {
   const [rows, setRows] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
 
   const load = (f = from, t = to) => {
     setLoading(true); setError(null);
@@ -467,9 +468,24 @@ function ChangeLog() {
   const fmtDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const KIND_TONE = { PROJECT: 'bg-blue-100 text-blue-700', TRANSMISSION: 'bg-teal-100 text-teal-700' };
 
-  // Group rows by the calendar day they were recorded (effectiveDate ?? createdAt).
+  // Free-text filter over entity, region, user, type, and each underlying
+  // field / old→new value / note. Space-separated terms must ALL match.
+  const rowMatches = (r, terms) => {
+    const hay = [
+      r.entityName, r.region, r.userName, r.userRole,
+      r.kind === 'TRANSMISSION' ? 'tx transmission' : 'gen generation',
+      r.backDated ? 'back-dated backdated' : '',
+      ...(r.changes ?? []).flatMap((c) => [c.field, c.oldValue, c.newValue, c.text]),
+    ].filter(Boolean).join(' ').toLowerCase();
+    return terms.every((t) => hay.includes(t));
+  };
+  const terms = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const filteredRows = terms.length ? (rows ?? []).filter((r) => rowMatches(r, terms)) : (rows ?? []);
+  const totalCount = (rows ?? []).length;
+
+  // Group (filtered) rows by the calendar day they were recorded (effectiveDate ?? createdAt).
   const grouped = {};
-  for (const r of (rows ?? [])) {
+  for (const r of filteredRows) {
     const day = new Date(r.effectiveDate ?? r.createdAt).toISOString().slice(0, 10);
     (grouped[day] ??= []).push(r);
   }
@@ -496,15 +512,44 @@ function ChangeLog() {
             <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Loading…' : 'Refresh'}
           </button>
         </div>
+        {/* Free-text search over the loaded changes */}
+        <div className="mt-3 relative max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search station / element, field, value or user…"
+            className="w-full h-10 pl-9 pr-9 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              title="Clear search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
           Each row is recorded when entered. Back-dated edits (ADMIN/NLDC) appear under their effective date with a tag.
+          {search && !loading && (
+            <span className="ml-1 text-slate-600">
+              · {filteredRows.length} of {totalCount} match “{search}”.
+            </span>
+          )}
         </p>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
       {!loading && days.length === 0 && (
         <div className="flex items-center gap-2 p-6 rounded-lg bg-slate-50 border border-border text-muted-foreground text-sm">
-          <Minus className="size-4" /> No changes recorded in this window. Changes you make in the app will appear here with a timestamp.
+          <Minus className="size-4" />
+          {terms.length && totalCount > 0
+            ? <>No changes match “{search}”. <button type="button" onClick={() => setSearch('')} className="ml-1 text-blue-600 hover:underline">Clear search</button></>
+            : 'No changes recorded in this window. Changes you make in the app will appear here with a timestamp.'}
         </div>
       )}
 
