@@ -511,27 +511,27 @@ function ChangeLog() {
           >
             <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Loading…' : 'Refresh'}
           </button>
-        </div>
-        {/* Free-text search over the loaded changes */}
-        <div className="mt-3 relative max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search station / element, field, value or user…"
-            className="w-full h-10 pl-9 pr-9 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              title="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              <X className="size-4" />
-            </button>
-          )}
+          {/* Free-text search — right-aligned in the same row as the date range */}
+          <div className="relative ml-auto w-full sm:w-80 md:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search station / element, field, value or user…"
+              className="w-full h-10 pl-9 pr-9 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                title="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
           Each row is recorded when entered. Back-dated edits (ADMIN/NLDC) appear under their effective date with a tag.
