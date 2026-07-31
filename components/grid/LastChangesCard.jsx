@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Activity, ChevronRight, Minus, Clock } from 'lucide-react';
+import { apiFetch } from '@/lib/api-fetch';
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -28,7 +29,7 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/grid/audit?from=${from}&to=${to}&limit=50`)
+    apiFetch(`/api/grid/audit?from=${from}&to=${to}&limit=50`)
       .then(r => r.json())
       .then(j => {
         if (cancelled) return;

@@ -4,6 +4,7 @@ import { Fragment, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
+import { apiFetch } from '@/lib/api-fetch';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -248,7 +249,7 @@ export function SnapshotCompareTab() {
     // resolves each picked date to its effective snapshot (latest on or
     // before the date), so users don't need to know which days actually have
     // a snapshot row.
-    fetch('/api/grid/snapshots?changesOnly=1')
+    apiFetch('/api/grid/snapshots?changesOnly=1')
       .then(r => r.json())
       .then(d => {
         const snaps = d.data ?? [];
@@ -270,7 +271,7 @@ export function SnapshotCompareTab() {
     if (fromDate === toDate) { setError('Select two different dates'); return; }
     setLoading(true); setError(null); setDiff(null);
     try {
-      const res = await fetch(`/api/grid/snapshots/compare?from=${fromDate}&to=${toDate}`);
+      const res = await apiFetch(`/api/grid/snapshots/compare?from=${fromDate}&to=${toDate}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error');
       // The endpoint now returns 200 with data:null + an error message when
@@ -452,7 +453,7 @@ function ChangeLog() {
 
   const load = (f = from, t = to) => {
     setLoading(true); setError(null);
-    fetch(`/api/grid/audit?from=${f}&to=${t}&limit=500`)
+    apiFetch(`/api/grid/audit?from=${f}&to=${t}&limit=500`)
       .then(r => r.json())
       .then(j => { if (j.error) setError(j.error); else setRows(j.data ?? []); })
       .catch(e => setError(e.message))

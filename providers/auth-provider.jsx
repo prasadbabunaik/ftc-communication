@@ -97,6 +97,21 @@ export function AuthProvider({ children }) {
     return () => clearInterval(intervalRef.current);
   }, [user, doRefresh]);
 
+  // Refresh when the tab regains focus. The 12-min interval above is throttled
+  // by the browser while the tab is backgrounded, so the 15-min access token
+  // can lapse — and the next API call (e.g. the Change Log) would 401. Grabbing
+  // a fresh token on focus keeps those requests authorized.
+  useEffect(() => {
+    if (!user) return;
+    const refreshOnFocus = () => { if (document.visibilityState === 'visible') doRefresh(); };
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    window.addEventListener('focus', refreshOnFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+      window.removeEventListener('focus', refreshOnFocus);
+    };
+  }, [user, doRefresh]);
+
   // Inactivity logout — checks every 60s, forces logout after 30 min idle
   useEffect(() => {
     if (!user) {
