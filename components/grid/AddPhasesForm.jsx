@@ -1008,7 +1008,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
           </div>
           <div className="w-[420px]">
             <label className="text-[10px] font-medium text-foreground block mb-1">
-              Expected commissioning (MW) — next 3 months
+              Expected commissioning (MW)
             </label>
             <div className="grid grid-cols-3 gap-2">
               {threeMonths.map((m, mi) => (
