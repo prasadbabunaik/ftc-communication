@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, ChevronRight, Minus, Clock } from 'lucide-react';
 import { apiFetch } from '@/lib/api-fetch';
+import { useAuth } from '@/providers/auth-provider';
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -16,6 +17,25 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
   const [total,   setTotal]   = useState(0);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+  const [tick,    setTick]    = useState(0);   // bumped to force a re-fetch
+
+  // The audit is region-scoped by the caller's role (incl. the ADMIN "View as"
+  // overlay), which changes here when the switcher runs fetchUser(). Re-fetch on
+  // that change so the banner re-scopes when the role is switched.
+  const { user } = useAuth();
+  const viewAsRole = user?.role;
+
+  // Also re-fetch when the tab regains focus, so a change entered by someone
+  // else (or in another tab) while this one sat open shows up on return.
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState === 'visible') setTick((t) => t + 1); };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
 
   // Audit-time window. This card now reports what was ENTERED / EDITED (the
   // audit trail), not the milestone-state diff. Default: changes entered
@@ -45,7 +65,7 @@ export function LastChangesCard({ availableSnapshots, currentAsOf, onOpenRangeDi
       .catch(e => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [from, to]);
+  }, [from, to, viewAsRole, tick]);
 
   const wrapper = 'rounded-lg border px-3 py-1.5 flex items-center gap-2 text-[12px]';
 
