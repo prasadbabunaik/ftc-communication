@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History, Search, X } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { apiFetch } from '@/lib/api-fetch';
+import { useAuth } from '@/providers/auth-provider';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -229,6 +230,13 @@ function T3DiffTable({ changes }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function SnapshotCompareTab() {
+  // The day-wise changes are region-scoped server-side by the caller's role,
+  // including an ADMIN "View as" overlay. The switcher updates the session
+  // cookie and calls fetchUser(), so the auth user's role changes here — used
+  // below to re-fetch (re-scope) in place when the view-as role changes,
+  // without resetting the current sub-view or date pickers.
+  const { user } = useAuth();
+  const viewAsRole = user?.role;
   // Two complementary views:
   //   • movement  — milestone-date diff between two dates (how much FTC/TOC/
   //                 COD moved by milestone date). Event-date based.
@@ -290,6 +298,14 @@ export function SnapshotCompareTab() {
     }
   };
 
+  // Re-run the on-screen comparison when the ADMIN "View as" role changes, so
+  // the region scope updates in place (the compare API filters by the role's
+  // region). No-op on first mount (dates aren't chosen yet).
+  useEffect(() => {
+    if (fromDate && toDate && fromDate !== toDate) loadDiff();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewAsRole]);
+
   const fmtDate = (iso) => {
     if (!iso) return '';
     const d = new Date(iso + 'T00:00:00Z');
@@ -322,7 +338,7 @@ export function SnapshotCompareTab() {
         </button>
       </div>
 
-      {view === 'changelog' ? <ChangeLog /> : (
+      {view === 'changelog' ? <ChangeLog viewAsRole={viewAsRole} /> : (
       <>
       {/* Controls */}
       <div className="bg-white border border-border rounded-lg p-4">
@@ -434,7 +450,7 @@ export function SnapshotCompareTab() {
 // edits) by the time it was ENTERED. Back-dated changes are tagged and
 // positioned by their effective date. This is the "which change was made at
 // what time" view, distinct from the milestone-movement diff above.
-function ChangeLog() {
+function ChangeLog({ viewAsRole }) {
   const router    = useRouter();
   // Clicking a change jumps to the entity (project → FTC tracker, opening its
   // detail; transmission → transmission page) with that row highlighted.
@@ -460,7 +476,9 @@ function ChangeLog() {
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  // Load on mount and re-load when the ADMIN "View as" role changes, so the
+  // region-scoped change log re-fetches in place (keeps the chosen date range).
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [viewAsRole]);
 
   const fmtTs = (iso) => new Date(iso).toLocaleString('en-IN', {
     day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
