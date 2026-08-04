@@ -87,7 +87,10 @@ export function AuthProvider({ children }) {
       // redirect below so they can re-enter credentials.
     }
     setUser(null);
-    window.location.replace('/login');
+    // ?loggedout=1 suppresses the login page's automatic silent Microsoft
+    // sign-in — logging out of the portal doesn't end the Microsoft session, so
+    // without this flag the user could be silently signed straight back in.
+    window.location.replace('/login?loggedout=1');
   }, []);
 
   // Keep a stable ref to logout so the inactivity interval can call it

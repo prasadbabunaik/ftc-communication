@@ -135,14 +135,45 @@ export default function LoginPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [ssoError, setSsoError] = useState(null);
+  const [ssoAttempting, setSsoAttempting] = useState(false);
 
-  // Surface ?sso_error=… returned by the Entra callback (then strip it from the URL).
+  // Handle the Entra callback flags and — when appropriate — attempt an
+  // automatic SILENT Microsoft sign-in.
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('sso_error');
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+
+    // Surface any ?sso_error returned by the callback (then strip it from the URL).
+    const code = params.get('sso_error');
     if (code) {
       setSsoError(SSO_ERRORS[code] ?? 'Microsoft sign-in failed. Please try again.');
       const u = new URL(window.location.href);
       u.searchParams.delete('sso_error');
+      window.history.replaceState({}, '', u.toString());
+    }
+
+    // Automatic single sign-on: if the browser already has a Microsoft session
+    // (the user is signed into Office 365, or on an Entra-joined PC), silently
+    // log them in with no prompt. Tried once per browser tab — a ?silent=failed
+    // flag (the callback sets it when interaction is needed), an explicit
+    // sso_error, a just-logged-out flag, and a sessionStorage marker all suppress
+    // it so we never loop or sign a user straight back in after they log out
+    // (logging out of the portal does NOT log them out of Microsoft).
+    const silentFailed  = params.get('silent') === 'failed';
+    const justLoggedOut = params.get('loggedout') === '1' || !!params.get('reason');
+    const alreadyTried  = sessionStorage.getItem('ssoSilentTried') === '1';
+    if (SSO_ENABLED && !code && !silentFailed && !justLoggedOut && !alreadyTried) {
+      sessionStorage.setItem('ssoSilentTried', '1');
+      setSsoAttempting(true);
+      window.location.href = '/api/auth/sso/login?silent=1';
+      return;
+    }
+
+    // Strip the benign silent=failed / loggedout flags from the URL bar.
+    if (silentFailed || params.get('loggedout')) {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('silent');
+      u.searchParams.delete('loggedout');
       window.history.replaceState({}, '', u.toString());
     }
   }, []);
@@ -233,6 +264,21 @@ export default function LoginPage() {
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  // While the automatic Microsoft sign-in is in flight, show a brief "checking"
+  // screen instead of flashing the login form (we're about to redirect to Entra).
+  if (ssoAttempting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#eef2f7' }}>
+        <GovLoader
+          size="page"
+          theme="navy"
+          label="Checking your Microsoft sign-in…"
+          sublabel="Please wait. Do not refresh this page."
+        />
+      </div>
+    );
   }
 
   return (

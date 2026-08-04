@@ -17,7 +17,19 @@ export async function GET(req) {
   const nonce = randomToken();
   const { verifier, challenge } = makePkce();
 
-  const authorizeUrl = buildAuthorizeUrl(c, { state, nonce, codeChallenge: challenge });
+  // ?silent=1 → attempt a no-UI sign-in (prompt=none). If the browser has an
+  // active Microsoft session (the user is signed into Office 365 / on an
+  // Entra-joined PC), Entra returns a code and the user is logged in with zero
+  // interaction. Otherwise it returns an error and the callback quietly falls
+  // back to the login form (see the sso_silent cookie below).
+  const silent = new URL(req.url).searchParams.get('silent') === '1';
+
+  const authorizeUrl = buildAuthorizeUrl(c, {
+    state,
+    nonce,
+    codeChallenge: challenge,
+    ...(silent ? { prompt: 'none' } : {}),
+  });
   const res = NextResponse.redirect(authorizeUrl);
 
   const isProd = process.env.NODE_ENV === 'production';
@@ -31,6 +43,9 @@ export async function GET(req) {
   res.cookies.set('sso_state', state, cookieOpts);
   res.cookies.set('sso_nonce', nonce, cookieOpts);
   res.cookies.set('sso_verifier', verifier, cookieOpts);
+  // Lets the callback distinguish a silent attempt (fall back quietly) from an
+  // interactive one (show a real error).
+  if (silent) res.cookies.set('sso_silent', '1', cookieOpts);
 
   return res;
 }

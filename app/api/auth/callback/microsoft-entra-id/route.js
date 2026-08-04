@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 function clearTransientCookies(res) {
-  for (const name of ['sso_state', 'sso_nonce', 'sso_verifier']) {
+  for (const name of ['sso_state', 'sso_nonce', 'sso_verifier', 'sso_silent']) {
     res.cookies.set(name, '', { path: '/', maxAge: 0 });
   }
 }
@@ -48,15 +48,26 @@ export async function GET(req) {
     }),
   );
 
-  if (oauthError) return fail(req, 'denied');
-  if (!code || !state) return fail(req, 'invalid');
+  // A silent (prompt=none) attempt that can't complete without UI must NOT show
+  // an error — Entra returns login_required/interaction_required when there is no
+  // usable session. Fall back to the login form with a benign flag so the page
+  // knows not to auto-retry (avoids a redirect loop).
+  const isSilent = jar['sso_silent'] === '1';
+  const silentFallback = () => {
+    const res = NextResponse.redirect(new URL('/login?silent=failed', appOrigin(req)));
+    clearTransientCookies(res);
+    return res;
+  };
+
+  if (oauthError) return isSilent ? silentFallback() : fail(req, 'denied');
+  if (!code || !state) return isSilent ? silentFallback() : fail(req, 'invalid');
 
   // 1. CSRF: the state echoed back must match the one we set before redirecting.
   const expectedState = jar['sso_state'];
   const nonce = jar['sso_nonce'];
   const verifier = jar['sso_verifier'];
   if (!expectedState || !nonce || !verifier || state !== expectedState) {
-    return fail(req, 'state');
+    return isSilent ? silentFallback() : fail(req, 'state');
   }
 
   // 2. Exchange the auth code (PKCE verifier + client secret) for tokens.
