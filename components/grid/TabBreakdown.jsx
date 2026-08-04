@@ -89,6 +89,24 @@ function contributorToRow(c, region) {
   ];
 }
 
+// Convert a hybrid contributor's source component into the same 19-column
+// shape as contributorToRow, but with the source name (indented) in the
+// "Generating Station" column and the pooling/region/proposed/remark columns
+// blanked — it hangs under its parent project row. Mirrors the on-screen
+// "↳ Wind / ↳ Solar / ↳ BESS" bifurcation sub-rows.
+function componentToRow(sc) {
+  const label = `    ↳ ${CONTD4_SOURCE_LABEL[sc.component] ?? sc.component}`;
+  const r3 = (x) => Math.round((Number(x) || 0) * 1000) / 1000;   // tame float noise
+  return [
+    label, '', '',
+    r3(sc.total), r3(sc.contd4), r3(sc.applied),
+    r3(sc.ftc), flattenEventDates(sc.ftcEvents, true),
+    r3(sc.toc), flattenEventDates(sc.tocEvents, true),
+    r3(sc.cod), flattenEventDates(sc.codEvents, true),
+    '', r3(sc.uftc), r3(sc.utoc), r3(sc.pendcod), r3(sc.exp), '', '',
+  ];
+}
+
 // Sum helper used by every exporter — keeps the long subtotal rows readable.
 function sumField(rows, k) { return rows.reduce((s, c) => s + (Number(c[k]) || 0), 0); }
 
@@ -204,6 +222,16 @@ function styleGrandTotal(isNum) {
     border:    ALL_BORDERS,
   };
 }
+// Hybrid source bifurcation sub-row — lighter/italic slate so it reads as a
+// breakdown line hanging under its parent project row.
+function styleComponent(isNum) {
+  return {
+    font:      { name: 'Arial', sz: 9, italic: true, color: { rgb: '475569' } },
+    fill:      { fgColor: { rgb: 'F8FAFC' } },
+    alignment: { horizontal: isNum ? 'right' : 'left', vertical: 'center', wrapText: true },
+    border:    ALL_BORDERS,
+  };
+}
 
 // Which columns hold numbers in the SOURCEWISE_HEADERS order — used to align
 // data cells to the right (matches Google Sheet behaviour for capacity cols).
@@ -278,9 +306,16 @@ function appendSectionToAoa(aoa, merges, sec, startRowIdx, colCount, spacerBefor
       allRows.push(c);
       dataRowIdxs.push(rowIdx);
       rowIdx += 1;
+      // Hybrid bifurcation: one indented sub-row per constituent source,
+      // matching the on-screen "↳ Wind / ↳ Solar / ↳ BESS" breakdown.
+      for (const sc of (c.components ?? [])) {
+        aoa.push(componentToRow(sc).map((v, i) => cell(v, styleComponent(NUMERIC_COL_IDX.has(i)))));
+        dataRowIdxs.push(rowIdx);
+        rowIdx += 1;
+      }
       stripe = !stripe;
     });
-    if (cl.rows.length > 1) {
+    if (rowIdx - 1 > clusterStart) {
       merges.push({ s: { c: 2, r: clusterStart }, e: { c: 2, r: rowIdx - 1 } });
     }
     const subRow = makeTotalRow(cl.label, cl.rows);
@@ -406,6 +441,7 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
   // grand-total fill. Stored as the first cell's "_kind" property.
   const ROW_SUB  = 'sub';
   const ROW_GRAND = 'grand';
+  const ROW_COMP  = 'comp';
   function rowOf(kind, cells) {
     const out = cells.slice();
     out._kind = kind;
@@ -473,16 +509,21 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
     const allRows = [];
     for (const cl of sec.clusters) {
       let stripe = false;
-      cl.rows.forEach((c, ri) => {
+      // The Region cell spans EVERY physical row in the cluster — project rows
+      // plus their interleaved hybrid component sub-rows — so count both.
+      const clusterPhysicalRows = cl.rows.reduce((n, c) => n + 1 + (c.components?.length ?? 0), 0);
+      let firstRow = true;
+      cl.rows.forEach((c) => {
         const region = c.region ?? sec.outerLabel;
         const full = contributorToRow(c, region);
         let rowCells;
-        if (ri === 0) {
-          // First row of the cluster carries the Region cell, spanning the
-          // whole cluster (vertical merge). rowSpan:1 is a harmless no-op when
-          // the cluster has a single project.
+        if (firstRow) {
+          // First physical row of the cluster carries the Region cell, spanning
+          // the whole cluster (vertical merge). rowSpan:1 is a harmless no-op
+          // when the cluster is a single project with no components.
           rowCells = full.slice();
-          rowCells[2] = { content: region, rowSpan: cl.rows.length, styles: { valign: 'middle', halign: 'center' } };
+          rowCells[2] = { content: region, rowSpan: clusterPhysicalRows, styles: { valign: 'middle', halign: 'center' } };
+          firstRow = false;
         } else {
           // Absorbed rows drop the Region cell so autoTable slots the rest
           // under the spanned cell.
@@ -491,6 +532,15 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
         rowCells._stripe = stripe;
         body.push(rowCells);
         allRows.push(c);
+        // Hybrid bifurcation: one indented sub-row per constituent source,
+        // matching the on-screen "↳ Wind / ↳ Solar / ↳ BESS" breakdown. These
+        // also drop the Region cell (absorbed by the span above).
+        for (const sc of (c.components ?? [])) {
+          const compFull = componentToRow(sc);
+          const compCells = compFull.slice(0, 2).concat(compFull.slice(3));
+          compCells._kind = ROW_COMP;
+          body.push(compCells);
+        }
         stripe = !stripe;
       });
       body.push(rowOf(ROW_SUB, makeTotalRow(cl.label, cl.rows)));
@@ -545,6 +595,11 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
           data.cell.styles.fontStyle = 'bold';
           data.cell.styles.textColor = [255, 255, 255];
           data.cell.styles.fontSize = 9;
+        } else if (kind === ROW_COMP) {
+          data.cell.styles.fillColor = [248, 250, 252];  // slate-50 breakdown
+          data.cell.styles.fontStyle = 'italic';
+          data.cell.styles.textColor = [71, 85, 105];    // slate-600
+          data.cell.styles.fontSize = 7.5;
         } else if (raw && raw._stripe) {
           data.cell.styles.fillColor = [241, 245, 249];  // slate-50 stripe
         }
