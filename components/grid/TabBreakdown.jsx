@@ -57,7 +57,7 @@ const SOURCEWISE_HEADERS = [
   'Capacity Under Process for FTC',
   'Capacity Under Process for TOC',
   'Capacity Pending for COD',
-  'Capacity (MW) commissioning expected in Apr\'26',
+  'Capacity (MW) commissioning expected',
   'Issues if any causing delay in FTC/TOC/COD',
   'Any Other remark',
 ];
@@ -509,35 +509,22 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
     const allRows = [];
     for (const cl of sec.clusters) {
       let stripe = false;
-      // The Region cell spans EVERY physical row in the cluster — project rows
-      // plus their interleaved hybrid component sub-rows — so count both.
-      const clusterPhysicalRows = cl.rows.reduce((n, c) => n + 1 + (c.components?.length ?? 0), 0);
-      let firstRow = true;
       cl.rows.forEach((c) => {
         const region = c.region ?? sec.outerLabel;
-        const full = contributorToRow(c, region);
-        let rowCells;
-        if (firstRow) {
-          // First physical row of the cluster carries the Region cell, spanning
-          // the whole cluster (vertical merge). rowSpan:1 is a harmless no-op
-          // when the cluster is a single project with no components.
-          rowCells = full.slice();
-          rowCells[2] = { content: region, rowSpan: clusterPhysicalRows, styles: { valign: 'middle', halign: 'center' } };
-          firstRow = false;
-        } else {
-          // Absorbed rows drop the Region cell so autoTable slots the rest
-          // under the spanned cell.
-          rowCells = full.slice(0, 2).concat(full.slice(3));
-        }
+        // No region vertical-merge: a tall hybrid cluster's rowSpan would not
+        // fit the remaining page and autoTable would shove the whole group to
+        // the next page (blank Region column, half-empty pages). Instead each
+        // project row simply carries its own Region value; component sub-rows
+        // leave it blank (componentToRow already blanks column 2), so they read
+        // as hanging under their project.
+        const rowCells = contributorToRow(c, region);
         rowCells._stripe = stripe;
         body.push(rowCells);
         allRows.push(c);
         // Hybrid bifurcation: one indented sub-row per constituent source,
-        // matching the on-screen "↳ Wind / ↳ Solar / ↳ BESS" breakdown. These
-        // also drop the Region cell (absorbed by the span above).
+        // matching the on-screen "↳ Wind / ↳ Solar / ↳ BESS" breakdown.
         for (const sc of (c.components ?? [])) {
-          const compFull = componentToRow(sc);
-          const compCells = compFull.slice(0, 2).concat(compFull.slice(3));
+          const compCells = componentToRow(sc);
           compCells._kind = ROW_COMP;
           body.push(compCells);
         }
@@ -552,6 +539,9 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
       head: [SOURCEWISE_HEADERS],
       body,
       theme: 'grid',
+      // Keep each row whole — never split a project's stacked-date cell across a
+      // page boundary (the head repeats on every page, so columns stay labelled).
+      rowPageBreak: 'avoid',
       styles: {
         font: 'helvetica', fontSize: 8, cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
         valign: 'middle', halign: 'center', overflow: 'linebreak',
