@@ -778,9 +778,10 @@ const SOURCE_BADGE = {
   HYBRID_WS:'bg-teal-100 text-teal-700', HYBRID_SB:'bg-teal-100 text-teal-700',
   HYBRID_WSB:'bg-teal-100 text-teal-700',
 };
-// Hybrid parent rows and their source sub-rows are told apart by table borders
-// and a heavier group divider (see ContribRow) rather than colour — mirroring
-// the bordered, merged-look Excel/PDF export.
+// Hybrid parent rows and their source sub-rows are told apart by indentation
+// and a light row background on the sub-rows (see ContribRow) — a clean,
+// borderless look. Consistent column widths (the `w` on each column) keep every
+// group's table aligned.
 
 function Chip({ label, cls }) {
   return (
@@ -800,40 +801,28 @@ function ContribRow({ c, cols, sub = false }) {
   if (sub) {
     let firstTextDone = false;
     return (
-      <tr className="bg-slate-50 align-top hover:bg-slate-100/70 transition-colors">
+      <tr className="border-b border-slate-100/70 last:border-b-0 bg-slate-50/40 align-top hover:bg-slate-100/50 transition-colors">
         {cols.map((col) => {
           let content = null;
           if (col.isEventStack) content = <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />;
           else if (col.isNum) content = <span className={Number(c[col.key]) > 0 ? 'text-slate-600 tabular-nums' : 'text-slate-300'}>{fmt(c[col.key])}</span>;
           else if (!firstTextDone) {
             firstTextDone = true;
-            // Indented tree connector + a neutral bordered chip naming the
-            // constituent source (no colour) — the sub-row's identity comes
-            // from its position within the bordered group, not a hue.
-            content = (
-              <span className="inline-flex items-center gap-1.5 pl-4">
-                <span className="text-slate-400">└</span>
-                <span className="inline-flex items-center rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                  {CONTD4_SOURCE_LABEL[c.component] ?? c.component}
-                </span>
-              </span>
-            );
+            // Indented, muted "↳ Wind / Solar / BESS" label — the sub-row reads
+            // as hanging under its project via the indent + light background.
+            content = <span className="pl-5 text-[10px] font-medium text-slate-500">↳ {CONTD4_SOURCE_LABEL[c.component] ?? c.component}</span>;
           }
           return (
-            <td key={col.key} className={`border border-slate-200 px-3 py-1 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
+            <td key={col.key} className={`px-3 py-1 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
           );
         })}
       </tr>
     );
   }
-  const hasParts = (c.components?.length ?? 0) > 1;
-  // A hybrid parent starts a new bordered block — a heavier top rule on its
-  // cells separates one project's group from the previous one.
-  const groupTop = hasParts ? 'border-t-2 border-t-slate-400' : '';
   return (
-    <tr className="hover:bg-blue-50/30 align-top">
+    <tr className="border-b border-slate-100 last:border-b-0 hover:bg-blue-50/30 align-top">
       {cols.map((col) => (
-        <td key={col.key} className={`border border-slate-200 ${groupTop} px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
+        <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
           {/* Event-stack cells (FTC / TOC / COD) — show the total MW
               on the first line, then a stack of per-event entries
               below: "150 MW · 13 Mar 26". Matches the Excel where
@@ -1792,7 +1781,7 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                 {isOpen && (
                   <div className="bg-white">
                     <div className="overflow-x-auto">
-                      <table className={`w-full border-collapse border border-slate-300 text-[11px] ${cols.every((c) => c.w) ? 'table-fixed' : ''}`}>
+                      <table className={`w-full text-[11px] ${cols.every((c) => c.w) ? 'table-fixed' : ''}`}>
                         {/* Fixed column widths (when defined) so every group's
                             table lines up vertically instead of auto-sizing to
                             its own content. */}
@@ -1802,9 +1791,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                           </colgroup>
                         )}
                         <thead>
-                          <tr className="bg-slate-100 text-slate-600">
+                          <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
                             {cols.map(c => (
-                              <th key={c.key} className={`border border-slate-300 px-3 py-1.5 font-semibold whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'} ${c.flex}`}>{c.label}</th>
+                              <th key={c.key} className={`px-3 py-1.5 font-semibold whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'} ${c.flex}`}>{c.label}</th>
                             ))}
                           </tr>
                         </thead>
@@ -1824,9 +1813,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                                       ))}
                                     </Fragment>
                                   ))}
-                                  <tr className="bg-slate-100 border-t-2 border-slate-300 font-semibold">
+                                  <tr className="bg-slate-50/80 border-t border-slate-200 font-semibold">
                                     {cols.map((col, i) => (
-                                      <td key={col.key} className={`border border-slate-300 px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
+                                      <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
                                         {i === 0
                                           ? <span className="text-[10px] uppercase tracking-wide text-slate-500">
                                               Total {sectionLabel} {layout === 'region'
@@ -1839,7 +1828,7 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                                     ))}
                                   </tr>
                                   {idx < clusters.length - 1 && (
-                                    <tr aria-hidden="true"><td colSpan={cols.length} className="p-0 h-1.5 bg-white border-0" /></tr>
+                                    <tr aria-hidden="true"><td colSpan={cols.length} className="p-0 h-1 bg-white" /></tr>
                                   )}
                                 </Fragment>
                               ))
@@ -1853,9 +1842,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                                 </Fragment>
                               ))}
                           {numCols.length > 0 && (
-                            <tr className="bg-blue-50 border-t-2 border-blue-300 font-bold">
+                            <tr className="bg-blue-50 border-t-2 border-blue-200 font-bold">
                               {cols.map((col, i) => (
-                                <td key={col.key} className={`border border-blue-200 px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
+                                <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
                                   {i === 0
                                     ? <span className="text-[10px] uppercase tracking-wide text-blue-700">
                                         {consolidated ? `Total ${sectionLabel}` : 'Group total'}
