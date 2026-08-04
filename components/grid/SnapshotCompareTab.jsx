@@ -57,11 +57,11 @@ const REGION_BADGE = {
 
 const T2_COLS = [
   { key: 'totalCapacityMw', label: 'Total MW' },
-  { key: 'ftcApprovedMw',   label: 'FTC OK'   },
+  { key: 'ftcApprovedMw',   label: 'FTC Approved' },
   { key: 'ftcPendingMw',    label: 'FTC Pend' },
-  { key: 'tocIssuedMw',     label: 'TOC OK'   },
+  { key: 'tocIssuedMw',     label: 'TOC Issued' },
   { key: 'tocPendingMw',    label: 'TOC Pend' },
-  { key: 'codCompletedMw',  label: 'COD OK'   },
+  { key: 'codCompletedMw',  label: 'COD Declared' },
   { key: 'codPendingMw',    label: 'COD Pend' },
   { key: 'expectedMw',      label: 'Expected' },
 ];

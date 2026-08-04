@@ -55,13 +55,13 @@ function ProjectTable({ projects, source }) {
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">Pooling Stn.</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">Total MW</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">Applied MW</th>
-            <th className="px-2 py-2 text-center font-bold whitespace-nowrap">FTC OK</th>
+            <th className="px-2 py-2 text-center font-bold whitespace-nowrap">FTC Approved</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">FTC Date</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">FTC Pend</th>
-            <th className="px-2 py-2 text-center font-bold whitespace-nowrap">TOC OK</th>
+            <th className="px-2 py-2 text-center font-bold whitespace-nowrap">TOC Issued</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">TOC Date</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">TOC Pend</th>
-            <th className="px-2 py-2 text-center font-bold whitespace-nowrap">COD OK</th>
+            <th className="px-2 py-2 text-center font-bold whitespace-nowrap">COD Declared</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">COD Date</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">COD Pend</th>
             <th className="px-2 py-2 text-center font-bold whitespace-nowrap">Expected</th>

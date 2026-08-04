@@ -537,8 +537,8 @@ export function BessDataTab({
               <th className="px-2 py-2 text-center font-bold whitespace-nowrap">Region</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">Total Capacity (MW)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">State (situated)</th>
-              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD declared Capacity (MW)</th>
-              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">Energy Commissioned (MWh)</th>
+              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">BESS COD declared Capacity (MW)</th>
+              <th className="px-3 py-2 text-center font-bold whitespace-nowrap">BESS Energy Commissioned (MWh)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap bg-violet-50 text-violet-700">{codMonthHeader}</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD Date Declared (MW)</th>
               <th className="px-3 py-2 text-center font-bold whitespace-nowrap">COD Date Declared (MWh)</th>

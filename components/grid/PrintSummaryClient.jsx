@@ -165,11 +165,11 @@ const PROJECT_COLUMNS = [
   { key: 'pooling', label: 'Pooling Station',     width: 80 },
   { key: 'total',   label: 'Total Capacity (MW)', width: 48 },
   { key: 'applied', label: 'Applied (MW)',        width: 44 },
-  { key: 'ftcOK',   label: 'FTC OK (MW)',         width: 44 },
+  { key: 'ftcOK',   label: 'FTC Approved (MW)',   width: 44 },
   { key: 'ftcPend', label: 'FTC Pend (MW)',       width: 44 },
-  { key: 'tocOK',   label: 'TOC OK (MW)',         width: 44 },
+  { key: 'tocOK',   label: 'TOC Issued (MW)',     width: 44 },
   { key: 'tocPend', label: 'TOC Pend (MW)',       width: 44 },
-  { key: 'codOK',   label: 'COD OK (MW)',         width: 44 },
+  { key: 'codOK',   label: 'COD Declared (MW)',   width: 44 },
   { key: 'codPend', label: 'COD Pend (MW)',       width: 44 },
   { key: 'exp',     label: 'Expected (MW)',       width: 48 },
 ];
@@ -639,11 +639,11 @@ function SourceProjectTable({ source, projects, scopeRegionCode, cols }) {
             <th style={{ width: 30, textAlign: 'center' }}>Rgn.</th>
             {has('total')   && <th style={{ width: 48 }}>Total Capacity (MW)</th>}
             {has('applied') && <th style={{ width: 44 }}>Applied (MW)</th>}
-            {has('ftcOK')   && <th style={{ width: 44 }}>FTC OK (MW)</th>}
+            {has('ftcOK')   && <th style={{ width: 44 }}>FTC Approved (MW)</th>}
             {has('ftcPend') && <th style={{ width: 44 }}>FTC Pend (MW)</th>}
-            {has('tocOK')   && <th style={{ width: 44 }}>TOC OK (MW)</th>}
+            {has('tocOK')   && <th style={{ width: 44 }}>TOC Issued (MW)</th>}
             {has('tocPend') && <th style={{ width: 44 }}>TOC Pend (MW)</th>}
-            {has('codOK')   && <th style={{ width: 44 }}>COD OK (MW)</th>}
+            {has('codOK')   && <th style={{ width: 44 }}>COD Declared (MW)</th>}
             {has('codPend') && <th style={{ width: 44 }}>COD Pend (MW)</th>}
             {has('exp')     && <th style={{ width: 48 }}>Expected (MW)</th>}
           </tr>
