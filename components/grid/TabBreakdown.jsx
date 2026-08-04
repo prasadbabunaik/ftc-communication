@@ -760,12 +760,13 @@ function EventStackCell({ total, events, showMw }) {
   const list   = (events ?? []).filter((e) => e && (e.mw > 0 || e.date));
   return (
     <div className="flex flex-col items-end gap-0.5 leading-tight">
-      <span className={totalN > 0 ? 'text-slate-800 font-semibold' : 'text-slate-300'}>{fmt(total)}</span>
+      <span className={totalN > 0 ? 'text-slate-900 font-semibold tabular-nums' : 'text-slate-300'}>{fmt(total)}</span>
       {list.length > 0 && (
-        <div className="text-[10px] text-slate-500 font-normal space-y-0.5">
+        <div className="mt-0.5 flex flex-col items-end gap-px border-t border-slate-100 pt-0.5">
           {list.map((e, i) => (
-            <div key={i} className="whitespace-nowrap">
-              {showMw && e.mw > 0 ? `${fmt(e.mw)} MW · ` : ''}{fmtDate(e.date)}
+            <div key={i} className="flex items-center gap-1 whitespace-nowrap text-[10px]">
+              {showMw && e.mw > 0 && <span className="tabular-nums font-medium text-slate-600">{fmt(e.mw)}</span>}
+              <span className="text-slate-400">{fmtDate(e.date)}</span>
             </div>
           ))}
         </div>
@@ -787,6 +788,42 @@ const SOURCE_BADGE = {
   HYBRID_WS:'bg-teal-100 text-teal-700', HYBRID_SB:'bg-teal-100 text-teal-700',
   HYBRID_WSB:'bg-teal-100 text-teal-700',
 };
+// Solid source colours — used for the composition bar segments and the little
+// dot on each component's pill / rail, so a hybrid's bar visually maps to the
+// colour-railed source sub-rows beneath it. (Literal class strings so Tailwind
+// JIT keeps them.)
+const SOURCE_DOT = {
+  WIND:'bg-sky-400', SOLAR:'bg-amber-400', BESS:'bg-violet-500', HYBRID:'bg-teal-400',
+  COAL:'bg-stone-400', HYDRO:'bg-blue-400', PSP:'bg-emerald-400',
+};
+// Left-rail colour for a component sub-row — same hue as its dot/segment.
+const SOURCE_RAIL = {
+  WIND:'border-l-sky-400', SOLAR:'border-l-amber-400', BESS:'border-l-violet-500', HYBRID:'border-l-teal-400',
+  COAL:'border-l-stone-400', HYDRO:'border-l-blue-400', PSP:'border-l-emerald-400',
+};
+
+// Thin stacked "who-contributes-what" bar for a hybrid parent row. Each segment
+// is one constituent source, widthed by its share of the combined capacity and
+// coloured to match the source sub-rows below — so the split reads at a glance.
+function CompositionBar({ components }) {
+  const parts = (components ?? [])
+    .map((sc) => ({ k: sc.component, v: Math.max(0, Number(sc.total) || 0) }))
+    .filter((p) => p.v > 0);
+  const sum = parts.reduce((s, p) => s + p.v, 0);
+  if (!sum || parts.length < 2) return null;
+  return (
+    <div className="mt-1 flex h-1.5 w-full max-w-[180px] overflow-hidden rounded-full bg-slate-100" title="Source split by capacity">
+      {parts.map((p, i) => (
+        <div
+          key={i}
+          className={SOURCE_DOT[p.k] ?? 'bg-slate-300'}
+          style={{ width: `${(p.v / sum) * 100}%` }}
+          title={`${CONTD4_SOURCE_LABEL[p.k] ?? p.k}: ${fmt(p.v)} MW · ${Math.round((p.v / sum) * 100)}%`}
+        />
+      ))}
+    </div>
+  );
+}
 
 function Chip({ label, cls }) {
   return (
@@ -805,22 +842,38 @@ function ContribRow({ c, cols, sub = false }) {
   // and leave the descriptive (tag/text) cells blank.
   if (sub) {
     let firstTextDone = false;
+    const rail = SOURCE_RAIL[c.component] ?? 'border-l-slate-300';
     return (
-      <tr className="border-b border-slate-100/70 last:border-b-0 bg-slate-50/40 align-top">
-        {cols.map((col) => {
+      <tr className="bg-slate-50/50 align-top hover:bg-slate-100/60 transition-colors">
+        {cols.map((col, ci) => {
           let content = null;
           if (col.isEventStack) content = <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />;
-          else if (col.isNum) content = <span className={Number(c[col.key]) > 0 ? 'text-slate-600' : 'text-slate-300'}>{fmt(c[col.key])}</span>;
-          else if (!firstTextDone) { firstTextDone = true; content = <span className="pl-5 text-[10px] font-medium text-slate-500">↳ {CONTD4_SOURCE_LABEL[c.component] ?? c.component}</span>; }
+          else if (col.isNum) content = <span className={Number(c[col.key]) > 0 ? 'text-slate-600 tabular-nums' : 'text-slate-300'}>{fmt(c[col.key])}</span>;
+          else if (!firstTextDone) {
+            firstTextDone = true;
+            content = (
+              <span className="inline-flex items-center gap-1.5 pl-3">
+                <span className="text-slate-300">└</span>
+                <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${SOURCE_BADGE[c.component] ?? 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`size-1.5 rounded-full ${SOURCE_DOT[c.component] ?? 'bg-slate-400'}`} />
+                  {CONTD4_SOURCE_LABEL[c.component] ?? c.component}
+                </span>
+              </span>
+            );
+          }
+          // The first cell carries a colour rail matching the source, so the
+          // sub-row visually threads back to its bar segment on the parent.
+          const railCls = ci === 0 ? `border-l-[3px] ${rail}` : '';
           return (
-            <td key={col.key} className={`px-3 py-1 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
+            <td key={col.key} className={`px-3 py-1 ${railCls} ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
           );
         })}
       </tr>
     );
   }
+  const hasParts = (c.components?.length ?? 0) > 1;
   return (
-    <tr className="border-b border-slate-100 last:border-b-0 hover:bg-blue-50/30 align-top">
+    <tr className={`border-b border-slate-100 last:border-b-0 hover:bg-blue-50/30 align-top ${hasParts ? 'border-t border-slate-200' : ''}`}>
       {cols.map((col) => (
         <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
           {/* Event-stack cells (FTC / TOC / COD) — show the total MW
@@ -829,6 +882,11 @@ function ContribRow({ c, cols, sub = false }) {
               partial commissioning dates are listed under the total. */}
           {col.isEventStack
             ? <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />
+            : col.key === 'name'
+            ? <div className="min-w-0">
+                <div className="font-semibold text-slate-800">{c.name ?? '—'}</div>
+                {hasParts && <CompositionBar components={c.components} />}
+              </div>
             : col.isTag === 'region'
             ? (c.region ? <Chip label={c.region} cls={REGION_BADGE[c.region]} /> : <span className="text-slate-300">—</span>)
             : col.isTag === 'source'
