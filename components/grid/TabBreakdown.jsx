@@ -788,42 +788,9 @@ const SOURCE_BADGE = {
   HYBRID_WS:'bg-teal-100 text-teal-700', HYBRID_SB:'bg-teal-100 text-teal-700',
   HYBRID_WSB:'bg-teal-100 text-teal-700',
 };
-// Solid source colours — used for the composition bar segments and the little
-// dot on each component's pill / rail, so a hybrid's bar visually maps to the
-// colour-railed source sub-rows beneath it. (Literal class strings so Tailwind
-// JIT keeps them.)
-const SOURCE_DOT = {
-  WIND:'bg-sky-400', SOLAR:'bg-amber-400', BESS:'bg-violet-500', HYBRID:'bg-teal-400',
-  COAL:'bg-stone-400', HYDRO:'bg-blue-400', PSP:'bg-emerald-400',
-};
-// Left-rail colour for a component sub-row — same hue as its dot/segment.
-const SOURCE_RAIL = {
-  WIND:'border-l-sky-400', SOLAR:'border-l-amber-400', BESS:'border-l-violet-500', HYBRID:'border-l-teal-400',
-  COAL:'border-l-stone-400', HYDRO:'border-l-blue-400', PSP:'border-l-emerald-400',
-};
-
-// Thin stacked "who-contributes-what" bar for a hybrid parent row. Each segment
-// is one constituent source, widthed by its share of the combined capacity and
-// coloured to match the source sub-rows below — so the split reads at a glance.
-function CompositionBar({ components }) {
-  const parts = (components ?? [])
-    .map((sc) => ({ k: sc.component, v: Math.max(0, Number(sc.total) || 0) }))
-    .filter((p) => p.v > 0);
-  const sum = parts.reduce((s, p) => s + p.v, 0);
-  if (!sum || parts.length < 2) return null;
-  return (
-    <div className="mt-1 flex h-1.5 w-full max-w-[180px] overflow-hidden rounded-full bg-slate-100" title="Source split by capacity">
-      {parts.map((p, i) => (
-        <div
-          key={i}
-          className={SOURCE_DOT[p.k] ?? 'bg-slate-300'}
-          style={{ width: `${(p.v / sum) * 100}%` }}
-          title={`${CONTD4_SOURCE_LABEL[p.k] ?? p.k}: ${fmt(p.v)} MW · ${Math.round((p.v / sum) * 100)}%`}
-        />
-      ))}
-    </div>
-  );
-}
+// Hybrid parent rows and their source sub-rows are told apart by table borders
+// and a heavier group divider (see ContribRow) rather than colour — mirroring
+// the bordered, merged-look Excel/PDF export.
 
 function Chip({ label, cls }) {
   return (
@@ -842,40 +809,41 @@ function ContribRow({ c, cols, sub = false }) {
   // and leave the descriptive (tag/text) cells blank.
   if (sub) {
     let firstTextDone = false;
-    const rail = SOURCE_RAIL[c.component] ?? 'border-l-slate-300';
     return (
-      <tr className="bg-slate-50/50 align-top hover:bg-slate-100/60 transition-colors">
-        {cols.map((col, ci) => {
+      <tr className="bg-slate-50 align-top hover:bg-slate-100/70 transition-colors">
+        {cols.map((col) => {
           let content = null;
           if (col.isEventStack) content = <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />;
           else if (col.isNum) content = <span className={Number(c[col.key]) > 0 ? 'text-slate-600 tabular-nums' : 'text-slate-300'}>{fmt(c[col.key])}</span>;
           else if (!firstTextDone) {
             firstTextDone = true;
+            // Indented tree connector + a neutral bordered chip naming the
+            // constituent source (no colour) — the sub-row's identity comes
+            // from its position within the bordered group, not a hue.
             content = (
-              <span className="inline-flex items-center gap-1.5 pl-3">
-                <span className="text-slate-300">└</span>
-                <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${SOURCE_BADGE[c.component] ?? 'bg-slate-100 text-slate-600'}`}>
-                  <span className={`size-1.5 rounded-full ${SOURCE_DOT[c.component] ?? 'bg-slate-400'}`} />
+              <span className="inline-flex items-center gap-1.5 pl-4">
+                <span className="text-slate-400">└</span>
+                <span className="inline-flex items-center rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
                   {CONTD4_SOURCE_LABEL[c.component] ?? c.component}
                 </span>
               </span>
             );
           }
-          // The first cell carries a colour rail matching the source, so the
-          // sub-row visually threads back to its bar segment on the parent.
-          const railCls = ci === 0 ? `border-l-[3px] ${rail}` : '';
           return (
-            <td key={col.key} className={`px-3 py-1 ${railCls} ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
+            <td key={col.key} className={`border border-slate-200 px-3 py-1 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>{content}</td>
           );
         })}
       </tr>
     );
   }
   const hasParts = (c.components?.length ?? 0) > 1;
+  // A hybrid parent starts a new bordered block — a heavier top rule on its
+  // cells separates one project's group from the previous one.
+  const groupTop = hasParts ? 'border-t-2 border-t-slate-400' : '';
   return (
-    <tr className={`border-b border-slate-100 last:border-b-0 hover:bg-blue-50/30 align-top ${hasParts ? 'border-t border-slate-200' : ''}`}>
+    <tr className="hover:bg-blue-50/30 align-top">
       {cols.map((col) => (
-        <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
+        <td key={col.key} className={`border border-slate-200 ${groupTop} px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
           {/* Event-stack cells (FTC / TOC / COD) — show the total MW
               on the first line, then a stack of per-event entries
               below: "150 MW · 13 Mar 26". Matches the Excel where
@@ -883,10 +851,7 @@ function ContribRow({ c, cols, sub = false }) {
           {col.isEventStack
             ? <EventStackCell total={c[col.key]} events={c[`${col.isEventStack}Events`]} showMw />
             : col.key === 'name'
-            ? <div className="min-w-0">
-                <div className="font-semibold text-slate-800">{c.name ?? '—'}</div>
-                {hasParts && <CompositionBar components={c.components} />}
-              </div>
+            ? <div className="font-semibold text-slate-800">{c.name ?? '—'}</div>
             : col.isTag === 'region'
             ? (c.region ? <Chip label={c.region} cls={REGION_BADGE[c.region]} /> : <span className="text-slate-300">—</span>)
             : col.isTag === 'source'
@@ -1837,7 +1802,7 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                 {isOpen && (
                   <div className="bg-white">
                     <div className="overflow-x-auto">
-                      <table className={`w-full text-[11px] ${cols.every((c) => c.w) ? 'table-fixed' : ''}`}>
+                      <table className={`w-full border-collapse border border-slate-300 text-[11px] ${cols.every((c) => c.w) ? 'table-fixed' : ''}`}>
                         {/* Fixed column widths (when defined) so every group's
                             table lines up vertically instead of auto-sizing to
                             its own content. */}
@@ -1847,9 +1812,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                           </colgroup>
                         )}
                         <thead>
-                          <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                          <tr className="bg-slate-100 text-slate-600">
                             {cols.map(c => (
-                              <th key={c.key} className={`px-3 py-1.5 font-semibold whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'} ${c.flex}`}>{c.label}</th>
+                              <th key={c.key} className={`border border-slate-300 px-3 py-1.5 font-semibold whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'} ${c.flex}`}>{c.label}</th>
                             ))}
                           </tr>
                         </thead>
@@ -1869,9 +1834,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                                       ))}
                                     </Fragment>
                                   ))}
-                                  <tr className="bg-slate-50/80 border-t border-slate-200 font-semibold">
+                                  <tr className="bg-slate-100 border-t-2 border-slate-300 font-semibold">
                                     {cols.map((col, i) => (
-                                      <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
+                                      <td key={col.key} className={`border border-slate-300 px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
                                         {i === 0
                                           ? <span className="text-[10px] uppercase tracking-wide text-slate-500">
                                               Total {sectionLabel} {layout === 'region'
@@ -1884,7 +1849,7 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                                     ))}
                                   </tr>
                                   {idx < clusters.length - 1 && (
-                                    <tr aria-hidden="true"><td colSpan={cols.length} className="p-0 h-1 bg-white" /></tr>
+                                    <tr aria-hidden="true"><td colSpan={cols.length} className="p-0 h-1.5 bg-white border-0" /></tr>
                                   )}
                                 </Fragment>
                               ))
@@ -1898,9 +1863,9 @@ export function TabBreakdown({ open, onOpenChange, activeTab, projects, txElemen
                                 </Fragment>
                               ))}
                           {numCols.length > 0 && (
-                            <tr className="bg-blue-50 border-t-2 border-blue-200 font-bold">
+                            <tr className="bg-blue-50 border-t-2 border-blue-300 font-bold">
                               {cols.map((col, i) => (
-                                <td key={col.key} className={`px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
+                                <td key={col.key} className={`border border-blue-200 px-3 py-1.5 ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'} ${col.flex}`}>
                                   {i === 0
                                     ? <span className="text-[10px] uppercase tracking-wide text-blue-700">
                                         {consolidated ? `Total ${sectionLabel}` : 'Group total'}
