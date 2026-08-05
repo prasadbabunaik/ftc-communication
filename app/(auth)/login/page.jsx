@@ -165,7 +165,11 @@ export default function LoginPage() {
     if (SSO_ENABLED && !code && !silentFailed && !justLoggedOut && !alreadyTried) {
       sessionStorage.setItem('ssoSilentTried', '1');
       setSsoAttempting(true);
-      window.location.href = '/api/auth/sso/login?silent=1';
+      // Defer the top-level redirect until after the loader has painted (double
+      // rAF fires after the first frame commits) so it never flashes blank.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        window.location.href = '/api/auth/sso/login?silent=1';
+      }));
       return;
     }
 
@@ -266,12 +270,14 @@ export default function LoginPage() {
     }
   }
 
-  // While the automatic Microsoft sign-in is in flight, show a brief "checking"
-  // screen instead of flashing the login form (we're about to redirect to Entra).
+  // While the automatic Microsoft sign-in is in flight, show the SAME full-screen
+  // overlay loader as the password sign-in — just different copy — instead of
+  // flashing the login form (we're about to redirect to Entra).
   if (ssoAttempting) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#eef2f7' }}>
+      <div className="min-h-screen" style={{ background: '#eef2f7' }}>
         <GovLoader
+          overlay
           size="page"
           theme="navy"
           label="Checking your Microsoft sign-in…"
