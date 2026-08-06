@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/api-fetch';
 
 const AuthContext = createContext(undefined);
 
@@ -142,6 +143,25 @@ export function AuthProvider({ children }) {
       window.removeEventListener('focus', refreshOnFocus);
     };
   }, [user, doRefresh]);
+
+  // Presence heartbeat — stamp lastSeenAt every 30s while the tab is in the
+  // foreground, so the admin-only "Viewing now" indicator reflects live viewers.
+  // Best-effort: a missed beat is harmless (the next one lands within the window).
+  useEffect(() => {
+    if (!user) return;
+    const beat = () => {
+      if (document.visibilityState !== 'visible') return;
+      apiFetch('/api/presence/heartbeat', { method: 'POST' }).catch(() => {});
+    };
+    beat(); // stamp immediately on login / mount
+    const id = setInterval(beat, 30_000);
+    const onVis = () => { if (document.visibilityState === 'visible') beat(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [user]);
 
   // Inactivity logout — checks every 60s, forces logout after 30 min idle
   useEffect(() => {

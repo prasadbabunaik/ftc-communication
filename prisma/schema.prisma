@@ -26,6 +26,8 @@ model User {
   designation  String?
   role         UserRole @default(NLDC)
   isActive     Boolean  @default(true)
+  // Last presence heartbeat — drives the admin-only "Viewing now" indicator.
+  lastSeenAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
