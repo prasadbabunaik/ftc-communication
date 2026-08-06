@@ -42,12 +42,13 @@ export function SidebarHeader() {
         size="sm"
         mode="icon"
         variant="outline"
+        aria-label="Collapse or expand sidebar"
         className={cn(
           'size-7 absolute start-full top-2/4 rtl:translate-x-2/4 -translate-x-2/4 -translate-y-2/4',
           settings.layouts.demo1.sidebarCollapse ? 'ltr:rotate-180' : 'rtl:rotate-180',
         )}
       >
-        <ChevronFirst className="size-4!" />
+        <ChevronFirst className="size-4!" aria-hidden="true" />
       </Button>
     </div>
   );

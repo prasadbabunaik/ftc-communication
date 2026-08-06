@@ -44,6 +44,7 @@ export function ViewAsBar() {
         {impersonating ? 'Viewing as' : 'View as'}
       </span>
       <select
+        aria-label="View the portal as another role"
         value={impersonating ? user.role : 'ADMIN'}
         onChange={(e) => change(e.target.value)}
         disabled={pending}

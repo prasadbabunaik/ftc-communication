@@ -57,8 +57,8 @@ export function SidebarMenu() {
     if (item.children) {
       return (
         <AccordionMenuSub key={index} value={item.path || `root-${index}`}>
-          <AccordionMenuSubTrigger className="text-[13px]">
-            {item.icon && <item.icon className="size-4 shrink-0" data-slot="accordion-menu-icon" />}
+          <AccordionMenuSubTrigger className="text-[13px]" aria-label={item.title}>
+            {item.icon && <item.icon className="size-4 shrink-0" data-slot="accordion-menu-icon" aria-hidden="true" />}
             <span data-slot="accordion-menu-title" className="truncate">{item.title}</span>
           </AccordionMenuSubTrigger>
           <AccordionMenuSubContent
@@ -76,8 +76,8 @@ export function SidebarMenu() {
     }
     return (
       <AccordionMenuItem key={index} value={item.path || ''} className="text-[13px]">
-        <Link href={item.path || '#'} className="flex items-center grow gap-2.5 w-full">
-          {item.icon && <item.icon className="size-4 shrink-0" data-slot="accordion-menu-icon" />}
+        <Link href={item.path || '#'} aria-label={item.title} className="flex items-center grow gap-2.5 w-full">
+          {item.icon && <item.icon className="size-4 shrink-0" data-slot="accordion-menu-icon" aria-hidden="true" />}
           <span data-slot="accordion-menu-title" className="truncate">{item.title}</span>
         </Link>
       </AccordionMenuItem>
@@ -119,7 +119,7 @@ export function SidebarMenu() {
     }
     return (
       <AccordionMenuItem key={index} value={item.path || ''} className="text-[13px]">
-        <Link href={item.path || '#'}>{item.title}</Link>
+        <Link href={item.path || '#'} aria-label={item.title}>{item.title}</Link>
       </AccordionMenuItem>
     );
   };

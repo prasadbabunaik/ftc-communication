@@ -243,11 +243,12 @@ function AccordionMenuSub({ className, children, ...props }) {
   );
 }
 
-function AccordionMenuSubTrigger({ className, children }) {
+function AccordionMenuSubTrigger({ className, children, ...props }) {
   const { classNames } = React.useContext(AccordionMenuContext);
   return (
     <AccordionPrimitive.Header className="flex">
       <AccordionPrimitive.Trigger
+        {...props}
         data-slot="accordion-menu-sub-trigger"
         className={cn(
           'w-full relative flex items-center cursor-pointer select-none text-start rounded-lg gap-2 px-2 py-1.5 text-sm outline-hidden text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([role=img]):not([class*=text-])]:opacity-60 [&_svg:not([class*=size-])]:size-4 [&_svg]:shrink-0',

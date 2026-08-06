@@ -116,7 +116,7 @@ function PipelineHead({ isRegionPrimary, refMonthLabel }) {
           {isRegionPrimary ? 'Source' : 'Region'}
         </th>
         <th rowSpan={2} title="Total Installed Capacity (MW)" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Total Cap (MW)</th>
-        <th rowSpan={2} title="Total Capacity (MW) for which CONTD-4 issued" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap text-slate-400 cursor-help">CONTD-4 (MW)</th>
+        <th rowSpan={2} title="Total Capacity (MW) for which CONTD-4 issued" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap text-slate-500 cursor-help">CONTD-4 (MW)</th>
         <th rowSpan={2} title="Capacity (MW) applied for FTC" className="px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap cursor-help">Applied (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-blue-50 text-blue-700 border-r border-blue-200 whitespace-nowrap">FTC (MW)</th>
         <th colSpan={2} className="px-4 py-2 text-center font-bold bg-violet-50 text-violet-700 border-r border-violet-200 whitespace-nowrap">TOC (MW)</th>
@@ -125,11 +125,11 @@ function PipelineHead({ isRegionPrimary, refMonthLabel }) {
       </tr>
       <tr className="text-[11px]">
         <th title="Capacity (MW) for which FTC approved" className="px-4 py-1.5 text-center font-semibold bg-blue-100 text-blue-700 border-r border-blue-200 whitespace-nowrap cursor-help">Approved</th>
-        <th title="FTC Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-blue-50 text-blue-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="FTC Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-blue-50 text-blue-700 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
         <th title="TOC Issued (MW)" className="px-4 py-1.5 text-center font-semibold bg-violet-100 text-violet-700 border-r border-violet-200 whitespace-nowrap cursor-help">Issued</th>
-        <th title="TOC Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-violet-50 text-violet-400 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="TOC Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-violet-50 text-violet-700 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
         <th title="COD Completed (MW)" className="px-4 py-1.5 text-center font-semibold bg-emerald-100 text-emerald-700 border-r border-emerald-200 whitespace-nowrap cursor-help">Done</th>
-        <th title="COD Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-emerald-50 text-emerald-500 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
+        <th title="COD Pending (MW)" className="px-4 py-1.5 text-center font-semibold bg-emerald-50 text-emerald-700 border-r border-slate-200 whitespace-nowrap cursor-help">Pending</th>
       </tr>
     </thead>
   );
@@ -234,7 +234,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
           className={`px-4 py-2.5 align-top text-center sticky left-0 border-r border-gray-200 z-[4] ${bg}`}
         >
           {isTotal
-            ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+            ? <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Total</span>
             : isAllIndia
               // The consolidated breakdown is 'All India' for a multi-region view,
               // but carries the region code (e.g. 'SR') when scoped to one RLDC —
@@ -250,9 +250,9 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
         className={`px-4 py-2.5 sticky text-center border-r border-gray-200 z-[4] ${bg}`}
       >
         {isTotal
-          ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+          ? <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Total</span>
           : isSubtotal
-          ? <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Subtotal</span>
+          ? <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Subtotal</span>
           : isHybridComp
           ? <span className="inline-flex items-center gap-1 pl-4 text-teal-700">
               <span className="text-teal-400">↳</span>
@@ -281,7 +281,7 @@ function PipelineRow({ row, i, rows, isRegionPrimary, expandable = false, expand
       {row._mergedContd4 ? null : (
         <N v={isHybridComp ? null : row.contd4CapacityMw}
            rowSpan={row._hybridContd4Span}
-           cls="border-r border-gray-100 text-slate-400" />
+           cls="border-r border-gray-100 text-slate-600" />
       )}
       <N v={row.appliedMw}        cls="border-r border-slate-200" />
       <N v={row.ftcApprovedMw}    cls="border-r border-blue-100 bg-blue-50/30 text-blue-800" />
@@ -558,7 +558,7 @@ function Contd4Row({ row, prev, isAllIndiaSection, isFirstAllIndiaBreakdown, all
         className={`px-3 py-2 sticky z-[4] text-center border-r border-gray-200 ${bg}`}
       >
         {isSubtotal || isTotal
-          ? <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+          ? <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Total</span>
           : <Chip label={CONTD4_SOURCE_LABEL[row.source] ?? row.source} colorCls={SOURCE_BADGE[row.source]} />}
       </td>
       {/* Numeric cells are centered (not right-aligned) and a notch larger so
@@ -1468,7 +1468,7 @@ function HybridModeToggle({ mode }) {
       className="ml-auto flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
       title="Excluding: hybrids shown in their own row. Including: each hybrid's per-component capacity is folded into its source row (e.g. Wind = pure wind + hybrid wind)."
     >
-      <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Hybrid</span>
+      <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Hybrid</span>
       {OPTIONS.map((o) => (
         <button
           key={o.value}

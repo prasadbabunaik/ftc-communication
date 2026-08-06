@@ -52,7 +52,7 @@ export function Demo1Layout({ children }) {
 
       <div className="wrapper flex grow flex-col min-h-screen">
         <Header />
-        <main className="grow pt-5" role="content">
+        <main className="grow pt-5">
           {children}
         </main>
         <Footer />
