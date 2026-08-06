@@ -70,9 +70,9 @@ export function FtcPageClient({
   }
 
   return (
-    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0">
+    <div className="px-6 pt-3 pb-3 space-y-2 flex flex-col h-[calc(100vh-150px)] min-h-0 min-w-0">
       {/* Page header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
             <Zap className="size-4 text-blue-600" />
@@ -102,7 +102,7 @@ export function FtcPageClient({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
         <FtcTable
           projects={projects}
           userRole={userRole}

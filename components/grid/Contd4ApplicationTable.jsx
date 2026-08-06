@@ -187,7 +187,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
   const sortProps = { sortField, sortDir, onSort: handleSort };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 min-w-0 flex-1">
       {/* As-of-date snapshot banner */}
       {asOf && (
         <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-[12px] text-amber-800">
@@ -319,7 +319,7 @@ export function Contd4ApplicationTable({ projects, userRole, onView, asOf }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-auto flex-1 min-h-0">
+      <div className="overflow-auto flex-1 min-h-0 min-w-0">
         {/* table-fixed: column widths come from the header only, so they stay
             uniform regardless of sort order / which rows are on the page. */}
         <table className="w-full text-sm table-fixed min-w-[1080px]">

@@ -456,12 +456,12 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
   return (
     <div className="rounded-xl border shadow-sm">
       {title && (
-        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-start justify-between gap-3 shrink-0">
-          <div>
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-2 shrink-0">
+          <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">{title}</p>
             {desc && <p className="text-[10px] text-slate-500 mt-0.5">{desc}</p>}
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3">
             <label
               className={`flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-medium ${excludeCommissioned ? 'text-blue-700' : 'text-slate-600 hover:text-slate-800'} ${ecPending ? 'opacity-60' : ''}`}
               title="Drop fully-commissioned projects (COD complete) and show only the still-under-process pipeline"
@@ -491,7 +491,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           </div>
         </div>
       )}
-      <div>
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
@@ -612,7 +612,7 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div>
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
@@ -662,7 +662,7 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div>
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
@@ -866,7 +866,7 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div>
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
@@ -1740,7 +1740,7 @@ export function SummaryPageClient({
           z-30 keeps it above the table content but BELOW the sidebar overlay
           (z-40), so an expanded sidebar isn't overlapped by the tabs. */}
       <div className="sticky top-[60px] lg:top-[70px] z-30 -mx-6 px-6 bg-background border-b shadow-sm">
-        <nav className="-mb-px flex w-full border-b">
+        <nav className="-mb-px flex w-full border-b overflow-x-auto">
           {tabs.map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -1749,14 +1749,14 @@ export function SummaryPageClient({
                 key={tab.id}
                 onClick={() => changeTab(tab.id)}
                 title={tab.tooltip || tab.label}
-                className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2.5 text-[13px] lg:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                className={`flex-none lg:flex-1 lg:min-w-0 flex items-center justify-center gap-1.5 px-3 lg:px-2 py-2.5 text-[13px] lg:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                   active
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
                 <Icon className="size-4 shrink-0" />
-                <span className="truncate">{tab.label}</span>
+                <span className="lg:truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -1766,8 +1766,8 @@ export function SummaryPageClient({
             visible while the table scrolls. Always rendered at a fixed height
             (h-14) so the frozen table-header offset below stays deterministic.
             Source is disabled (not removed) on tabs where it has no meaning. */}
-        <div className="h-14 flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-0.5">Filters</span>
+        <div className="h-14 flex items-center gap-2 overflow-x-auto">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mr-0.5 shrink-0">Filters</span>
           {canFilterRegion && <RegionPicker regions={regions} selectedRegions={selectedRegions} />}
           {/* Nested "hybrid parts" child options only steer the FTC Pipeline
               bifurcation — expose them only on that tab. */}

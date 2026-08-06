@@ -298,7 +298,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
   const sp = { sortField, sortDir, onSort: handleSort };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 flex-1">
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col min-h-0 min-w-0 flex-1">
       {/* Filters */}
       <div className="flex flex-wrap gap-3 p-4 border-b bg-muted/20 shrink-0">
         <div className="relative flex-1 min-w-[200px]">
@@ -343,7 +343,7 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
       </div>
 
       {/* Table */}
-      <div className="overflow-auto flex-1 min-h-0">
+      <div className="overflow-auto flex-1 min-h-0 min-w-0">
         {/* table-fixed + colgroup: column widths are fixed by the colgroup (the
             grouped colSpan header row can't set per-column widths), so columns
             stay aligned no matter how rows are sorted / paged. */}
