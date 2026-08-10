@@ -819,7 +819,7 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0, triedSave = false }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0, carriedOriginal = 0, triedSave = false }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
@@ -1044,46 +1044,44 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
               Expected commissioning (MW)
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {threeMonths.map((m, mi) => (
-                <div key={m}>
-                  <div className="text-[10px] font-semibold text-muted-foreground mb-0.5 flex items-center justify-between">
-                    <span>{monthLabel(m)}</span>
-                    {mi === 0 && carried > 0 && (
-                      <span
-                        className="text-[9px] font-medium text-amber-700"
-                        title={`${carried.toFixed(1)} MW carried forward from earlier unmet expected`}
-                      >
-                        +{carried.toFixed(1)} carried
-                      </span>
+              {threeMonths.map((m, mi) => {
+                // The current month (mi 0) carries the shifted-forward expected:
+                // show that live balance (carried − COD declared) in the box,
+                // read-only, so it visibly drops to 0 as the operator declares
+                // COD. Later months stay editable for genuinely new forecasts.
+                const isCarriedMonth = mi === 0 && carriedOriginal > 0;
+                return (
+                  <div key={m}>
+                    <div className="text-[10px] font-semibold text-muted-foreground mb-0.5">
+                      {monthLabel(m)}
+                    </div>
+                    {isCarriedMonth ? (
+                      <Input
+                        type="number"
+                        value={Number.isInteger(carried) ? carried : carried.toFixed(2)}
+                        readOnly
+                        tabIndex={-1}
+                        title="Shifted forward from earlier months — automatically reduced as you declare COD"
+                        className="h-8 text-xs bg-amber-50 border-amber-200 text-amber-800 font-semibold cursor-default"
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...form.register(`phases.${phaseIndex}.expectedMonths.${mi}.mw`)}
+                        className={`h-8 text-xs ${expectedError ? 'border-red-400' : ''}`}
+                        placeholder="0"
+                      />
                     )}
                   </div>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...form.register(`phases.${phaseIndex}.expectedMonths.${mi}.mw`)}
-                    className={`h-8 text-xs ${expectedError ? 'border-red-400' : ''}`}
-                    placeholder="0"
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
-            {carried > 0 && (() => {
-              // The field holds only what the operator newly enters for this
-              // month; the carried-forward quantum is added on top to give the
-              // month's EFFECTIVE expected. Show that total explicitly so the
-              // carried amount is visible as a figure, not just a badge.
-              const enteredM0 = parseFloat(form.watch(`phases.${phaseIndex}.expectedMonths.0.mw`) || '0') || 0;
-              const effectiveM0 = enteredM0 + carried;
-              return (
-                <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">
-                  {carried.toFixed(1)} MW carried into {monthLabel(threeMonths[0])} from earlier months not met.{' '}
-                  <span className="font-semibold text-amber-800">
-                    Effective {monthLabel(threeMonths[0])} expected: {effectiveM0.toFixed(1)} MW
-                  </span>{' '}
-                  ({enteredM0.toFixed(1)} entered in the box above + {carried.toFixed(1)} carried). The {monthLabel(threeMonths[0])} box is for any <em>additional</em> expected you want to add on top of the carried amount.
-                </p>
-              );
-            })()}
+            {carriedOriginal > 0 && (
+              <p className="text-[10px] text-amber-700 mt-1">
+                {carriedOriginal.toFixed(1)} MW shifted from earlier months (not commissioned) into {monthLabel(threeMonths[0])}; declaring COD reduces this balance.
+              </p>
+            )}
             {expectedError && (
               <p className="text-[10px] text-destructive mt-1">{expectedError}</p>
             )}
@@ -1287,6 +1285,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         priorLabel="TOC"
         expectedError={expectedError}
         threeMonths={threeMonths}
+        carriedOriginal={carriedBySource[selectedSource] ?? 0}
         carried={Math.max(0, (carriedBySource[selectedSource] ?? 0) - Math.max(0, codTotal - (origCodBySource[selectedSource] ?? 0)))}
         triedSave={triedSave}
       />
