@@ -242,6 +242,20 @@ export function AddPhasesForm({
     return m;
   }, [existingPhases]);
 
+  // COD already recorded (before this edit), per source — the baseline the
+  // carried-forward figure was computed against. Any COD declared IN this form
+  // beyond it commissions the very capacity that was 'carried' expected, so it
+  // must offset the carried amount (otherwise declaring COD for the carried
+  // quantum double-counts against the remaining-capacity check).
+  const origCodBySource = useMemo(() => {
+    const m = {};
+    for (const ph of existingPhases) {
+      const c = ph.codEvents != null ? sumEvents(ph.codEvents) : Number(ph.codDeclaredMw ?? 0);
+      m[ph.sourceType] = (m[ph.sourceType] ?? 0) + c;
+    }
+    return m;
+  }, [existingPhases]);
+
   // Editable capacities. The plant's Total Capacity (and, for hybrids, each
   // component capacity) can be corrected inline here — e.g. to resolve an
   // "Applied exceeds capacity" violation without leaving the phase editor.
@@ -475,22 +489,27 @@ export function AddPhasesForm({
   const expectedErrors = useMemo(() => {
     const m = {};
     watchedPhases.forEach((p, i) => {
-      // Total forecast = the three entered months + any carried-forward quantum.
-      const entered = (p.expectedMonths ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
-      const carried = carriedBySource[p.sourceType] ?? 0;
-      const expected = entered + carried;
-      if (expected <= 0) return;
       const cap = capForSource(p.sourceType);
       if (cap == null) return;
       const cod = sumEvents(p.codEvents ?? []);
+      // COD declared in this form beyond the stored baseline commissions the
+      // carried-forward expected capacity, so it nets it out — declaring COD for
+      // the carried quantum must NOT also count as still-outstanding expected.
+      const carried = carriedBySource[p.sourceType] ?? 0;
+      const newlyCommissioned = Math.max(0, cod - (origCodBySource[p.sourceType] ?? 0));
+      const outstandingCarried = Math.max(0, carried - newlyCommissioned);
+      // Total forecast = the three entered months + still-outstanding carried.
+      const entered = (p.expectedMonths ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+      const expected = entered + outstandingCarried;
+      if (expected <= 0) return;
       const remaining = cap - cod;
       if (expected > remaining + 0.01) {
-        const carriedNote = carried > 0 ? ` (incl. ${carried.toFixed(1)} carried)` : '';
+        const carriedNote = outstandingCarried > 0 ? ` (incl. ${outstandingCarried.toFixed(1)} carried)` : '';
         m[i] = `Exceeded: total Expected (${expected.toFixed(1)} MW${carriedNote}) is more than the remaining capacity (Total ${cap.toFixed(1)} − COD ${cod.toFixed(1)} = ${Math.max(0, remaining).toFixed(1)} MW)`;
       }
     });
     return m;
-  }, [watchedPhases, caps, plantType.isHybrid, carriedBySource]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [watchedPhases, caps, plantType.isHybrid, carriedBySource, origCodBySource]); // eslint-disable-line react-hooks/exhaustive-deps
   const hasExpectedErrors = Object.keys(expectedErrors).length > 0;
 
   const saveDisabled = pendingMw < -0.01 || hasPipelineErrors || hasExpectedErrors || !form.formState.isValid;
@@ -766,6 +785,7 @@ export function AddPhasesForm({
             expectedError={expectedErrors[i]}
             threeMonths={three}
             carriedBySource={carriedBySource}
+            origCodBySource={origCodBySource}
             triedSave={triedSave}
           />
         ))}
@@ -1084,7 +1104,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {}, triedSave = false }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {}, origCodBySource = {}, triedSave = false }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -1267,7 +1287,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         priorLabel="TOC"
         expectedError={expectedError}
         threeMonths={threeMonths}
-        carried={carriedBySource[selectedSource] ?? 0}
+        carried={Math.max(0, (carriedBySource[selectedSource] ?? 0) - Math.max(0, codTotal - (origCodBySource[selectedSource] ?? 0)))}
         triedSave={triedSave}
       />
 
