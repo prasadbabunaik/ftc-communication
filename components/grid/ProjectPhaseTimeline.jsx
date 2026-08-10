@@ -7,7 +7,7 @@ import {
 } from '@/app/actions/grid';
 import {
   Trash2, ChevronDown, ChevronUp, AlertTriangle, History, ArrowRight,
-  Pencil, Clock, CheckCircle2, AlertCircle, Plus, CalendarDays,
+  Pencil, Clock, CheckCircle2, Plus, CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -279,18 +279,6 @@ function DateCell({ label, date, mw }) {
   );
 }
 
-function OverdueBadge({ proposedFtcDate, ftcCompletedMw }) {
-  if (!proposedFtcDate || ftcCompletedMw) return null;
-  const overdue = new Date(proposedFtcDate) < new Date();
-  if (!overdue) return null;
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border bg-red-50 text-red-700 border-red-200">
-      <AlertCircle className="size-3" />
-      Overdue
-    </span>
-  );
-}
-
 function PipelineBar({ phase }) {
   const applied  = Number(phase.capacityAppliedMw) || 0;
   if (applied === 0) return null;
@@ -325,7 +313,9 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
   const [isPending, startTransition]  = useTransition();
   const phaseNotes = phase.notes ?? [];
 
-  const isOverdue = phase.proposedFtcDate && !phase.ftcCompletedMw && new Date(phase.proposedFtcDate) < new Date();
+  // "Overdue" is intentionally NOT flagged here: the expected commissioning
+  // rolls forward to the next month automatically (see applyExpectedForecast),
+  // so a passed proposed-FTC date isn't treated as overdue in this view.
 
   function handleDelete() {
     startTransition(async () => {
@@ -341,7 +331,7 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
     : null;
 
   return (
-    <div className={`rounded-lg border bg-card transition-all ${isPending ? 'opacity-50' : ''} ${isOverdue ? 'border-red-200' : ''}`}>
+    <div className={`rounded-lg border bg-card transition-all ${isPending ? 'opacity-50' : ''}`}>
       {/* Phase header row */}
       <div
         className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-muted/20 rounded-lg"
@@ -352,7 +342,6 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
             {phase.sourceType}
           </span>
           <span className="font-semibold text-sm">{Number(phase.capacityAppliedMw).toFixed(1)} MW</span>
-          <OverdueBadge proposedFtcDate={phase.proposedFtcDate} ftcCompletedMw={phase.ftcCompletedMw} />
         </div>
 
         <div className="flex gap-6 flex-1 flex-wrap">
@@ -467,9 +456,8 @@ function PhaseRow({ phase, projectId, canEdit, index, onEditSuccess }) {
             {phase.proposedFtcDate && (
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Proposed FTC</p>
-                <p className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-foreground'}`}>
+                <p className="text-xs font-medium text-foreground">
                   {fmtDate(phase.proposedFtcDate)}
-                  {isOverdue && ' — overdue'}
                 </p>
               </div>
             )}
