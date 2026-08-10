@@ -157,11 +157,17 @@ function existingPhaseToFormRow(ph, three) {
   };
   // Rolling 3-month expected: seed each of the current-window months from the
   // phase's stored per-month entries (_expectedMonthly, stamped by the page).
+  // The first (current) month additionally MATERIALISES the carry-forward from
+  // earlier unmet months (_carriedExpected) so the operator sees and can
+  // redistribute that outstanding balance right in the box. The save folds the
+  // old past months away (buildExpectedMonthly), so this doesn't double-count.
   const monthly = ph._expectedMonthly ?? {};
-  const expectedMonths = three.map((m) => ({
-    month: m,
-    mw: monthly[m] != null ? String(Number(monthly[m])) : '',
-  }));
+  const carriedIn = Number(ph._carriedExpected ?? 0) || 0;
+  const expectedMonths = three.map((m, idx) => {
+    const stored = monthly[m] != null ? Number(monthly[m]) : 0;
+    const seeded = idx === 0 ? stored + carriedIn : stored;
+    return { month: m, mw: seeded > 0 ? String(Math.round(seeded * 100) / 100) : '' };
+  });
   return {
     // Hidden marker — distinguishes "edit this existing phase" from "add a
     // new one". Server action upsertProjectPhases reads it.
@@ -241,6 +247,12 @@ export function AddPhasesForm({
     }
     return m;
   }, [existingPhases]);
+
+  // Per-phase flag: has the operator hand-edited the current-month (carried)
+  // box? Until they do, that box mirrors the outstanding carried balance, so
+  // the validation uses that balance directly (lag-free — the box is synced a
+  // frame later by an effect). Once touched, the box value is authoritative.
+  const carriedTouched = useRef({});
 
   // COD already recorded (before this edit), per source — the baseline the
   // carried-forward figure was computed against. Any COD declared IN this form
@@ -498,9 +510,15 @@ export function AddPhasesForm({
       const carried = carriedBySource[p.sourceType] ?? 0;
       const newlyCommissioned = Math.max(0, cod - (origCodBySource[p.sourceType] ?? 0));
       const outstandingCarried = Math.max(0, carried - newlyCommissioned);
-      // Total forecast = the three entered months + still-outstanding carried.
-      const entered = (p.expectedMonths ?? []).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
-      const expected = entered + outstandingCarried;
+      // The current-month box now MATERIALISES the carried balance, so the total
+      // forecast is simply the sum of the boxes. For the carried box we take the
+      // outstanding balance directly until the operator hand-edits it (the box
+      // is synced a frame later, so reading it raw would flash a stale value).
+      const months = p.expectedMonths ?? [];
+      const later = months.slice(1).reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
+      const m0Raw = parseFloat(months[0]?.mw || '0') || 0;
+      const m0 = (carried > 0 && !carriedTouched.current[i]) ? outstandingCarried : m0Raw;
+      const expected = m0 + later;
       if (expected <= 0) return;
       const remaining = cap - cod;
       if (expected > remaining + 0.01) {
@@ -786,6 +804,7 @@ export function AddPhasesForm({
             threeMonths={three}
             carriedBySource={carriedBySource}
             origCodBySource={origCodBySource}
+            carriedTouched={carriedTouched}
             triedSave={triedSave}
           />
         ))}
@@ -819,13 +838,28 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0, carriedOriginal = 0, triedSave = false }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0, carriedOriginal = 0, carriedTouched = { current: {} }, triedSave = false }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
   const total = watchedEvents.reduce((s, e) => s + (parseFloat(e.mw) || 0), 0);
   const mwhTotal = watchedEvents.reduce((s, e) => s + (parseFloat(e.mwh) || 0), 0);
   const st = MILESTONE_STYLES[milestone];
+
+  // The current-month expected box is seeded with the carried-forward balance
+  // and then tracks COD live: as the operator declares COD the outstanding
+  // balance (`carried`) shrinks, so we mirror it into the box — UNTIL the
+  // operator edits the box themselves (e.g. to move part of it to a later
+  // month), after which their value is authoritative and we stop syncing.
+  const m0Path = `phases.${phaseIndex}.expectedMonths.0.mw`;
+  useEffect(() => {
+    if (milestone !== 'COD' || carriedOriginal <= 0 || carriedTouched.current[phaseIndex]) return;
+    const cur = parseFloat(form.getValues(m0Path) || '0') || 0;
+    const next = carried > 0 ? Math.round(carried * 100) / 100 : 0;
+    if (Math.abs(cur - next) > 0.001) {
+      form.setValue(m0Path, next > 0 ? String(next) : '', { shouldValidate: false, shouldDirty: true });
+    }
+  }, [carried, carriedOriginal, milestone, m0Path, form]);
   // Non-BESS rows use a simple MW | Date | Remarks grid. BESS rows use a grouped
   // Power/Energy layout (below) so the extra MWh + MWh-date fields don't crowd
   // the row — each quantum can be reached on a different day.
@@ -1045,41 +1079,36 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
             </label>
             <div className="grid grid-cols-3 gap-2">
               {threeMonths.map((m, mi) => {
-                // The current month (mi 0) carries the shifted-forward expected:
-                // show that live balance (carried − COD declared) in the box,
-                // read-only, so it visibly drops to 0 as the operator declares
-                // COD. Later months stay editable for genuinely new forecasts.
+                // The current month (mi 0) is seeded with the shifted-forward
+                // balance and follows COD live, but stays EDITABLE so the
+                // operator can move part of it to a later month (e.g. 50 here,
+                // 50 next month). Amber accent marks it as the carried box.
                 const isCarriedMonth = mi === 0 && carriedOriginal > 0;
+                const reg = form.register(`phases.${phaseIndex}.expectedMonths.${mi}.mw`);
                 return (
                   <div key={m}>
                     <div className="text-[10px] font-semibold text-muted-foreground mb-0.5">
                       {monthLabel(m)}
                     </div>
-                    {isCarriedMonth ? (
-                      <Input
-                        type="number"
-                        value={Number.isInteger(carried) ? carried : carried.toFixed(2)}
-                        readOnly
-                        tabIndex={-1}
-                        title="Shifted forward from earlier months — automatically reduced as you declare COD"
-                        className="h-8 text-xs bg-amber-50 border-amber-200 text-amber-800 font-semibold cursor-default"
-                      />
-                    ) : (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...form.register(`phases.${phaseIndex}.expectedMonths.${mi}.mw`)}
-                        className={`h-8 text-xs ${expectedError ? 'border-red-400' : ''}`}
-                        placeholder="0"
-                      />
-                    )}
+                    <Input
+                      type="number"
+                      step="0.01"
+                      {...reg}
+                      onChange={(e) => {
+                        if (isCarriedMonth) carriedTouched.current[phaseIndex] = true;
+                        reg.onChange(e);
+                      }}
+                      title={isCarriedMonth ? 'Seeded from the balance shifted forward — edit to move part of it to a later month' : undefined}
+                      className={`h-8 text-xs ${expectedError ? 'border-red-400' : isCarriedMonth ? 'bg-amber-50 border-amber-200 text-amber-800 font-semibold' : ''}`}
+                      placeholder="0"
+                    />
                   </div>
                 );
               })}
             </div>
             {carriedOriginal > 0 && (
               <p className="text-[10px] text-amber-700 mt-1">
-                {carriedOriginal.toFixed(1)} MW shifted from earlier months (not commissioned) into {monthLabel(threeMonths[0])}; declaring COD reduces this balance.
+                {carriedOriginal.toFixed(1)} MW shifted from earlier months (not commissioned) into {monthLabel(threeMonths[0])} — it drops as you declare COD; edit the boxes to spread the balance across these months.
               </p>
             )}
             {expectedError && (
@@ -1102,7 +1131,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {}, origCodBySource = {}, triedSave = false }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {}, origCodBySource = {}, carriedTouched = { current: {} }, triedSave = false }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -1287,6 +1316,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         threeMonths={threeMonths}
         carriedOriginal={carriedBySource[selectedSource] ?? 0}
         carried={Math.max(0, (carriedBySource[selectedSource] ?? 0) - Math.max(0, codTotal - (origCodBySource[selectedSource] ?? 0)))}
+        carriedTouched={carriedTouched}
         triedSave={triedSave}
       />
 

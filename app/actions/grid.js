@@ -82,12 +82,24 @@ function parseDate(val) {
 }
 
 // Build the rolling per-month expected map { 'YYYY-MM': mw } for a phase.
-// Merges the form's current-window entries onto the existing stored map so
-// earlier months (which the form no longer shows) persist for carry-forward.
-// An empty/zero entry clears that month. Returns null when nothing remains.
+// The form's current window (current / +1 / +2 months) is authoritative: its
+// first month already MATERIALISES any carry-forward from earlier unmet months
+// (the editor seeds it with the outstanding carried balance and lets the
+// operator redistribute it across the window). So any stored month BEFORE the
+// window has been folded into that first box and must be dropped here — keeping
+// it would double-count it on the next roll-forward. Months AFTER the window
+// (beyond +2, not shown in the form) are preserved untouched. An empty/zero
+// window entry clears that month. Returns null when nothing remains.
 function buildExpectedMonthly(formMonths, existingJson) {
   const map = (existingJson && typeof existingJson === 'object' && !Array.isArray(existingJson))
     ? { ...existingJson } : {};
+  const windowMonths = (formMonths ?? []).map((m) => m?.month).filter((m) => /^\d{4}-\d{2}$/.test(m)).sort();
+  const windowStart = windowMonths[0];
+  if (windowStart) {
+    for (const k of Object.keys(map)) {
+      if (/^\d{4}-\d{2}$/.test(k) && k < windowStart) delete map[k];
+    }
+  }
   for (const em of formMonths ?? []) {
     if (!em?.month || !/^\d{4}-\d{2}$/.test(em.month)) continue;
     const mw = parseFloat(em.mw);
