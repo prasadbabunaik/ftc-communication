@@ -216,6 +216,10 @@ export function AddPhasesForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState(null);
+  // Flips true once the operator first attempts a save — used to defer the
+  // "enter a value" error on a brand-new empty event until they actually try
+  // to save (instead of nagging the instant they click "Add … Event").
+  const [triedSave, setTriedSave] = useState(false);
   const { settings } = useSettings();
   // Default expectedMonth = the current reference month (the same value that
   // used to drive the rolling "Exp. May'26" label). ADMIN/NLDC can change it
@@ -532,6 +536,7 @@ export function AddPhasesForm({
   // button's click (and Enter via the form's onSubmit) so it always runs even
   // while the button is visually blocked.
   async function attemptSave() {
+    setTriedSave(true);
     const schemaOk = await form.trigger();
     const blocked = !schemaOk || hasPipelineErrors || hasExpectedErrors || pendingMw < -0.01;
     if (blocked) {
@@ -761,6 +766,7 @@ export function AddPhasesForm({
             expectedError={expectedErrors[i]}
             threeMonths={three}
             carriedBySource={carriedBySource}
+            triedSave={triedSave}
           />
         ))}
 
@@ -793,7 +799,7 @@ const MILESTONE_STYLES = {
   COD: { label: 'COD Declared',   header: 'bg-emerald-50/60 border-emerald-100', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', btn: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' },
 };
 
-function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0 }) {
+function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel, canPickExpectedMonth, limitMw, limitLabel, priorEvents = [], priorLabel, expectedError = null, isBess = false, threeMonths = [], carried = 0, triedSave = false }) {
   const prefix = `phases.${phaseIndex}.${milestone.toLowerCase()}Events`;
   const { fields, append, remove } = useFieldArray({ control: form.control, name: prefix });
   const watchedEvents = useWatch({ control: form.control, name: prefix }) ?? [];
@@ -836,7 +842,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${st.badge}`}>
             {milestone}
           </span>
-          {total > 0 && (
+          {(total > 0 || (limitMw != null && fields.length > 0)) && (
             <span className={`text-xs font-mono font-semibold ${overLimit ? 'text-red-700' : 'text-foreground'}`}>
               {total.toFixed(2)}{limitMw != null ? ` / ${limitMw.toFixed(2)}` : ''} MW total
               {limitMw != null && remaining != null && !overLimit && (
@@ -891,7 +897,14 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
             // — highlight the offending field so it's obvious why Save is
             // disabled (e.g. a legacy-hydrated event still missing its date).
             const [, pIdx, evKey] = prefix.split('.');
-            const rowErr = form.formState.errors?.phases?.[pIdx]?.[evKey]?.[ei];
+            const rawRowErr = form.formState.errors?.phases?.[pIdx]?.[evKey]?.[ei];
+            // Don't nag a brand-new, still-empty event with the "enter a value"
+            // error the instant it's added — only once the operator has typed
+            // something or actually tries to save. Rows with a value (or a
+            // legacy row missing only its date) still flag immediately.
+            const evNow = watchedEvents[ei] ?? {};
+            const rowEmpty = !String(evNow.mw ?? '').trim() && !String(evNow.mwh ?? '').trim();
+            const rowErr = rowEmpty && !triedSave ? undefined : rawRowErr;
             const errText = rowErr && (
               <p className="px-2.5 pb-1.5 text-[11px] text-red-600">
                 ⚠ {[rowErr.mw?.message, rowErr.date?.message && `${rowErr.date.message} — pick the actual ${milestone} date for this ${form.watch(`${prefix}.${ei}.mw`) || ''} MW entry`].filter(Boolean).join(' · ')}
@@ -1034,11 +1047,23 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
                 </div>
               ))}
             </div>
-            {carried > 0 && (
-              <p className="text-[10px] text-amber-700 mt-1">
-                {carried.toFixed(1)} MW carried into {monthLabel(threeMonths[0])} from earlier months not met — added to the {monthLabel(threeMonths[0])} figure.
-              </p>
-            )}
+            {carried > 0 && (() => {
+              // The field holds only what the operator newly enters for this
+              // month; the carried-forward quantum is added on top to give the
+              // month's EFFECTIVE expected. Show that total explicitly so the
+              // carried amount is visible as a figure, not just a badge.
+              const enteredM0 = parseFloat(form.watch(`phases.${phaseIndex}.expectedMonths.0.mw`) || '0') || 0;
+              const effectiveM0 = enteredM0 + carried;
+              return (
+                <p className="text-[10px] text-amber-700 mt-1 leading-relaxed">
+                  {carried.toFixed(1)} MW carried into {monthLabel(threeMonths[0])} from earlier months not met.{' '}
+                  <span className="font-semibold text-amber-800">
+                    Effective {monthLabel(threeMonths[0])} expected: {effectiveM0.toFixed(1)} MW
+                  </span>{' '}
+                  ({enteredM0.toFixed(1)} entered in the box above + {carried.toFixed(1)} carried). The {monthLabel(threeMonths[0])} box is for any <em>additional</em> expected you want to add on top of the carried amount.
+                </p>
+              );
+            })()}
             {expectedError && (
               <p className="text-[10px] text-destructive mt-1">{expectedError}</p>
             )}
@@ -1059,7 +1084,7 @@ function EventList({ phaseIndex, milestone, form, gated, gatedMsg, refMonthLabel
   );
 }
 
-function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {} }) {
+function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, refMonthLabel, canPickExpectedMonth, capForSource, isIntrastate = false, expectedError = null, threeMonths = [], carriedBySource = {}, triedSave = false }) {
   const errors = form.formState.errors.phases?.[index];
   const prefix = `phases.${index}`;
   const selectedSource = form.watch(`${prefix}.sourceType`);
@@ -1199,6 +1224,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
             canPickExpectedMonth={canPickExpectedMonth}
             limitMw={ftcLimit}
             limitLabel="Applied capacity"
+            triedSave={triedSave}
           />
 
           {/* TOC events */}
@@ -1215,6 +1241,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
             limitLabel="Total FTC"
             priorEvents={watchedFtcEvents}
             priorLabel="FTC"
+            triedSave={triedSave}
           />
 
           {/* Under TOC */}
@@ -1241,6 +1268,7 @@ function PhaseRow({ index, form, isHybrid, availableSources, existingPipeline, r
         expectedError={expectedError}
         threeMonths={threeMonths}
         carried={carriedBySource[selectedSource] ?? 0}
+        triedSave={triedSave}
       />
 
       {/* Remarks */}
