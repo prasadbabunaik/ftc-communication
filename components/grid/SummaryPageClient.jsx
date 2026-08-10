@@ -107,7 +107,7 @@ function PipelineHead({ isRegionPrimary, refMonthLabel }) {
     ? `Expected Capacity (MW) to be commissioned by End of ${refMonthLabel.slice(5)}`
     : 'Expected Capacity (MW) to be commissioned by end of the reference month';
   return (
-    <thead className="sticky top-[156px] lg:top-[166px] z-[8] text-[12px]">
+    <thead className="sticky max-lg:static top-[156px] lg:top-[166px] z-[8] text-[12px]">
       <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
         <th rowSpan={2} title={isRegionPrimary ? undefined : 'Source (Type)'} className="sticky left-0 z-[6] bg-slate-100 px-4 py-3 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 90 }}>
           {isRegionPrimary ? 'Region' : 'Source'}
@@ -491,7 +491,7 @@ function PipelineTable({ rows, primaryKey, refMonthLabel = 'Expected', title, de
           </div>
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="max-lg:overflow-x-auto">
         <table className="w-full border-collapse">
           <PipelineHead isRegionPrimary={isRegionPrimary} refMonthLabel={refMonthLabel} />
           <tbody>
@@ -612,9 +612,9 @@ function Contd4StudyTable({ contd4Study, onViewBreakup }) {
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="max-lg:overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
+          <thead className="sticky max-lg:static top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="sticky z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ left: 76, minWidth: 200 }}>Source</th>
@@ -662,9 +662,9 @@ function TransmissionSummaryTable({ transmissionRows, refMonthLabel = 'Expected'
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="max-lg:overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
+          <thead className="sticky max-lg:static top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-center font-bold border-r border-slate-200" style={{ minWidth: 220 }}>Element Type</th>
@@ -866,9 +866,9 @@ function HybridBreakdownTable({ hybridRows, refMonthLabel = 'Expected', onViewBr
         </div>
         <ViewBreakupBtn onClick={onViewBreakup} />
       </div>
-      <div className="overflow-x-auto">
+      <div className="max-lg:overflow-x-auto">
         <table className="w-full border-collapse text-[11px]">
-          <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
+          <thead className="sticky max-lg:static top-[156px] lg:top-[166px] z-[8]">
             <tr className="bg-slate-100 text-slate-700 text-[10px] border-b border-slate-200">
               <th className="sticky left-0 z-[6] bg-slate-100 px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 76 }}>Region</th>
               <th className="px-3 py-2 text-center font-bold border-r border-slate-200 whitespace-nowrap" style={{ minWidth: 220 }}>Hybrid Type</th>
@@ -1317,7 +1317,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
             <div className="p-10 text-center text-sm text-muted-foreground">No FTC / TOC / COD milestones in this date range.</div>
           ) : (
             <table className="w-full border-collapse text-[11px]">
-              <thead className="sticky top-[156px] lg:top-[166px] z-[8]">
+              <thead className="sticky max-lg:static top-[156px] lg:top-[166px] z-[8]">
                 <tr className={`text-[10px] border-b border-slate-300 ${accent.head}`}>
                   <th className="sticky left-0 z-[5] px-4 py-2 text-center font-bold border-r border-slate-300 whitespace-nowrap bg-inherit">Source</th>
                   {regions.map(reg => (
