@@ -25,44 +25,37 @@ function mw(val) {
 // the CONTD-4 page; users filter "all hybrids" rather than each combination.
 const displayType = (label) => (label?.toLowerCase().startsWith('hybrid') ? 'Hybrid' : label);
 
+// Header cells: compact (10px, tight padding) so the narrow numeric columns fit
+// their labels on a single line, with normal wrapping as a safety net (never
+// overflow into a neighbouring column). Alignment is passed in per column so
+// numeric headers line up right-edge with their right-aligned data cells.
+const TH_BASE = 'px-2 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-tight leading-tight align-bottom whitespace-normal break-words';
+
 function SortableTh({ label, field, sortField, sortDir, onSort, className = '' }) {
   const active = sortField === field;
+  const Icon = active ? (sortDir === 'asc' ? ChevronUp : ChevronDown) : ChevronsUpDown;
   return (
     <th
       onClick={() => onSort(field)}
       className={cn(
-        'px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap',
-        'cursor-pointer select-none hover:text-foreground transition-colors group',
+        TH_BASE,
+        'cursor-pointer select-none hover:text-foreground transition-colors',
         active && 'text-foreground',
         className,
       )}
     >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {active
-          ? sortDir === 'asc'
-            ? <ChevronUp className="size-3 text-primary" />
-            : <ChevronDown className="size-3 text-primary" />
-          : <ChevronsUpDown className="size-3 opacity-30 group-hover:opacity-60" />}
-      </span>
+      {label}
+      <Icon className={cn('inline size-3 ml-0.5 align-middle shrink-0', active ? 'text-primary' : 'opacity-30')} />
     </th>
   );
 }
 
 function Th({ label, className = '' }) {
-  return (
-    <th className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${className}`}>
-      {label}
-    </th>
-  );
+  return <th className={cn(TH_BASE, className)}>{label}</th>;
 }
 
 function ThPink({ label, className = '' }) {
-  return (
-    <th className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap bg-pink-50 ${className}`}>
-      {label}
-    </th>
-  );
+  return <th className={cn(TH_BASE, 'bg-pink-50', className)}>{label}</th>;
 }
 
 function sortRows(rows, field, dir) {
@@ -395,20 +388,20 @@ export function FtcTable({ projects, userRole, onView, refMonthLabel = "Expected
             </tr>
             {/* Column labels */}
             <tr>
-              <Th label="#"                  className="w-[44px]" />
-              <SortableTh label="Station"    field="name"      className="min-w-[180px]" {...sp} />
-              <SortableTh label="Region"     field="region"    className="w-[68px]"      {...sp} />
-              <SortableTh label="Total (MW)" field="totalCap"  className="w-[80px]"      {...sp} />
-              <ThPink label="CONTD-4 (MW)"   className="w-[80px] border-r border-border/40" />
-              <SortableTh label="Applied"    field="applied"    className="w-[75px] bg-blue-50/30"  {...sp} />
-              <SortableTh label="Approved"   field="approved"   className="w-[75px] bg-blue-50/30"  {...sp} />
-              <SortableTh label="Pending"    field="ftcPending" className="w-[75px] bg-blue-50/30 border-r border-border/40" {...sp} />
-              <Th label="Issued"             className="w-[75px] bg-violet-50/30" />
-              <Th label="Pending"            className="w-[75px] bg-violet-50/30 border-r border-border/40" />
-              <SortableTh label="Done"       field="codDeclared" className="w-[75px] bg-emerald-50/30" {...sp} />
-              <Th label="Pending"            className="w-[75px] bg-emerald-50/30 border-r border-border/40" />
-              <Th label={refMonthLabel}      className="w-[80px] bg-amber-50/30 border-r border-border/40" />
-              <Th label="History"            className="min-w-[260px]" />
+              <Th label="#"                  className="w-[44px] text-center" />
+              <SortableTh label="Station"    field="name"      className="min-w-[180px] text-left" {...sp} />
+              <SortableTh label="Region"     field="region"    className="w-[68px] text-left"      {...sp} />
+              <SortableTh label="Total (MW)" field="totalCap"  className="w-[80px] text-right"      {...sp} />
+              <ThPink label="CONTD-4 (MW)"   className="w-[80px] text-right border-r border-border/40" />
+              <SortableTh label="Applied"    field="applied"    className="w-[75px] text-right bg-blue-50/30"  {...sp} />
+              <SortableTh label="Approved"   field="approved"   className="w-[75px] text-right bg-blue-50/30"  {...sp} />
+              <SortableTh label="Pending"    field="ftcPending" className="w-[75px] text-right bg-blue-50/30 border-r border-border/40" {...sp} />
+              <Th label="Issued"             className="w-[75px] text-right bg-violet-50/30" />
+              <Th label="Pending"            className="w-[75px] text-right bg-violet-50/30 border-r border-border/40" />
+              <SortableTh label="Done"       field="codDeclared" className="w-[75px] text-right bg-emerald-50/30" {...sp} />
+              <Th label="Pending"            className="w-[75px] text-right bg-emerald-50/30 border-r border-border/40" />
+              <Th label={refMonthLabel}      className="w-[80px] text-right bg-amber-50/30 border-r border-border/40" />
+              <Th label="History"            className="min-w-[260px] text-left" />
               <Th label=""                   className="w-[40px]" />
               {canDelete && <Th label="" className="w-[56px]" />}
             </tr>
