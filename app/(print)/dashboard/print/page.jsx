@@ -32,7 +32,7 @@ export default async function PrintSummaryPage({ searchParams }) {
   // matches the on-screen pipeline (only still-under-process projects).
   const excludeCommissioned = params.excludeCommissioned === '1';
 
-  const scope      = await buildRegionScope(user.role);
+  const scope      = await buildRegionScope(user);
   const userRegion = await getUserRegion(user.role); // null for NLDC/ADMIN
   // Same active-period gate the dashboard applies. Superseded/versioned records
   // (activeUntil set) must be excluded, else the PDF double-counts projects that

@@ -5,7 +5,7 @@ import { requireServerUser, buildRegionScope } from '@/lib/server-auth';
 export async function GET(request) {
   try {
     const user = await requireServerUser(request);
-    const regionScope = await buildRegionScope(user.role);
+    const regionScope = await buildRegionScope(user);
 
     const startOfMonth = new Date();
     startOfMonth.setDate(1);

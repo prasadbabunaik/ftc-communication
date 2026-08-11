@@ -40,7 +40,7 @@ export default async function AddPhasePage({ params }) {
 
   if (!project) notFound();
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     redirect('/generation');
   }

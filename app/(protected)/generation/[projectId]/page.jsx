@@ -60,7 +60,7 @@ export default async function ProjectDetailPage({ params }) {
   if (!project) notFound();
 
   // Check region scope
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     redirect('/generation');
   }

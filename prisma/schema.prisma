@@ -15,6 +15,10 @@ enum UserRole {
   WRLDC
   NERLDC
   NLDC
+  // Read-only account. Sees data but can never mutate (absent from every edit/
+  // delete role set). Its visibility is scoped by `scopeRegionId`: a specific
+  // region, or all regions when null.
+  VIEWER
 }
 
 model User {
@@ -26,6 +30,11 @@ model User {
   designation  String?
   role         UserRole @default(NLDC)
   isActive     Boolean  @default(true)
+  // Region a VIEWER account is restricted to. Null = all regions (national
+  // read-only). Only meaningful for the VIEWER role; other roles derive their
+  // region from the role itself and leave this null.
+  scopeRegionId String?
+  scopeRegion   GridRegion? @relation("UserScopeRegion", fields: [scopeRegionId], references: [id], onDelete: SetNull)
   // Last presence heartbeat — drives the admin-only "Viewing now" indicator.
   lastSeenAt   DateTime?
   createdAt    DateTime @default(now())
@@ -81,6 +90,7 @@ model GridRegion {
   poolingStations      PoolingStation[]
   projects             GenerationProject[]
   transmissionElements TransmissionElement[]
+  scopedViewers        User[]                @relation("UserScopeRegion")
 
   @@map("grid_regions")
 }

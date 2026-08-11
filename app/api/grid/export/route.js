@@ -459,7 +459,7 @@ export async function GET(request) {
     ? new Date(asOfStr + 'T23:59:59.999Z')
     : (() => { const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t; })();
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   // Same active-period gate the dashboard + PDF apply: drop superseded/versioned
   // records (activeUntil set) so the Excel totals match the on-screen numbers.
   const activeFilter = activePeriodFilter(asOf);

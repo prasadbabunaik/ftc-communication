@@ -15,7 +15,7 @@ export async function GET(request) {
 
   // Enforce region scope: an xRLDC user may only list pooling stations
   // in their own region, regardless of what regionId they pass.
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   const effectiveRegionId = scope.regionId ?? requestedRegionId ?? undefined;
 
   if (scope.regionId && requestedRegionId && requestedRegionId !== scope.regionId) {

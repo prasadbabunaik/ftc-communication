@@ -15,6 +15,7 @@ const ROLE_META = {
   ERLDC:  { label: 'Eastern RLDC',       region: 'ER Region only',     color: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-400' },
   WRLDC:  { label: 'Western RLDC',       region: 'WR Region only',     color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-400' },
   NERLDC: { label: 'North-Eastern RLDC', region: 'NER Region only',    color: 'bg-pink-50 text-pink-700 border-pink-200', dot: 'bg-pink-400' },
+  VIEWER: { label: 'Viewer (Read-only)', region: 'One region or all',   color: 'bg-slate-100 text-slate-700 border-slate-300', dot: 'bg-slate-400' },
 };
 
 // Permission matrix: true = full, 'read' = read-only, false = no access
@@ -75,6 +76,7 @@ const REGION_MAP = [
   { role: 'ERLDC',  region: 'ER',  description: 'Eastern Region data only' },
   { role: 'WRLDC',  region: 'WR',  description: 'Western Region data only' },
   { role: 'NERLDC', region: 'NER', description: 'North-Eastern Region data only' },
+  { role: 'VIEWER', region: '1 / all', description: 'Read-only. Scoped to a single region or all regions — never edits' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

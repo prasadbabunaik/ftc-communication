@@ -22,7 +22,7 @@ export async function GET(request, { params }) {
   });
   if (!att) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== att.project.regionId) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }

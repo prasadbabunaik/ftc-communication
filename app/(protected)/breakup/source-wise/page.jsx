@@ -14,7 +14,7 @@ export default async function SourceWiseBreakupPage() {
   try { user = await requireServerUser(); }
   catch { redirect('/login'); }
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   const activeFilter = activePeriodFilter(null);
 
   const [projects, txElements] = await Promise.all([

@@ -15,7 +15,7 @@ import { createUser, updateUser, toggleUserActive, resetUserPassword, deleteUser
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLES = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
+const ROLES = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC', 'VIEWER'];
 
 const ROLE_META = {
   ADMIN:  { label: 'Administrator',      color: 'bg-violet-50 text-violet-700 border-violet-200' },
@@ -25,9 +25,10 @@ const ROLE_META = {
   ERLDC:  { label: 'Eastern RLDC',       color: 'bg-orange-50 text-orange-700 border-orange-200' },
   WRLDC:  { label: 'Western RLDC',       color: 'bg-amber-50 text-amber-700 border-amber-200' },
   NERLDC: { label: 'North-Eastern RLDC', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+  VIEWER: { label: 'Viewer (Read-only)', color: 'bg-slate-100 text-slate-700 border-slate-300' },
 };
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'NLDC' };
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'NLDC', scopeRegionId: '' };
 
 // When SSO is on, login goes through Microsoft Entra, so a local password is
 // optional when creating a user.
@@ -55,14 +56,18 @@ function RoleBadge({ role }) {
   );
 }
 
-function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true }) {
+function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true, regions = [] }) {
   // NLDC can't grant the ADMIN role.
   const roleOptions = isAdmin ? ROLES : ROLES.filter((r) => r !== 'ADMIN');
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState(editing ? { name: editing.name, email: editing.email, role: editing.role, password: '' } : EMPTY_FORM);
+  const [form, setForm] = useState(editing
+    ? { name: editing.name, email: editing.email, role: editing.role, password: '', scopeRegionId: editing.scopeRegionId ?? '' }
+    : EMPTY_FORM);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState(null);
+
+  const isViewer = form.role === 'VIEWER';
 
   function set(k, v) { setForm((p) => ({ ...p, [k]: v })); }
 
@@ -71,10 +76,13 @@ function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true }
   function onSubmit(e) {
     e.preventDefault();
     setError(null);
+    // Only VIEWER accounts carry a region binding; other roles derive it from
+    // the role, so send null (the server enforces this too).
+    const scopeRegionId = isViewer ? (form.scopeRegionId || null) : null;
     startTransition(async () => {
       const result = editing
-        ? await updateUser(editing.id, { name: form.name, email: form.email, role: form.role })
-        : await createUser({ name: form.name, email: form.email, password: form.password, role: form.role });
+        ? await updateUser(editing.id, { name: form.name, email: form.email, role: form.role, scopeRegionId })
+        : await createUser({ name: form.name, email: form.email, password: form.password, role: form.role, scopeRegionId });
 
       if (result?.error) { setError(result.error); return; }
       toast.success(editing ? 'User updated successfully.' : 'User created successfully.');
@@ -148,9 +156,30 @@ function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true }
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
               </div>
               <p className="text-[11px] text-muted-foreground mt-1.5">
-                RLDC roles restrict data access to the assigned region.
+                RLDC roles restrict data access to the assigned region. <span className="font-medium text-foreground">Viewer</span> is read-only and cannot edit anything.
               </p>
             </div>
+            {isViewer && (
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-1.5">Viewer region access *</label>
+                <div className="relative">
+                  <select
+                    value={form.scopeRegionId}
+                    onChange={(e) => set('scopeRegionId', e.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm appearance-none pe-8"
+                  >
+                    <option value="">All regions (national read-only)</option>
+                    {regions.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  Choose a single region to limit this viewer, or <span className="font-medium text-foreground">All regions</span> to let them see the whole portal — always read-only.
+                </p>
+              </div>
+            )}
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
               <Button type="submit" disabled={isPending} className="flex-1">
@@ -268,7 +297,7 @@ function DeleteConfirmModal({ open, onClose, target, currentUserId }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export function UsersPageClient({ users: initialUsers, currentUserId, currentUserRole = 'ADMIN' }) {
+export function UsersPageClient({ users: initialUsers, regions = [], currentUserId, currentUserRole = 'ADMIN' }) {
   const isAdmin = currentUserRole === 'ADMIN';
   // NLDC manages users but can't act on ADMIN accounts (server-enforced too).
   const canActOn = (u) => isAdmin || u.role !== 'ADMIN';
@@ -418,7 +447,16 @@ export function UsersPageClient({ users: initialUsers, currentUserId, currentUse
                       </div>
                     </td>
                     {/* Role */}
-                    <td className="px-4 py-3"><RoleBadge role={user.role} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1 items-start">
+                        <RoleBadge role={user.role} />
+                        {user.role === 'VIEWER' && (
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {user.scopeRegion ? `${user.scopeRegion.code} only` : 'All regions'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     {/* Projects */}
                     <td className="px-4 py-3 text-sm text-muted-foreground font-mono">{user._count.createdProjects}</td>
                     {/* Status */}
@@ -497,8 +535,8 @@ export function UsersPageClient({ users: initialUsers, currentUserId, currentUse
       </div>
 
       {/* Modals */}
-      <UserFormModal open={createOpen} onClose={() => setCreateOpen(false)} editing={null} currentUserId={currentUserId} isAdmin={isAdmin} />
-      {editTarget && <UserFormModal open={!!editTarget} onClose={() => setEditTarget(null)} editing={editTarget} currentUserId={currentUserId} isAdmin={isAdmin} />}
+      <UserFormModal open={createOpen} onClose={() => setCreateOpen(false)} editing={null} currentUserId={currentUserId} isAdmin={isAdmin} regions={regions} />
+      {editTarget && <UserFormModal open={!!editTarget} onClose={() => setEditTarget(null)} editing={editTarget} currentUserId={currentUserId} isAdmin={isAdmin} regions={regions} />}
       {resetTarget && <ResetPasswordModal open={!!resetTarget} onClose={() => setResetTarget(null)} target={resetTarget} />}
       {deleteTarget && <DeleteConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} target={deleteTarget} currentUserId={currentUserId} />}
     </div>

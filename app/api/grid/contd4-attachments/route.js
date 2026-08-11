@@ -72,7 +72,7 @@ export async function POST(request) {
   });
   if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return NextResponse.json({ error: 'Access denied.' }, { status: 403 });
   }

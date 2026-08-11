@@ -25,7 +25,7 @@ export default async function FtcPage({ searchParams }) {
   const asOfStr = params?.asOf ?? null;
   const asOf    = asOfStr ? new Date(asOfStr + 'T23:59:59.999Z') : null;
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
 
   const projects = await prisma.generationProject.findMany({
     where: {

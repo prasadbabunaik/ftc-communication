@@ -20,7 +20,7 @@ export default async function BessPrintPage({ searchParams }) {
   const codFrom = params?.codFrom || null;
   const codTo   = params?.codTo || null;
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   const userRegion = await getUserRegion(user.role); // null for NLDC/ADMIN
 
   const allProjects = await prisma.generationProject.findMany({

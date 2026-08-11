@@ -12,7 +12,19 @@ const ssoEnabled = () =>
   String(process.env.NEXT_PUBLIC_SSO_ENABLED).toLowerCase() === 'true' ||
   String(process.env.ENTRA_ROPC_ENABLED).toLowerCase() === 'true';
 
-const VALID_ROLES = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
+const VALID_ROLES = ['ADMIN', 'NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC', 'VIEWER'];
+
+// Resolve the region binding for a user being saved. Only VIEWER accounts carry
+// one (a specific region, or null for all regions); every other role derives
+// its region from the role itself, so we force null. Returns { scopeRegionId }
+// or { error }.
+async function resolveScopeRegion(role, scopeRegionId) {
+  if (role !== 'VIEWER') return { scopeRegionId: null };
+  if (!scopeRegionId) return { scopeRegionId: null }; // all regions
+  const region = await prisma.gridRegion.findUnique({ where: { id: scopeRegionId } });
+  if (!region) return { error: 'Select a valid region for the viewer.' };
+  return { scopeRegionId: region.id };
+}
 
 // User management is open to ADMIN and NLDC. NLDC is guarded against privilege
 // escalation: it may not create, edit, deactivate, reset, or delete an ADMIN
@@ -50,6 +62,8 @@ export async function listUsers() {
     select: {
       id: true, name: true, email: true, role: true,
       isActive: true, createdAt: true, updatedAt: true,
+      scopeRegionId: true,
+      scopeRegion: { select: { code: true, name: true } },
       _count: { select: { createdProjects: true, projectNotes: true } },
     },
     orderBy: { createdAt: 'asc' },
@@ -57,7 +71,7 @@ export async function listUsers() {
   return { users };
 }
 
-export async function createUser({ name, email, password, role }) {
+export async function createUser({ name, email, password, role, scopeRegionId = null }) {
   const check = await requireUserManager();
   if (check.error) return { error: check.error };
 
@@ -66,6 +80,8 @@ export async function createUser({ name, email, password, role }) {
   if (!VALID_ROLES.includes(role)) return { error: 'Select a valid role.' };
   const roleErr = assertRoleAssignable(check.user, role);
   if (roleErr) return { error: roleErr };
+  const scope = await resolveScopeRegion(role, scopeRegionId);
+  if (scope.error) return { error: scope.error };
   const hasPassword = typeof password === 'string' && password.length > 0;
   if (hasPassword && password.length < 8) return { error: 'Password must be at least 8 characters.' };
   if (!hasPassword && !ssoEnabled()) return { error: 'Password must be at least 8 characters.' };
@@ -78,14 +94,17 @@ export async function createUser({ name, email, password, role }) {
   const rawPassword = hasPassword ? password : crypto.randomBytes(24).toString('base64url');
   const hashedPassword = await bcrypt.hash(rawPassword, 12);
   await prisma.user.create({
-    data: { name: name.trim(), email: email.toLowerCase().trim(), password: hashedPassword, role },
+    data: {
+      name: name.trim(), email: email.toLowerCase().trim(),
+      password: hashedPassword, role, scopeRegionId: scope.scopeRegionId,
+    },
   });
 
   revalidatePath('/dashboard/users');
   return { success: true };
 }
 
-export async function updateUser(userId, { name, email, role }) {
+export async function updateUser(userId, { name, email, role, scopeRegionId = null }) {
   const check = await requireUserManager();
   if (check.error) return { error: check.error };
 
@@ -100,6 +119,8 @@ export async function updateUser(userId, { name, email, role }) {
   if (actErr) return { error: actErr };
   const roleErr = assertRoleAssignable(check.user, role);
   if (roleErr) return { error: roleErr };
+  const scope = await resolveScopeRegion(role, scopeRegionId);
+  if (scope.error) return { error: scope.error };
 
   const conflict = await prisma.user.findFirst({
     where: { email: email.toLowerCase(), NOT: { id: userId } },
@@ -108,7 +129,10 @@ export async function updateUser(userId, { name, email, role }) {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { name: name.trim(), email: email.toLowerCase().trim(), role },
+    data: {
+      name: name.trim(), email: email.toLowerCase().trim(),
+      role, scopeRegionId: scope.scopeRegionId,
+    },
   });
 
   revalidatePath('/dashboard/users');

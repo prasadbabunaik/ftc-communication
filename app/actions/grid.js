@@ -322,7 +322,7 @@ export async function createGenerationProject(formData) {
   const data = parsed.data;
 
   // RLDC users can only create projects in their own region
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== data.regionId) {
     return { error: 'You can only create projects in your assigned region.' };
   }
@@ -489,7 +489,7 @@ export async function updateGenerationProject(projectId, formData) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'You cannot edit projects outside your assigned region.' };
   }
@@ -538,7 +538,7 @@ export async function setProjectCommissioned(projectId, commissioned) {
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
   if (!project) return { error: 'Project not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'You cannot edit projects outside your assigned region.' };
   }
@@ -587,7 +587,7 @@ export async function updateProjectCapacities(projectId, caps) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'You cannot edit projects outside your assigned region.' };
   }
@@ -656,7 +656,7 @@ export async function updateHybridComponents(projectId, payload) {
   });
   if (!project) return { error: 'Project not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'You cannot edit projects outside your assigned region.' };
   }
@@ -741,7 +741,7 @@ export async function updateBessRowFields(projectId, fields) {
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
   if (!project) return { error: 'Project not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'You cannot edit projects outside your assigned region.' };
   }
@@ -891,7 +891,7 @@ export async function deleteGenerationProject(projectId, opts = {}) {
   const project = await prisma.generationProject.findUnique({ where: { id: projectId } });
   if (!project) return { error: 'Project not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -953,7 +953,7 @@ export async function deleteContd4Application(projectId) {
   });
   if (!project) return { error: 'Project not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) return { error: 'Access denied.' };
 
   const hasFtcData = (project.phases ?? []).some((ph) =>
@@ -1011,7 +1011,7 @@ export async function deleteFtcTrackerRow(projectId) {
   });
   if (!project) return { error: 'Project not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) return { error: 'Access denied.' };
 
   const hasContd4  = !!project.contd4;
@@ -1079,7 +1079,7 @@ export async function deleteContd4Attachment(attachmentId) {
   });
   if (!att) return { error: 'Attachment not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== att.project.regionId) return { error: 'Access denied.' };
 
   await prisma.$transaction(async (tx) => {
@@ -1106,7 +1106,7 @@ export async function upsertContd4(projectId, formData) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -1292,7 +1292,7 @@ export async function addContd4Phase(projectId, formData) {
   if (!project)        return { error: 'Project not found.' };
   if (!project.contd4) return { error: 'Add a CONTD-4 application before recording phases.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -1379,7 +1379,7 @@ export async function deleteContd4Phase(phaseId) {
   });
   if (!phase) return { error: 'Phase not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== phase.contd4.project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -1472,7 +1472,7 @@ export async function addCommissioningEvent(kind, phaseId, formData) {
   const phase = await loadPhaseWithGuards(phaseId);
   if (!phase) return { error: 'Phase not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== phase.project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -1577,7 +1577,7 @@ export async function deleteCommissioningEvent(kind, eventId) {
   });
   if (!event) return { error: 'Event not found.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== event.phase.project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -1722,7 +1722,7 @@ export async function addCommissioningPhases(projectId, formData) {
     include: { phases: true, plantType: true },
   });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -1857,7 +1857,7 @@ export async function upsertProjectPhases(projectId, formData) {
     include: { phases: { include: { ftcEvents: true, tocEvents: true, codEvents: true } }, plantType: true },
   });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -2091,7 +2091,7 @@ export async function updateCommissioningPhase(phaseId, formData) {
     include: { project: true },
   });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== phase.project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -2157,7 +2157,7 @@ export async function deleteCommissioningPhase(phaseId) {
     include: { project: { include: { plantType: true, contd4: { select: { status: true } } } } },
   });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== phase.project.regionId) {
     return { error: 'Access denied.' };
   }
@@ -2206,7 +2206,7 @@ export async function createTransmissionElement(formData) {
   if (!user) return { error: 'Session expired. Please log in again.' };
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== formData.regionId) {
     return { error: 'You can only create elements in your assigned region.' };
   }
@@ -2265,7 +2265,7 @@ export async function updateTransmissionElement(elementId, formData) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== element.regionId) {
     return { error: 'Access denied.' };
   }
@@ -2344,7 +2344,7 @@ export async function deleteTransmissionElement(elementId, opts = {}) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== element.regionId) {
     return { error: 'Access denied.' };
   }
@@ -2387,7 +2387,7 @@ export async function createPoolingStation(formData) {
   if (!name || !regionId) return { error: 'Name and region are required.' };
 
   // Region scope — an RLDC may only create pooling stations in its own region.
-  const scope = await buildRegionScope(_auth.role);
+  const scope = await buildRegionScope(_auth);
   if (scope.regionId && scope.regionId !== regionId) {
     return { error: 'You cannot create pooling stations outside your assigned region.' };
   }
@@ -2420,7 +2420,7 @@ export async function addProjectNote(projectId, text) {
   if (!project) return { error: 'Project not found.' };
 
   // Region scope — an RLDC may only annotate projects in its own region.
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== project.regionId) {
     return { error: 'You cannot add notes to projects outside your assigned region.' };
   }
@@ -2439,7 +2439,7 @@ export async function markTransmissionFtcDone(elementId) {
   if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
   const element = await prisma.transmissionElement.findUniqueOrThrow({ where: { id: elementId } });
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   if (scope.regionId && scope.regionId !== element.regionId) {
     return { error: 'Access denied.' };
   }

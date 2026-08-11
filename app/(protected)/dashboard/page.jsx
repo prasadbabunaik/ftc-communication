@@ -53,7 +53,7 @@ export default async function DashboardPage({ searchParams }) {
     const t = new Date(); t.setUTCHours(23, 59, 59, 999); return t;
   })());
 
-  const baseScope = await buildRegionScope(user.role);
+  const baseScope = await buildRegionScope(user);
 
   // Region filter (ADMIN / NLDC only). RLDC users are already locked to their
   // own region by buildRegionScope, so the ?region param is ignored for them.

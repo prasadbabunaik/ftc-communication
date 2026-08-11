@@ -14,7 +14,7 @@ export default async function BessDataPage() {
   try { user = await requireServerUser(); }
   catch { redirect('/login'); }
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   const userRegion = await getUserRegion(user.role); // null for NLDC/ADMIN
   const activeFilter = activePeriodFilter(null);
 

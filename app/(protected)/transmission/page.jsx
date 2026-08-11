@@ -20,7 +20,7 @@ export default async function TransmissionPage({ searchParams }) {
   const asOfStr = params?.asOf ?? null;
   const asOf    = asOfStr ? new Date(asOfStr + 'T23:59:59.999Z') : null;
 
-  const scope = await buildRegionScope(user.role);
+  const scope = await buildRegionScope(user);
   const userRegion = await getUserRegion(user.role);
 
   const [elementsRaw, regions] = await Promise.all([
