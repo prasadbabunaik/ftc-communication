@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from '@/components/ui/dialog';
 import { createUser, updateUser, toggleUserActive, resetUserPassword, deleteUser } from '@/app/actions/users';
 
@@ -28,7 +29,8 @@ const ROLE_META = {
   VIEWER: { label: 'Viewer (Read-only)', color: 'bg-slate-100 text-slate-700 border-slate-300' },
 };
 
-const EMPTY_FORM = { name: '', email: '', password: '', role: 'NLDC', scopeRegionId: '' };
+// New accounts default to edit access (viewer unchecked) with national scope.
+const EMPTY_FORM = { name: '', email: '', password: '', role: 'NLDC', viewer: false, scopeRegionId: '' };
 
 // When SSO is on, login goes through Microsoft Entra, so a local password is
 // optional when creating a user.
@@ -57,17 +59,29 @@ function RoleBadge({ role }) {
 }
 
 function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true, regions = [] }) {
-  // NLDC can't grant the ADMIN role.
-  const roleOptions = isAdmin ? ROLES : ROLES.filter((r) => r !== 'ADMIN');
+  // Read-only (Viewer) is a separate checkbox now, not a role option. The
+  // dropdown holds only edit-capable roles; NLDC can't grant ADMIN.
+  const roleOptions = ROLES.filter((r) => r !== 'VIEWER' && (isAdmin || r !== 'ADMIN'));
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const editingViewer = editing?.role === 'VIEWER';
   const [form, setForm] = useState(editing
-    ? { name: editing.name, email: editing.email, role: editing.role, password: '', scopeRegionId: editing.scopeRegionId ?? '' }
+    ? {
+        name: editing.name, email: editing.email, password: '',
+        // When editing a viewer the role dropdown is hidden; keep a sensible
+        // edit-role fallback in case the checkbox is later unticked.
+        role: editingViewer ? 'NLDC' : editing.role,
+        viewer: editingViewer,
+        scopeRegionId: editing.scopeRegionId ?? '',
+      }
     : EMPTY_FORM);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState(null);
 
-  const isViewer = form.role === 'VIEWER';
+  // The checkbox is the single source of "read-only". When ticked the account
+  // is saved as the VIEWER role (region-scoped); when unticked it keeps its
+  // chosen edit role.
+  const isViewer = form.viewer;
 
   function set(k, v) { setForm((p) => ({ ...p, [k]: v })); }
 
@@ -76,13 +90,13 @@ function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true, 
   function onSubmit(e) {
     e.preventDefault();
     setError(null);
-    // Only VIEWER accounts carry a region binding; other roles derive it from
-    // the role, so send null (the server enforces this too).
+    const role = isViewer ? 'VIEWER' : form.role;
+    // Only viewers carry a region binding; edit roles derive it from the role.
     const scopeRegionId = isViewer ? (form.scopeRegionId || null) : null;
     startTransition(async () => {
       const result = editing
-        ? await updateUser(editing.id, { name: form.name, email: form.email, role: form.role, scopeRegionId })
-        : await createUser({ name: form.name, email: form.email, password: form.password, role: form.role, scopeRegionId });
+        ? await updateUser(editing.id, { name: form.name, email: form.email, role, scopeRegionId })
+        : await createUser({ name: form.name, email: form.email, password: form.password, role, scopeRegionId });
 
       if (result?.error) { setError(result.error); return; }
       toast.success(editing ? 'User updated successfully.' : 'User created successfully.');
@@ -141,45 +155,68 @@ function UserFormModal({ open, onClose, editing, currentUserId, isAdmin = true, 
                 )}
               </div>
             )}
-            <div>
-              <label className="text-sm font-medium text-foreground block mb-1.5">Role *</label>
-              <div className="relative">
-                <select
-                  value={form.role}
-                  onChange={(e) => set('role', e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm appearance-none pe-8"
-                >
-                  {roleOptions.map((r) => (
-                    <option key={r} value={r}>{ROLE_META[r]?.label ?? r} ({r})</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                RLDC roles restrict data access to the assigned region. <span className="font-medium text-foreground">Viewer</span> is read-only and cannot edit anything.
-              </p>
-            </div>
-            {isViewer && (
+            {/* Role — only for edit-capable accounts. Hidden for read-only
+                viewers, whose access is defined by the region selector below. */}
+            {!isViewer && (
               <div>
-                <label className="text-sm font-medium text-foreground block mb-1.5">Viewer region access *</label>
+                <label className="text-sm font-medium text-foreground block mb-1.5">Role *</label>
                 <div className="relative">
                   <select
-                    value={form.scopeRegionId}
-                    onChange={(e) => set('scopeRegionId', e.target.value)}
+                    value={form.role}
+                    onChange={(e) => set('role', e.target.value)}
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm appearance-none pe-8"
                   >
-                    <option value="">All regions (national read-only)</option>
-                    {regions.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                    {roleOptions.map((r) => (
+                      <option key={r} value={r}>{ROLE_META[r]?.label ?? r} ({r})</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1.5">
-                  Choose a single region to limit this viewer, or <span className="font-medium text-foreground">All regions</span> to let them see the whole portal — always read-only.
+                  RLDC roles restrict data access to their region; ADMIN and NLDC cover all regions.
                 </p>
               </div>
             )}
+
+            {/* Read-only toggle — independent of region. Unchecked = can edit
+                (the default); checked = view-only, scoped by the region below. */}
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <Checkbox
+                  checked={form.viewer}
+                  onCheckedChange={(v) => set('viewer', v === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="text-sm font-medium text-foreground block">Read-only (Viewer)</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    This account can view data but cannot add, edit or delete anything.
+                  </span>
+                </span>
+              </label>
+
+              {isViewer && (
+                <div className="mt-3 pt-3 border-t border-border/60">
+                  <label className="text-sm font-medium text-foreground block mb-1.5">Region access *</label>
+                  <div className="relative">
+                    <select
+                      value={form.scopeRegionId}
+                      onChange={(e) => set('scopeRegionId', e.target.value)}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm appearance-none pe-8"
+                    >
+                      <option value="">All regions (national read-only)</option>
+                      {regions.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name} ({r.code})</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    Limit this viewer to one region, or <span className="font-medium text-foreground">All regions</span> for the whole portal.
+                  </p>
+                </div>
+              )}
+            </div>
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" onClick={handleClose} className="flex-1">Cancel</Button>
               <Button type="submit" disabled={isPending} className="flex-1">
