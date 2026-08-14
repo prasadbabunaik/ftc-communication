@@ -40,7 +40,7 @@ function ReadOnlyRow({ label, value }) {
   );
 }
 
-export function BessEditModal({ row, open, onOpenChange }) {
+export function BessEditModal({ row, open, onOpenChange, scopeRegionCode = null }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -117,9 +117,12 @@ export function BessEditModal({ row, open, onOpenChange }) {
     }
   }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Scope the state list to the SIGNED-IN user, not the project's region: a
+  // national user (NLDC / ADMIN → scopeRegionCode null) can situate a project in
+  // any Indian State/UT, while an RLDC is limited to its own region's states.
   const stateOptions = useMemo(
-    () => statesForRegion(row?.region).map((s) => ({ value: s, label: s })),
-    [row?.region],
+    () => statesForRegion(scopeRegionCode).map((s) => ({ value: s, label: s })),
+    [scopeRegionCode],
   );
 
   const totalMw  = phases.reduce((s, p) => s + (parseFloat(p.mw) || 0), 0);
@@ -221,7 +224,7 @@ export function BessEditModal({ row, open, onOpenChange }) {
                     value={stateName}
                     onChange={setStateName}
                     placeholder="— Select state —"
-                    searchPlaceholder={`Search ${row.region !== '—' ? row.region + ' ' : ''}states…`}
+                    searchPlaceholder={`Search ${scopeRegionCode ? scopeRegionCode + ' ' : ''}states…`}
                     emptyText="No matching state."
                     creatable
                     onCreate={setStateName}

@@ -355,6 +355,7 @@ export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode 
         <BessEditModal
           row={editRow}
           open={!!editRow}
+          scopeRegionCode={scopeRegionCode}
           onOpenChange={(o) => { if (!o) setEditRow(null); }}
         />
       )}
