@@ -19,7 +19,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(os.homedir(), 'ftc-backups');
-const RETENTION = Number(process.env.BACKUP_RETENTION || 14); // dump files kept on disk
+const RETENTION = Number(process.env.BACKUP_RETENTION || 5); // dump files kept on disk
 const ROW_RETENTION = 300; // history rows kept in the DB
 const STALE_MS = 30 * 60 * 1000;
 

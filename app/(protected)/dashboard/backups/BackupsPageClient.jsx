@@ -267,7 +267,7 @@ export function BackupsPageClient() {
       <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
         <ShieldCheck className="size-3.5 shrink-0 mt-0.5" />
         <p>
-          Backups use <span className="font-mono">pg_dump</span> (compressed custom format) and are stored on the server, keeping the most recent 14 files.
+          Backups use <span className="font-mono">pg_dump</span> (compressed custom format) and are stored on the server, keeping the most recent 5 files.
           Runs every day at 4:00 AM IST; you can also trigger one anytime with <span className="font-medium text-foreground">Backup Now</span>. Visible to administrators only.
         </p>
       </div>
