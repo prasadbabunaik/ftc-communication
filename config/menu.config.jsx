@@ -3,6 +3,7 @@ import {
   BarChart3,
   BatteryCharging,
   Cable,
+  Database,
   FileText,
   Grid3x3,
   History,
@@ -74,6 +75,12 @@ export const MENU_SIDEBAR = [
     title: 'Login Activity',
     icon: History,
     path: '/dashboard/activity',
+    roles: ['ADMIN'],
+  },
+  {
+    title: 'Database Backups',
+    icon: Database,
+    path: '/dashboard/backups',
     roles: ['ADMIN'],
   },
   {

@@ -7,6 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── DATABASE BACKUPS ─────────────────────────────────────────────────────────
+// One row per backup attempt (scheduled at 04:00 IST, or manual). Powers the
+// admin-only Backups page: history, durations, sizes, and live progress.
+enum BackupStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum BackupTrigger {
+  SCHEDULED
+  MANUAL
+}
+
+model BackupRun {
+  id            String        @id @default(cuid())
+  status        BackupStatus  @default(RUNNING)
+  trigger       BackupTrigger
+  startedAt     DateTime      @default(now())
+  finishedAt    DateTime?
+  durationMs    Int?
+  sizeBytes     BigInt?
+  fileName      String?
+  error         String?
+  triggeredById String?
+  triggeredBy   User?         @relation("BackupTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+
+  @@index([startedAt])
+  @@map("backup_runs")
+}
+
 enum UserRole {
   ADMIN
   SRLDC
@@ -47,6 +79,7 @@ model User {
   notifications        Notification[]
   authActivity         AuthActivity[]         @relation("UserAuthActivity")
   contd4Attachments    Contd4Attachment[]     @relation("AttachmentUploader")
+  backupRuns           BackupRun[]            @relation("BackupTriggeredBy")
 
   @@map("users")
 }
