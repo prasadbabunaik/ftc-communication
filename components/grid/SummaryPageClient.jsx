@@ -1154,8 +1154,10 @@ const actRangeLabel = (from, to) => {
   return `${d(from)} → ${d(to)}`;
 };
 
-function downloadActivitySummaryExcel(activity, from, to, regions, sources) {
+function downloadActivitySummaryExcel(activity, from, to, regions, sources, activityAllIndia = null) {
   const { matrix = {} } = activity ?? {};
+  const allIndiaSrc = (src, key) => activityAllIndia ? (activityAllIndia.bySource?.[src]?.[key] ?? 0) : null;
+  const allIndiaTot = (key) => activityAllIndia ? (activityAllIndia.totals?.[key] ?? 0) : null;
   const NAVY = '1E3A5F';
   const bd = { style: 'thin', color: { rgb: 'CBD5E1' } };
   const B = { top: bd, bottom: bd, left: bd, right: bd };
@@ -1173,11 +1175,12 @@ function downloadActivitySummaryExcel(activity, from, to, regions, sources) {
     for (const src of sources) {
       const row = [dat(SOURCE_LABEL[src] ?? src, false)]; let rt = 0;
       for (const reg of regions) { const v = matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; row.push(dat(v || 0, true)); rt += v; }
-      row.push(tot(rt || 0, true)); aoa.push(row); r += 1;
+      const allIndia = allIndiaSrc(src, m.key) ?? rt;
+      row.push(tot(allIndia || 0, true)); aoa.push(row); r += 1;
     }
     const trow = [tot('Total', false)]; let gt = 0;
     for (const reg of regions) { let ct = 0; for (const src of sources) ct += matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; trow.push(tot(ct || 0, true)); gt += ct; }
-    trow.push(tot(gt || 0, true)); aoa.push(trow); r += 1;
+    trow.push(tot((allIndiaTot(m.key) ?? gt) || 0, true)); aoa.push(trow); r += 1;
     aoa.push([]); r += 1;
   }
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -1188,8 +1191,10 @@ function downloadActivitySummaryExcel(activity, from, to, regions, sources) {
   XLSX.writeFile(wb, `ftc-toc-cod-summary_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-function downloadActivitySummaryPdf(activity, from, to, regions, sources) {
+function downloadActivitySummaryPdf(activity, from, to, regions, sources, activityAllIndia = null) {
   const { matrix = {} } = activity ?? {};
+  const allIndiaSrc = (src, key) => activityAllIndia ? (activityAllIndia.bySource?.[src]?.[key] ?? 0) : null;
+  const allIndiaTot = (key) => activityAllIndia ? (activityAllIndia.totals?.[key] ?? 0) : null;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const MARGIN = 28;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 58, 95);
@@ -1205,11 +1210,11 @@ function downloadActivitySummaryPdf(activity, from, to, regions, sources) {
     for (const src of sources) {
       const row = [SOURCE_LABEL[src] ?? src]; let rt = 0;
       for (const reg of regions) { const v = matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; row.push(fmt(v)); rt += v; }
-      row.push(fmt(rt)); body.push(row);
+      row.push(fmt(allIndiaSrc(src, m.key) ?? rt)); body.push(row);
     }
     const trow = ['Total']; let gt = 0;
     for (const reg of regions) { let ct = 0; for (const src of sources) ct += matrix?.[`${reg}|${src}`]?.[m.key] ?? 0; trow.push(fmt(ct)); gt += ct; }
-    trow.push(fmt(gt)); body.push(trow);
+    trow.push(fmt(allIndiaTot(m.key) ?? gt)); body.push(trow);
     autoTable(doc, {
       startY: y + 4, head, body, theme: 'grid',
       styles: { font: 'helvetica', fontSize: 8, halign: 'right', valign: 'middle', lineColor: [203, 213, 225], lineWidth: 0.3 },
@@ -1223,7 +1228,7 @@ function downloadActivitySummaryPdf(activity, from, to, regions, sources) {
   doc.save(`ftc-toc-cod-summary_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedRegions = [], selectedSources = [], hybridMode = 'excl' }) {
+function MilestoneActivityTable({ activity, activityAllIndia = null, from, to, onViewBreakup, selectedRegions = [], selectedSources = [], hybridMode = 'excl' }) {
   const { matrix, totals } = activity ?? {};
   const [milestone, setMilestone] = useState('cod'); // default COD (matches the sheet)
   const meta   = MILESTONES.find(m => m.key === milestone);
@@ -1252,7 +1257,15 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
   const colTotal = (region) => sources.reduce((s, src) => s + cell(src, region), 0);
   const grand    = totals?.[milestone] ?? 0;
 
-  const hasAny = grand > 0 || (totals?.ftc ?? 0) > 0 || (totals?.toc ?? 0) > 0 || (totals?.cod ?? 0) > 0;
+  // "All India" must be the TRUE national total, independent of which region
+  // columns are shown. When the server supplies a national aggregation (scoped /
+  // region-locked views) use it; otherwise the shown columns already span all
+  // India, so the row/grand totals are national.
+  const allIndiaFor  = (source) => activityAllIndia ? (activityAllIndia.bySource?.[source]?.[milestone] ?? 0) : rowTotal(source);
+  const grandAllIndia = activityAllIndia ? (activityAllIndia.totals?.[milestone] ?? 0) : grand;
+
+  const hasAny = grand > 0 || (totals?.ftc ?? 0) > 0 || (totals?.toc ?? 0) > 0 || (totals?.cod ?? 0) > 0
+    || grandAllIndia > 0;
 
   return (
     <div className="space-y-3">
@@ -1264,7 +1277,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
             <>
               <button
                 type="button"
-                onClick={() => downloadActivitySummaryExcel(activity, from, to, regions, sources)}
+                onClick={() => downloadActivitySummaryExcel(activity, from, to, regions, sources, activityAllIndia)}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded px-2 py-1.5 transition-colors"
                 title="Download the FTC/TOC/COD summary matrix as Excel"
                 aria-label="Download summary as Excel"
@@ -1273,7 +1286,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
               </button>
               <button
                 type="button"
-                onClick={() => downloadActivitySummaryPdf(activity, from, to, regions, sources)}
+                onClick={() => downloadActivitySummaryPdf(activity, from, to, regions, sources, activityAllIndia)}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded px-2 py-1.5 transition-colors"
                 title="Download the FTC/TOC/COD summary matrix as PDF"
                 aria-label="Download summary as PDF"
@@ -1349,7 +1362,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
                           </td>
                         );
                       })}
-                      <td className={`px-4 py-2 text-center tabular-nums font-bold ${rowTotal(src) > 0 ? accent.cell : 'text-slate-300'}`}>{fmt(rowTotal(src))}</td>
+                      <td className={`px-4 py-2 text-center tabular-nums font-bold ${allIndiaFor(src) > 0 ? accent.cell : 'text-slate-300'}`}>{fmt(allIndiaFor(src))}</td>
                     </tr>
                   );
                 })}
@@ -1360,7 +1373,7 @@ function MilestoneActivityTable({ activity, from, to, onViewBreakup, selectedReg
                   {regions.map(reg => (
                     <td key={reg} className={`px-4 py-2 text-center tabular-nums border-r border-gray-200 ${accent.total}`}>{fmt(colTotal(reg))}</td>
                   ))}
-                  <td className={`px-4 py-2 text-center tabular-nums font-black ${accent.total}`}>{fmt(grand)}</td>
+                  <td className={`px-4 py-2 text-center tabular-nums font-black ${accent.total}`}>{fmt(grandAllIndia)}</td>
                 </tr>
               </tbody>
             </table>
@@ -1654,7 +1667,7 @@ export function SummaryPageClient({
   excludeCommissioned = false,
   hybridParts = [], selectedHybridParts = [],
   stats, table2Rows, table5Rows, contd4Study,
-  transmissionRows, hybridRows, hybridBreakup = {}, bessProjects = [], activity, projects, txElements,
+  transmissionRows, hybridRows, hybridBreakup = {}, bessProjects = [], activity, activityAllIndia = null, projects, txElements,
   availableSnapshots,
 }) {
   const [activeTab, setActiveTab] = useState('pipeline');
@@ -1845,7 +1858,7 @@ export function SummaryPageClient({
         )}
 
         {activeTab === 'activity' && (
-          <MilestoneActivityTable activity={activity} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} selectedRegions={selectedRegions} selectedSources={selectedSources} hybridMode={hybridMode} />
+          <MilestoneActivityTable activity={activity} activityAllIndia={activityAllIndia} from={activityFrom} to={activityTo} onViewBreakup={() => setBreakdownOpen(true)} selectedRegions={selectedRegions} selectedSources={selectedSources} hybridMode={hybridMode} />
         )}
 
         {activeTab === 'projects' && (

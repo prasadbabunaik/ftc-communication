@@ -211,6 +211,47 @@ export default async function DashboardPage({ searchParams }) {
     ? computeMilestoneActivity(projects, activityFrom, activityTo, [], { foldHybridComponents: true, sources: selectedSources })
     : computeMilestoneActivity(viewProjects, activityFrom, activityTo, componentSources);
 
+  // The "All India" column of the FTC/TOC/COD Activity table must always show
+  // the TRUE national total — but the scoped `activity` above only holds the
+  // visible region(s), so for a region-locked RLDC (or a region-filtered view)
+  // "All India" wrongly equalled the single region. Compute a national milestone
+  // activity (no region scope, same date/source/hybrid options) and pass its
+  // per-source totals for that one column. Skipped when the view already spans
+  // every region (then the scoped activity IS national).
+  const isScopedView = isRegionLocked || selectedRegions.length > 0;
+  let activityAllIndia = null;
+  if (isScopedView) {
+    const nationalProjects = await prisma.generationProject.findMany({
+      where: { ...activeFilter },
+      select: {
+        inFtcPipeline: true,
+        region:    { select: { code: true } },
+        plantType: { select: { isHybrid: true, label: true } },
+        contd4:    { select: { status: true } },
+        phases: {
+          select: {
+            sourceType: true,
+            ftcEvents: { select: { eventDate: true, capacityMw: true } },
+            tocEvents: { select: { eventDate: true, capacityMw: true } },
+            codEvents: { select: { eventDate: true, capacityMw: true } },
+          },
+        },
+      },
+    });
+    const natActivity = hybridMode === 'incl'
+      ? computeMilestoneActivity(nationalProjects, activityFrom, activityTo, [], { foldHybridComponents: true, sources: selectedSources })
+      : computeMilestoneActivity(
+          selectedSources.length ? nationalProjects.filter((p) => selectedSources.includes(getProjectSource(p))) : nationalProjects,
+          activityFrom, activityTo, componentSources,
+        );
+    const bySource = {};
+    for (const row of Object.values(natActivity.matrix)) {
+      const b = (bySource[row.source] ??= { ftc: 0, toc: 0, cod: 0 });
+      b.ftc += row.ftc; b.toc += row.toc; b.cod += row.cod;
+    }
+    activityAllIndia = { bySource, totals: natActivity.totals };
+  }
+
   // Stat-card totals reuse the same milestone aggregation as the pipeline
   // matrix — sum across cells so values are consistent with the tables below.
   const totalApplied  = Object.values(pipelineMatrix).reduce((s, r) => s + n(r.appliedMw),     0);
@@ -368,6 +409,7 @@ export default async function DashboardPage({ searchParams }) {
       hybridBreakup={JSON.parse(JSON.stringify(hybridBreakup))}
       bessProjects={JSON.parse(JSON.stringify(bessProjects))}
       activity={JSON.parse(JSON.stringify(activity))}
+      activityAllIndia={activityAllIndia ? JSON.parse(JSON.stringify(activityAllIndia)) : null}
       projects={JSON.parse(JSON.stringify(viewProjects))}
       txElements={JSON.parse(JSON.stringify(txElements))}
       availableSnapshots={availableSnapshots}
