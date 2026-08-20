@@ -516,9 +516,15 @@ function hybridBreakdownRows(project) {
   return types.map((t) => {
     const j  = jsonByType.get(t);
     const ph = phaseByType[t];
-    const totalMw = j != null
-      ? num(j.totalMw)
-      : (HYBRID_CAP_COL[t] ? num(project[HYBRID_CAP_COL[t]]) : num(ph?.appliedMw));
+    // Nameplate "Total (MW)" is read STRAIGHT from the authoritative per-source
+    // capacity column, so the breakdown always reflects the live DB value and
+    // reconciles with the header's Total Capacity — never a stale segregation-
+    // JSON snapshot. The JSON is only a fallback for legacy hybrids whose
+    // component columns were never populated.
+    const col = HYBRID_CAP_COL[t] ? project[HYBRID_CAP_COL[t]] : null;
+    const totalMw = (col != null && col !== '')
+      ? num(col)
+      : (j != null ? num(j.totalMw) : num(ph?.appliedMw));
     const figs = ph ?? {
       appliedMw: num(j?.appliedMw), ftcMw: num(j?.ftcMw), tocMw: num(j?.tocMw),
       codMw: num(j?.codMw), expectedMw: num(j?.expectedMw),

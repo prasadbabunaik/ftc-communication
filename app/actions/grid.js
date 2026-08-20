@@ -602,6 +602,26 @@ export async function updateProjectCapacities(projectId, caps) {
   if ('solarCapacityMw' in caps) data.solarCapacityMw = parseDecimal(caps.solarCapacityMw);
   if ('bessCapacityMw'  in caps) data.bessCapacityMw  = parseDecimal(caps.bessCapacityMw);
 
+  // Keep the hybrid breakdown's per-component nameplate (segregation JSON,
+  // which the Hybrid Capacity Breakdown table reads) in sync with any edited
+  // component column — otherwise the breakdown total drifts away from the
+  // header's Total Capacity. Only components whose column is actually being
+  // edited are touched; components stored only in the JSON are left intact.
+  const hj = project.hybridComponentsJson;
+  if (hj?.components?.length) {
+    const COL_SRC = { windCapacityMw: 'WIND', solarCapacityMw: 'SOLAR', bessCapacityMw: 'BESS' };
+    let jsonChanged = false;
+    const components = hj.components.map((c) => ({ ...c }));
+    for (const [col, src] of Object.entries(COL_SRC)) {
+      if (col in data && data[col] != null) {
+        const v = Math.round(Number(data[col]) * 100) / 100;
+        const comp = components.find((c) => c.sourceType === src);
+        if (comp && comp.totalMw !== v) { comp.totalMw = v; jsonChanged = true; }
+      }
+    }
+    if (jsonChanged) data.hybridComponentsJson = { ...hj, components };
+  }
+
   if (Object.keys(data).length === 0) return { success: true };
 
   await prisma.generationProject.update({ where: { id: projectId }, data });
