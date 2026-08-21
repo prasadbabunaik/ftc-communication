@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx-js-style';
 import { contd4CapacityOf } from '@/lib/grid-computations';
 import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
 import { openPrintReport, esc } from '@/lib/print-report';
+import { logDownload } from '@/lib/log-download';
 
 // FTC-tracker-specific export (Excel + Print/PDF) — exports the "Generation
 // Capacity Under Process of FTC" table itself, NOT the dashboard summary. The
@@ -254,10 +255,10 @@ export function FtcExportButtons({ projects = [], regionLabel = '', refMonthLabe
   const btnSize = size === 'sm' ? 'size-9' : 'size-11';
   const iconSize = size === 'sm' ? 'size-4' : 'size-5';
 
-  const onExcel = () => exportExcel(buildRows(projects, cutoff), visibleCols, regionLabel, asOnLabel);
+  const onExcel = () => { exportExcel(buildRows(projects, cutoff), visibleCols, regionLabel, asOnLabel); logDownload('FTC Tracker', 'XLSX', regionLabel || null); };
   // Print renders all columns; those hidden in the page picker start hidden but
   // can be re-enabled live via the preview's own Customize panel.
-  const onPrint = () => printPdf(buildRows(projects, cutoff), allCols, [...hidden], regionLabel, asOnLabel);
+  const onPrint = () => { printPdf(buildRows(projects, cutoff), allCols, [...hidden], regionLabel, asOnLabel); logDownload('FTC Tracker', 'PRINT', regionLabel || null); };
 
   return (
     <div className="flex items-center gap-2">

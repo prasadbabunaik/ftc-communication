@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { prepareBessData, fmt, computeBessCommissioningSummary } from '@/components/grid/BessDataTab';
 import { monthsInRange, bMonthLabel } from '@/lib/bess-helpers';
+import { logDownload } from '@/lib/log-download';
 
 function fmtRefMonth(ym) {
   if (!ym) return null;
@@ -117,7 +118,7 @@ function Toolbar({ dateLabel, panelOpen, onToggleCustomize }) {
         Customize
       </button>
       <button
-        onClick={() => window.print()}
+        onClick={() => { logDownload('BESS Data', 'PRINT'); window.print(); }}
         className="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm font-semibold transition-colors"
       >
         Print / Save as PDF

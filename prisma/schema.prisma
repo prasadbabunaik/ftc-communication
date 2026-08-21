@@ -21,6 +21,22 @@ enum BackupTrigger {
   MANUAL
 }
 
+// One row per file download / print (Excel, PDF, print) triggered from the UI.
+// Surfaced in the Day-wise Changes → Downloads view, which is ADMIN-only.
+model DownloadLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation("DownloadUser", fields: [userId], references: [id], onDelete: SetNull)
+  label      String   // what was downloaded, e.g. "FTC Tracker", "FTC/TOC/COD Activity"
+  format     String   // XLSX | PDF | PRINT
+  meta       String?  // optional context (region / date range / filters)
+  roleAtTime String?  // the user's role when the download happened
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("download_logs")
+}
+
 model BackupRun {
   id            String        @id @default(cuid())
   status        BackupStatus  @default(RUNNING)
@@ -80,6 +96,7 @@ model User {
   authActivity         AuthActivity[]         @relation("UserAuthActivity")
   contd4Attachments    Contd4Attachment[]     @relation("AttachmentUploader")
   backupRuns           BackupRun[]            @relation("BackupTriggeredBy")
+  downloadLogs         DownloadLog[]          @relation("DownloadUser")
 
   @@map("users")
 }

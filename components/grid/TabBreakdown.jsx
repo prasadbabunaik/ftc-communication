@@ -8,6 +8,7 @@ import { ListTree, Search, X, ChevronRight, Rows3, Columns3, LayoutGrid, Sheet, 
 import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { logDownload } from '@/lib/log-download';
 import {
   Dialog, DialogContent, DialogTitle,
 } from '@/components/ui/dialog';
@@ -416,6 +417,7 @@ function downloadBreakupExcel(filteredGroups, layout, selectedSources, selectedR
   const tag    = srcTag || regTag ? `${srcTag}${regTag}` : '_all';
   const layoutTag = layout === 'region' ? 'region-wise' : layout === 'source' ? 'source-wise' : 'breakup';
   XLSX.writeFile(wb, `${layoutTag}${tag}_${stamp}.xlsx`);
+  logDownload(`Breakup — ${layoutTag}`, "XLSX");
 }
 
 // PDF exporter.
@@ -615,6 +617,7 @@ function downloadBreakupPdf(filteredGroups, layout, selectedSources, selectedReg
   const tag    = srcTag || regTag ? `${srcTag}${regTag}` : '_all';
   const layoutTag = layout === 'region' ? 'region-wise' : layout === 'source' ? 'source-wise' : 'breakup';
   doc.save(`${layoutTag}${tag}_${stamp}.pdf`);
+  logDownload(`Breakup — ${layoutTag}`, "PDF");
 }
 
 // ── Activity-tab exporters (FTC/TOC/COD in-range MW + dates) ──────────────────
@@ -681,6 +684,7 @@ function downloadActivityExcel(filteredGroups, from, to) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'FTC-TOC-COD Activity');
   XLSX.writeFile(wb, `ftc-toc-cod-activity_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  logDownload("FTC/TOC/COD Activity", "XLSX", activityRangeLabel(from, to));
 }
 
 function downloadActivityPdf(filteredGroups, from, to) {
@@ -738,6 +742,7 @@ function downloadActivityPdf(filteredGroups, from, to) {
     margin: { left: MARGIN, right: MARGIN, top: MARGIN },
   });
   doc.save(`ftc-toc-cod-activity_${new Date().toISOString().slice(0, 10)}.pdf`);
+  logDownload("FTC/TOC/COD Activity", "PDF", activityRangeLabel(from, to));
 }
 
 // "MW + event-dates" stacked cell. Top line: total MW. Stack underneath:

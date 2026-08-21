@@ -17,6 +17,7 @@ import { RegionPicker } from '@/components/grid/RegionPicker';
 import { SourcePicker } from '@/components/grid/SourcePicker';
 import { LastChangesCard } from '@/components/grid/LastChangesCard';
 import { CONTD4_SOURCE_LABEL } from '@/lib/grid-computations';
+import { logDownload } from '@/lib/log-download';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -1189,6 +1190,7 @@ function downloadActivitySummaryExcel(activity, from, to, regions, sources, acti
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'FTC-TOC-COD Summary');
   XLSX.writeFile(wb, `ftc-toc-cod-summary_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  logDownload('FTC/TOC/COD Activity Summary', 'XLSX', actRangeLabel(from, to));
 }
 
 function downloadActivitySummaryPdf(activity, from, to, regions, sources, activityAllIndia = null) {
@@ -1226,6 +1228,7 @@ function downloadActivitySummaryPdf(activity, from, to, regions, sources, activi
     y = (doc.lastAutoTable?.finalY ?? y) + 20;
   }
   doc.save(`ftc-toc-cod-summary_${new Date().toISOString().slice(0, 10)}.pdf`);
+  logDownload('FTC/TOC/COD Activity Summary', 'PDF', actRangeLabel(from, to));
 }
 
 function MilestoneActivityTable({ activity, activityAllIndia = null, from, to, onViewBreakup, selectedRegions = [], selectedSources = [], hybridMode = 'excl' }) {

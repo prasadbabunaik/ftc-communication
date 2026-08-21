@@ -453,6 +453,18 @@ export async function GET(request) {
   const toMonth   = searchParams.get('to')     ?? null;
   const asOf      = asOfStr ? new Date(asOfStr) : null;
   const excludeCommissioned = searchParams.get('excludeCommissioned') === '1';
+
+  // Record this server-generated Excel export for the admin-only download log
+  // (best-effort — must never block or fail the export).
+  prisma.downloadLog.create({
+    data: {
+      userId: user.id,
+      label: 'Grid Summary (full export)',
+      format: 'XLSX',
+      meta: asOfStr ? `as on ${asOfStr}` : null,
+      roleAtTime: user.realRole ?? user.role,
+    },
+  }).catch(() => {});
   // End-of-day cutoff for milestone sums, mirroring the dashboard + PDF exactly
   // (so a same-day event counts identically across all three outputs).
   const computeAsOf = asOf

@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History, Search, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, RefreshCw, Clock, GitCompare, History, Search, X, Download, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { apiFetch } from '@/lib/api-fetch';
 import { useAuth } from '@/providers/auth-provider';
@@ -229,6 +229,91 @@ function T3DiffTable({ changes }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+// ── Download & Print log (ADMIN only) ─────────────────────────────────────────
+function DownloadFormatBadge({ format }) {
+  const map = {
+    XLSX:  { label: 'Excel', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: FileSpreadsheet },
+    PDF:   { label: 'PDF',   cls: 'bg-red-50 text-red-700 border-red-200',             Icon: FileText },
+    PRINT: { label: 'Print', cls: 'bg-slate-100 text-slate-600 border-slate-200',      Icon: Printer },
+  };
+  const m = map[format] ?? map.PRINT;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${m.cls}`}>
+      <m.Icon className="size-3" /> {m.label}
+    </span>
+  );
+}
+
+function DownloadLogView() {
+  const [logs, setLogs]       = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  const load = () => {
+    setLoading(true);
+    apiFetch('/api/downloads')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed'))))
+      .then((d) => { setLogs(d.logs ?? []); setError(null); })
+      .catch(() => setError('Failed to load the download log.'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const fmtWhen = (iso) => new Date(iso).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
+  });
+
+  return (
+    <div className="bg-white border border-border rounded-lg">
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5"><Download className="size-4" /> Download &amp; Print Log</h3>
+          <p className="text-[11px] text-muted-foreground">Every Excel / PDF / print export across the portal. Visible to administrators only.</p>
+        </div>
+        <button onClick={load} className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 border rounded px-2 py-1 hover:bg-slate-50 transition-colors">
+          <RefreshCw className="size-3.5" /> Refresh
+        </button>
+      </div>
+      {loading ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+      ) : error ? (
+        <div className="p-8 text-center text-sm text-red-600">{error}</div>
+      ) : logs.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">No downloads recorded yet.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr className="text-left text-[10px] uppercase tracking-wide">
+                <th className="px-4 py-2 font-semibold">When</th>
+                <th className="px-4 py-2 font-semibold">User</th>
+                <th className="px-4 py-2 font-semibold">Downloaded</th>
+                <th className="px-4 py-2 font-semibold">Format</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {logs.map((l) => (
+                <tr key={l.id} className="hover:bg-slate-50/60 align-top">
+                  <td className="px-4 py-2 whitespace-nowrap text-slate-700">{fmtWhen(l.createdAt)}</td>
+                  <td className="px-4 py-2">
+                    <div className="font-medium text-foreground">{l.user?.name ?? 'Unknown'}</div>
+                    <div className="text-[10px] text-muted-foreground">{l.roleAtTime ?? l.user?.role ?? ''}</div>
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="text-foreground">{l.label}</div>
+                    {l.meta && <div className="text-[10px] text-muted-foreground">{l.meta}</div>}
+                  </td>
+                  <td className="px-4 py-2"><DownloadFormatBadge format={l.format} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SnapshotCompareTab() {
   // The day-wise changes are region-scoped server-side by the caller's role,
   // including an ADMIN "View as" overlay. The switcher updates the session
@@ -237,12 +322,19 @@ export function SnapshotCompareTab() {
   // without resetting the current sub-view or date pickers.
   const { user } = useAuth();
   const viewAsRole = user?.role;
+  // The Downloads log is ADMIN-only. An ADMIN "viewing as" another role has that
+  // role as their effective role, so the tab hides (matching the RLDC/NLDC view).
+  const isAdmin = user?.role === 'ADMIN';
   // Two complementary views:
   //   • movement  — milestone-date diff between two dates (how much FTC/TOC/
   //                 COD moved by milestone date). Event-date based.
   //   • changelog — entry-time audit feed (who changed what, and when it was
   //                 recorded). createdAt / effectiveDate based.
   const [view, setView] = useState('movement');
+
+  // If the effective role drops below ADMIN (e.g. an admin switches "view as"),
+  // leave the Downloads view so a non-admin never lands on it.
+  useEffect(() => { if (!isAdmin && view === 'downloads') setView('movement'); }, [isAdmin, view]);
 
   const [snapshots, setSnapshots] = useState([]);
   const [fromDate, setFromDate]   = useState('');
@@ -336,9 +428,19 @@ export function SnapshotCompareTab() {
         >
           <History className="size-3.5" /> Change Log
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setView('downloads')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              view === 'downloads' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Download className="size-3.5" /> Downloads
+          </button>
+        )}
       </div>
 
-      {view === 'changelog' ? <ChangeLog viewAsRole={viewAsRole} /> : (
+      {view === 'downloads' && isAdmin ? <DownloadLogView /> : view === 'changelog' ? <ChangeLog viewAsRole={viewAsRole} /> : (
       <>
       {/* Controls */}
       <div className="bg-white border border-border rounded-lg p-4">

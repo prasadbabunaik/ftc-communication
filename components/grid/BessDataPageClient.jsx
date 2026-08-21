@@ -16,6 +16,7 @@ import { projectCodDates, monthsInRange, bMonthLabel } from '@/lib/bess-helpers'
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const COD_PRESETS = [{ days: 7, label: 'Last 7 days' }, { days: 30, label: 'Last 30 days' }];
 import { BessEditModal } from '@/components/grid/BessEditModal';
+import { logDownload } from '@/lib/log-download';
 
 function fmtRefMonthShort(ym) {
   if (!ym) return 'Expected';
@@ -166,6 +167,7 @@ function downloadBessExcel(prepared, codColLabel, useRange, headerInfo = {}) {
   XLSX.utils.book_append_sheet(wb, ws, 'BESS Data');
   const stamp = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, `bess-data_${stamp}.xlsx`);
+  logDownload('BESS Data', 'XLSX');
 }
 
 export function BessDataPageClient({ bessProjects, regionLabel, scopeRegionCode = null, scopeRegionName = null, canEdit = false }) {

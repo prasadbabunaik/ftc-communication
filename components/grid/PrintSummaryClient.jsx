@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { getProjectSource, REGION_ORDER as REGION_ORDER_LIB, SOURCE_ORDER as SOURCE_ORDER_LIB } from '@/lib/grid-computations';
+import { logDownload } from '@/lib/log-download';
 
 const REGION_ORDER = REGION_ORDER_LIB;
 const SOURCE_ORDER = SOURCE_ORDER_LIB;
@@ -712,7 +713,7 @@ function PrintToolbar({ dateLabel, panelOpen, onTogglePanel }) {
         Customize
       </button>
       <button
-        onClick={() => window.print()}
+        onClick={() => { logDownload('Dashboard Summary', 'PRINT'); window.print(); }}
         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm font-semibold transition-colors"
       >
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

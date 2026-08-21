@@ -6,6 +6,7 @@ import { useSettings } from '@/providers/settings-provider';
 import { contd4CapacityOf } from '@/lib/grid-computations';
 import { ColumnCustomizer, useColumnVisibility } from '@/components/grid/ColumnCustomizer';
 import { openPrintReport, esc } from '@/lib/print-report';
+import { logDownload } from '@/lib/log-download';
 
 // ── report shaping ─────────────────────────────────────────────────────────────
 // Builds the "Generation Capacity Under Process of CONTD-4" register exactly as
@@ -218,10 +219,10 @@ export function Contd4ExportButtons({ projects, size = 'sm' }) {
   const btnSize = size === 'sm' ? 'size-9' : 'size-11';
   const iconSize = size === 'sm' ? 'size-4' : 'size-5';
 
-  const onExcel = () => downloadExcel(buildRows(projects, refMonth), visibleCols);
+  const onExcel = () => { downloadExcel(buildRows(projects, refMonth), visibleCols); logDownload('CONTD-4 Under Process', 'XLSX'); };
   // Print renders all columns; those hidden in the page picker start hidden but
   // can be re-enabled live via the preview's own Customize panel.
-  const onPrint = () => openPrintView(buildRows(projects, refMonth), allCols, [...hidden], null);
+  const onPrint = () => { openPrintView(buildRows(projects, refMonth), allCols, [...hidden], null); logDownload('CONTD-4 Under Process', 'PRINT'); };
 
   return (
     <div className="flex items-center gap-2">
