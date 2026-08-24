@@ -47,7 +47,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   const { user, password, host, port, database } = parseDbUrl(process.env.DATABASE_URL);
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
   let run;
   if (runIdArg) {
@@ -67,6 +66,22 @@ async function main() {
   const fileName = run.fileName || fileNameFor();
   const filePath = path.join(BACKUP_DIR, fileName);
   if (!run.fileName) await prisma.backupRun.update({ where: { id: run.id }, data: { fileName } });
+
+  // Ensure the backup directory exists and is writable BEFORE pg_dump. On a
+  // network mount (NFS/CIFS) this catches an unmounted / read-only / wrong-perms
+  // target and records a clear FAILED entry instead of crashing silently.
+  try {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    fs.accessSync(BACKUP_DIR, fs.constants.W_OK);
+  } catch (e) {
+    await prisma.backupRun.update({
+      where: { id: run.id },
+      data: { status: 'FAILED', finishedAt: new Date(), durationMs: 0, error: `Backup directory not writable: ${BACKUP_DIR} — ${e.message}` },
+    });
+    console.error('backup directory not writable:', BACKUP_DIR, e.message);
+    await prisma.$disconnect();
+    return;
+  }
 
   const startedAt = Date.now();
   const result = await new Promise((resolve) => {

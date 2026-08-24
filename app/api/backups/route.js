@@ -61,10 +61,23 @@ export async function GET() {
   const lastSuccess = runs.find((r) => r.status === 'SUCCESS') ?? null;
   const active = runs.find((r) => r.status === 'RUNNING') ?? null;
 
+  // Where backups are stored + how much room is left on that volume. Lets the
+  // admin confirm at a glance whether backups live on the network share and
+  // whether the app can actually write there.
+  let storage = { dir: BACKUP_DIR, writable: false, totalBytes: null, freeBytes: null, isNetwork: /^\/mnt\/|^\/media\/|nfs|cifs/i.test(BACKUP_DIR) };
+  try { fs.mkdirSync(BACKUP_DIR, { recursive: true }); } catch {}
+  try { fs.accessSync(BACKUP_DIR, fs.constants.W_OK); storage.writable = true; } catch {}
+  try {
+    const s = fs.statfsSync(BACKUP_DIR);
+    storage.totalBytes = s.blocks * s.bsize;
+    storage.freeBytes  = s.bavail * s.bsize;
+  } catch {}
+
   return NextResponse.json({
     runs: runs.map(serialize),
     lastSuccess: lastSuccess ? serialize(lastSuccess) : null,
     activeId: active?.id ?? null,
+    storage,
     // 04:00 IST daily (server runs the cron at 22:30 UTC).
     schedule: 'Every day at 4:00 AM IST',
   });

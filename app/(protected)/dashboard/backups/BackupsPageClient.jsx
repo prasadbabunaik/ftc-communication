@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Database, HardDrive, Clock, Calendar, CheckCircle2, XCircle,
-  Loader2, Play, RefreshCw, ShieldCheck, User as UserIcon,
+  Loader2, Play, RefreshCw, ShieldCheck, User as UserIcon, Server,
 } from 'lucide-react';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -82,6 +82,7 @@ export function BackupsPageClient() {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [loaded, setLoaded] = useState(false);
+  const [storage, setStorage] = useState(null);
   const prevActive = useRef(false);
 
   const load = useCallback(async () => {
@@ -91,6 +92,7 @@ export function BackupsPageClient() {
       const d = await res.json();
       setRuns(d.runs || []);
       setLastSuccess(d.lastSuccess || null);
+      setStorage(d.storage || null);
       if (d.schedule) setSchedule(d.schedule);
       const active = (d.runs || []).find((r) => r.status === 'RUNNING') || null;
       setActiveRun(active);
@@ -206,6 +208,31 @@ export function BackupsPageClient() {
         <StatCard icon={Calendar} label="Schedule" value="4:00 AM" sub={schedule} />
         <StatCard icon={Clock} label="Backups on record" value={String(runs.length)} sub="Most recent 50 shown" />
       </div>
+
+      {/* Storage location + free space */}
+      {storage && (
+        <div className={`rounded-xl border p-4 flex flex-wrap items-center justify-between gap-3 ${storage.writable ? 'bg-card' : 'bg-amber-50 border-amber-200'}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`rounded-lg p-2 ${storage.writable ? 'bg-primary/10 text-primary' : 'bg-amber-100 text-amber-700'}`}>
+              {storage.isNetwork ? <Server className="size-5" /> : <HardDrive className="size-5" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Backup storage location{storage.isNetwork ? ' (network)' : ' (local disk)'}</p>
+              <p className="text-sm font-mono font-semibold text-foreground truncate" title={storage.dir}>{storage.dir}</p>
+              {!storage.writable && (
+                <p className="text-[11px] font-medium text-amber-700 mt-0.5">⚠ Not writable by the app — backups cannot be saved here until the mount is fixed.</p>
+              )}
+            </div>
+          </div>
+          {storage.totalBytes != null && (
+            <div className="text-right shrink-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Free space</p>
+              <p className="text-lg font-bold text-foreground">{fmtBytes(storage.freeBytes)}</p>
+              <p className="text-[11px] text-muted-foreground">of {fmtBytes(storage.totalBytes)}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* History table */}
       <div className="rounded-xl border bg-card overflow-hidden">
