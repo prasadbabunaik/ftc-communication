@@ -1,10 +1,13 @@
+import os
+def _require_db_url():
+    raise SystemExit("Set the DATABASE_URL environment variable before running this script.")
 """Round-2 fixes — issues found after round-1 sync."""
 
 import sys
 from datetime import datetime
 import psycopg2, psycopg2.extras
 
-DB_URL = "postgresql://postgres:S0perg%4026@10.5.133.55:5432/ftc_communication"
+DB_URL = os.environ.get("DATABASE_URL") or _require_db_url()
 DRY_RUN = "--dry-run" in sys.argv
 
 # 1) Fix APSEZ Khavda PSS4 — should be Hybrid (Wind+Solar), not Wind.

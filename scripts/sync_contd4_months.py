@@ -1,3 +1,6 @@
+import os
+def _require_db_url():
+    raise SystemExit("Set the DATABASE_URL environment variable before running this script.")
 """
 Parse Section 1 (CONTD-4 study) from per-region sheets of the May 13 Excel
 and update each project's contd4.capacityMonth + capacityApr26Mw to the
@@ -22,7 +25,7 @@ from openpyxl import load_workbook
 
 DATA_DIR = Path(__file__).parent.parent / "public/data/excel"
 FILE     = "CONTD and FTC details 130526.xlsx"
-DB_URL   = "postgresql://postgres:S0perg%4026@10.5.133.55:5432/ftc_communication"
+DB_URL   = os.environ.get("DATABASE_URL") or _require_db_url()
 DRY_RUN  = "--dry-run" in sys.argv
 
 # Column maps per region (Section 1 layout differs slightly).

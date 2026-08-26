@@ -1,3 +1,6 @@
+import os
+def _require_db_url():
+    raise SystemExit("Set the DATABASE_URL environment variable before running this script.")
 """
 Sync DB to match May 13 Excel snapshot.
 
@@ -16,7 +19,7 @@ import psycopg2.extras
 from decimal import Decimal
 from datetime import datetime
 
-DB_URL = "postgresql://postgres:S0perg%4026@10.5.133.55:5432/ftc_communication"
+DB_URL = os.environ.get("DATABASE_URL") or _require_db_url()
 DRY_RUN = "--dry-run" in sys.argv
 
 # ── Per-phase fixes ───────────────────────────────────────────────────────────
