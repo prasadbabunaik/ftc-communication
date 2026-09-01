@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MENU_SIDEBAR } from '@/config/menu.config';
 import { useAuth } from '@/providers/auth-provider';
+import { useLanguage } from '@/providers/language-provider';
 import { cn } from '@/lib/utils';
 import {
   AccordionMenu,
@@ -20,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 export function SidebarMenu() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const role = user?.role;
 
   const isVisible = useCallback(
@@ -59,7 +61,7 @@ export function SidebarMenu() {
         <AccordionMenuSub key={index} value={item.path || `root-${index}`}>
           <AccordionMenuSubTrigger className="text-[13px]" aria-label={item.title}>
             {item.icon && <item.icon className="size-4 shrink-0" data-slot="accordion-menu-icon" aria-hidden="true" />}
-            <span data-slot="accordion-menu-title" className="truncate">{item.title}</span>
+            <span data-slot="accordion-menu-title" className="truncate">{t(item.title)}</span>
           </AccordionMenuSubTrigger>
           <AccordionMenuSubContent
             type="single"
@@ -78,7 +80,7 @@ export function SidebarMenu() {
       <AccordionMenuItem key={index} value={item.path || ''} className="text-[13px]">
         <Link href={item.path || '#'} aria-label={item.title} className="flex items-center grow gap-2.5 w-full">
           {item.icon && <item.icon className="size-4 shrink-0" data-slot="accordion-menu-icon" aria-hidden="true" />}
-          <span data-slot="accordion-menu-title" className="truncate">{item.title}</span>
+          <span data-slot="accordion-menu-title" className="truncate">{t(item.title)}</span>
         </Link>
       </AccordionMenuItem>
     );
@@ -87,7 +89,7 @@ export function SidebarMenu() {
   const buildMenuItemRootDisabled = (item, index) => (
     <AccordionMenuItem key={index} value={`disabled-${index}`} className="text-sm font-medium">
       {item.icon && <item.icon data-slot="accordion-menu-icon" />}
-      <span data-slot="accordion-menu-title">{item.title}</span>
+      <span data-slot="accordion-menu-title">{t(item.title)}</span>
       <Badge variant="secondary" size="sm" className="ms-auto me-[-10px]">
         Soon
       </Badge>
@@ -102,7 +104,7 @@ export function SidebarMenu() {
       return (
         <AccordionMenuSub key={index} value={item.path || `child-${level}-${index}`}>
           <AccordionMenuSubTrigger className="text-[13px]">
-            {item.title}
+            {t(item.title)}
           </AccordionMenuSubTrigger>
           <AccordionMenuSubContent
             type="single"
@@ -119,13 +121,13 @@ export function SidebarMenu() {
     }
     return (
       <AccordionMenuItem key={index} value={item.path || ''} className="text-[13px]">
-        <Link href={item.path || '#'} aria-label={item.title}>{item.title}</Link>
+        <Link href={item.path || '#'} aria-label={item.title}>{t(item.title)}</Link>
       </AccordionMenuItem>
     );
   };
 
   const buildMenuHeading = (item, index) => (
-    <AccordionMenuLabel key={index}>{item.heading}</AccordionMenuLabel>
+    <AccordionMenuLabel key={index}>{t(item.heading)}</AccordionMenuLabel>
   );
 
   return (

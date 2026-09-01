@@ -3,6 +3,7 @@ import '@/css/styles.css';
 import { Toaster } from 'sonner';
 import { SettingsProvider } from '@/providers/settings-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import { LanguageProvider } from '@/providers/language-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,7 +18,9 @@ export default function RootLayout({ children }) {
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <SettingsProvider>
           <AuthProvider>
-            {children}
+            <LanguageProvider>
+              {children}
+            </LanguageProvider>
           </AuthProvider>
         </SettingsProvider>
         <Toaster richColors position="top-right" />

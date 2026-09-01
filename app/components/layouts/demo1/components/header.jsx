@@ -13,6 +13,7 @@ import { Container } from '@/components/common/container';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { ViewAsBar } from '@/components/ViewAsBar';
 import { PresenceChip } from '@/components/PresenceChip';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { SidebarMenu } from './sidebar-menu';
 
 function useScrollPosition() {
@@ -297,6 +298,7 @@ export function Header() {
 
           {/* ── Right: view-as + clock + bell + user ── */}
           <div className="flex items-center gap-2 lg:gap-3">
+            {user && <LanguageSwitcher />}
             {user && <PresenceChip />}
             {user && <ViewAsBar />}
 
