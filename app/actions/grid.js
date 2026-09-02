@@ -525,6 +525,37 @@ export async function updateGenerationProject(projectId, formData) {
   return { success: true };
 }
 
+// Rename a project's Generating Station Name only — nothing else is touched.
+// Same guards as a full edit (role, region scope, duplicate name), so it's safe
+// to expose inline from the FTC-tracker detail modal.
+export async function renameGenerationProject(projectId, name) {
+  const user = await authedUser();
+  if (!user) return { error: 'Session expired. Please log in again.' };
+  if (!canEditGridData(user.role)) return { error: 'Your role is read-only. Editing requires an RLDC or Administrator account.' };
+
+  const clean = String(name ?? '').trim();
+  if (!clean) return { error: 'Name cannot be empty.' };
+  if (clean.length > 200) return { error: 'Name is too long (max 200 characters).' };
+
+  const project = await prisma.generationProject.findUniqueOrThrow({ where: { id: projectId } });
+  const scope = await buildRegionScope(user);
+  if (scope.regionId && scope.regionId !== project.regionId) {
+    return { error: 'You cannot edit projects outside your assigned region.' };
+  }
+  if (clean === project.name) return { success: true };
+
+  const dupErr = await duplicateNameError(clean, project.regionId, projectId);
+  if (dupErr) return { error: dupErr };
+
+  await prisma.generationProject.update({ where: { id: projectId }, data: { name: clean } });
+  const logs = diffFields([{ field: 'Name', old: fmtStr(project.name), new: fmtStr(clean) }], projectId, user.id);
+  if (logs.length) await prisma.projectNote.createMany({ data: logs });
+
+  revalidateGridPages(projectId);
+  void takeSnapshot();
+  return { success: true };
+}
+
 // Manual commissioning override (FTC tracker). Normally a project reads as
 // "Commissioned" once declared COD MW reaches its total capacity. This lets an
 // authorised operator force that status — or reopen it — when the derived rule

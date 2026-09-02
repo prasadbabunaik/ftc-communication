@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Plus, Zap, X, ArrowLeft, CalendarClock, Layers, CheckCircle2, RotateCcw, Pencil, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { setProjectCommissioned } from '@/app/actions/grid';
+import { setProjectCommissioned, renameGenerationProject } from '@/app/actions/grid';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { ProjectPhaseTimeline } from '@/components/grid/ProjectPhaseTimeline';
 import { AddPhasesForm } from '@/components/grid/AddPhasesForm';
@@ -539,9 +539,24 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
   // 'timeline' = dated FTC/TOC/COD milestones (when).
   const [detailView, setDetailView] = useState('source'); // 'source' | 'timeline'
   const [commissioning, setCommissioning] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const router = useRouter();
 
   if (!project) return null;
+
+  async function saveName() {
+    const next = nameInput.trim();
+    if (!next || next === project.name) { setRenaming(false); return; }
+    setSavingName(true);
+    const res = await renameGenerationProject(project.id, next);
+    setSavingName(false);
+    if (res?.error) { toast.error(res.error); return; }
+    toast.success('Project renamed.');
+    setRenaming(false);
+    router.refresh();
+  }
 
   const commissionedMw    = project.phases.reduce((s, p) => s + (p.codDeclaredMw ?? 0), 0);
   const pendingCapacityMw = project.totalCapacityMw - commissionedMw;
@@ -600,7 +615,34 @@ export function ProjectDetailModal({ project, open, onOpenChange, canEdit, userR
                 <DialogTitle className="text-lg font-bold text-foreground leading-tight">
                   {view === 'add-phase'
                     ? (project.phases.length > 0 ? 'Edit Sources / Components' : 'Add Source / Component')
-                    : project.name}
+                    : renaming ? (
+                      <span className="flex items-center gap-1.5">
+                        <input
+                          autoFocus
+                          value={nameInput}
+                          onChange={(e) => setNameInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setRenaming(false); }}
+                          disabled={savingName}
+                          className="text-base font-semibold border border-input rounded-md px-2 py-1 w-[360px] max-w-[60vw] focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <button type="button" onClick={saveName} disabled={savingName} title="Save" className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50"><Check className="size-4" /></button>
+                        <button type="button" onClick={() => setRenaming(false)} disabled={savingName} title="Cancel" className="text-muted-foreground hover:text-foreground"><X className="size-4" /></button>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        {project.name}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => { setNameInput(project.name); setRenaming(true); }}
+                            title="Rename project"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                        )}
+                      </span>
+                    )}
                 </DialogTitle>
                 {view === 'detail' ? (
                   <div className="flex flex-wrap items-center gap-2 mt-1.5">
