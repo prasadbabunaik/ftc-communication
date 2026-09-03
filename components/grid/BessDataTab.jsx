@@ -208,13 +208,14 @@ export function sumRows(rows) {
   }
   return rows.reduce(
     (acc, r) => ({
+      totalCapacityMw: acc.totalCapacityMw + (r.totalCapacityMw ?? 0),
       codDeclared: acc.codDeclared + r.codDeclared,
       energyMwh: acc.energyMwh + (r.energyMwh ?? 0),
       codInRefMonth: acc.codInRefMonth + r.codInRefMonth,
       codInRange: acc.codInRange + (r.codInRange ?? 0),
       codRangeMonths: acc.codRangeMonths,
     }),
-    { codDeclared: 0, energyMwh: 0, codInRefMonth: 0, codInRange: 0, codRangeMonths: anyRange ? codRangeMonths : null },
+    { totalCapacityMw: 0, codDeclared: 0, energyMwh: 0, codInRefMonth: 0, codInRange: 0, codRangeMonths: anyRange ? codRangeMonths : null },
   );
 }
 

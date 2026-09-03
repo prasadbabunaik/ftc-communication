@@ -59,7 +59,8 @@ function buildColumns(refColLabel, useRange = false) {
     { key: 'region',  label: 'Region',                     group: 'label', always: true, width: 40,
       render: (row) => row.region, cellStyle: { fontWeight: 700 } },
     { key: 'total',   label: 'Total Capacity (MW)',        group: 'label', width: 64, short: 'Total Capacity',
-      render: (row) => fmt(row.totalCapacityMw), cellStyle: { textAlign: 'right' } },
+      render: (row) => fmt(row.totalCapacityMw), cellStyle: { textAlign: 'right' },
+      total: (t) => (t.totalCapacityMw > 0 ? fmt(t.totalCapacityMw) : '—') },
     { key: 'state',   label: 'State (situated)',           group: 'label', width: 80, short: 'State (situated)',
       render: (row) => row.stateName || '—' },
     { key: 'codCap',  label: 'BESS COD declared Capacity (MW)', group: 'value', width: 70, short: 'BESS COD declared Capacity',
@@ -231,8 +232,14 @@ export function BessPrintClient({ bessProjects, summaryProjects, referenceMonth,
     setEnabled(allOn ? new Set(allColumns.filter((c) => c.always).map((c) => c.key)) : new Set(allColumns.map((c) => c.key)));
 
   const cols = allColumns.filter((c) => c.always || enabled.has(c.key));
-  const labelCols = cols.filter((c) => c.group === 'label');
-  const valueCols = cols.filter((c) => c.group === 'value');
+  // The total rows merge the leading identifying columns into one label cell,
+  // then give every column that carries a total() its own summed cell. The span
+  // ends at the first totalled column (Total Capacity), so Total Capacity, the
+  // BESS figures, etc. each show their own total.
+  const spanCount = (() => {
+    const i = cols.findIndex((c) => typeof c.total === 'function');
+    return i === -1 ? cols.length : i;
+  })();
 
   const hasRows = interstate.length + intrastate.length > 0;
   const generatedLabel = new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short' });
@@ -248,9 +255,11 @@ export function BessPrintClient({ bessProjects, summaryProjects, referenceMonth,
 
   const totalRow = (label, totals, grand, key) => (
     <tr key={key} className={grand ? 'total-row' : 'subtotal-row'}>
-      <td colSpan={labelCols.length} style={{ textAlign: 'center' }}>{label}</td>
-      {valueCols.map((c) => (
-        <td key={c.key} style={{ textAlign: c.key === 'codDates' ? 'left' : 'right' }}>{c.total(totals)}</td>
+      <td colSpan={spanCount} style={{ textAlign: 'center' }}>{label}</td>
+      {cols.slice(spanCount).map((c) => (
+        <td key={c.key} style={{ textAlign: c.cellStyle?.textAlign ?? (c.align === 'left' ? 'left' : 'right') }}>
+          {typeof c.total === 'function' ? c.total(totals) : ''}
+        </td>
       ))}
     </tr>
   );
@@ -285,7 +294,9 @@ export function BessPrintClient({ bessProjects, summaryProjects, referenceMonth,
               <thead>
                 <tr>
                   {cols.map((c) => (
-                    <th key={c.key} style={{ width: c.width, textAlign: c.align ?? 'center' }}>{c.label}</th>
+                    // No fixed width: the table auto-sizes each column to its
+                    // content/header so nothing is squeezed or left over-wide.
+                    <th key={c.key} style={{ textAlign: c.align ?? 'center' }}>{c.label}</th>
                   ))}
                 </tr>
               </thead>
