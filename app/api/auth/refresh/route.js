@@ -48,6 +48,20 @@ export async function POST(request) {
     const user = storedToken.user;
     const newPayload = { sub: user.id, email: user.email, role: user.role, name: user.name };
 
+    // Preserve any active "view as role" overlay across the refresh. Otherwise a
+    // background token refresh (interval / tab-focus / api-fetch retry) resets
+    // the client user to the raw ADMIN role while the view_as_role cookie is
+    // still set — so the header picker snaps to "Admin (you)" even though the
+    // server still scopes to the viewed region, and re-selecting "Admin" fires
+    // no change event, leaving the admin stuck in the viewed role.
+    const VIEW_AS_ROLES = ['NLDC', 'SRLDC', 'NRLDC', 'ERLDC', 'WRLDC', 'NERLDC'];
+    let effectiveRole = user.role;
+    let impersonating = false;
+    if (user.role === 'ADMIN') {
+      const viewAs = request.cookies.get('view_as_role')?.value;
+      if (viewAs && VIEW_AS_ROLES.includes(viewAs)) { effectiveRole = viewAs; impersonating = true; }
+    }
+
     const [newAccessToken, newRefreshToken] = await Promise.all([
       signAccessToken(newPayload),
       signRefreshToken(newPayload),
@@ -62,7 +76,7 @@ export async function POST(request) {
     });
 
     const response = NextResponse.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: effectiveRole, realRole: user.role, impersonating },
       accessToken: newAccessToken,
     });
 
