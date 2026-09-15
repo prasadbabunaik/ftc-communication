@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.0",
+  "exam": "UPSC Civil Services Examination (Mains) - Mathematics Optional",
+  "source": "UPSC CSE notification syllabus for Mathematics optional (structure unchanged since the 2013 syllabus revision).",
+  "blueprint": {
+    "papers": ["I", "II"],
+    "marks_attempted_per_paper": 250,
+    "marks_printed_per_paper": 400,
+    "duration_hours": 3,
+    "questions_per_paper": 8,
+    "sections": ["A", "B"],
+    "questions_per_section": 4,
+    "compulsory_questions": [1, 5],
+    "compulsory_question_parts": 5,
+    "compulsory_part_marks": 10,
+    "questions_to_attempt": 5,
+    "attempt_rule": "Q1 and Q5 are compulsory; out of the remaining six, three are to be attempted choosing at least one from each Section.",
+    "optional_question_marks": 50,
+    "marks_note": "Each paper prints 8 questions of 50 marks = 400 marks, but a candidate attempts only 5 = 250 marks. Topic-wise analysis here is computed on marks OFFERED (the printed 400), which is the correct basis for judging how heavily a topic is examined."
+  },
+  "papers": [
+    {
+      "paper": "I",
+      "sections": [
+        { "section": "A", "question_numbers": [1, 2, 3, 4], "topics": ["linear_algebra", "calculus", "analytic_geometry"] },
+        { "section": "B", "question_numbers": [5, 6, 7, 8], "topics": ["ordinary_differential_equations", "dynamics_and_statics", "vector_analysis"] }
+      ]
+    },
+    {
+      "paper": "II",
+      "sections": [
+        { "section": "A", "question_numbers": [1, 2, 3, 4], "topics": ["algebra", "real_analysis", "complex_analysis", "linear_programming"] },
+        { "section": "B", "question_numbers": [5, 6, 7, 8], "topics": ["partial_differential_equations", "numerical_analysis_and_computer_programming", "mechanics_and_fluid_dynamics"] }
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "id": "linear_algebra", "name": "Linear Algebra", "paper": "I", "section": "A", "order": 1,
+      "subtopics": [
+        { "id": "vector_spaces", "name": "Vector Spaces, Basis & Dimension", "keywords": ["vector space", "subspace", "basis", "dimension", "linear dependence", "linearly independent", "linearly dependent", "span", "spanning set", "direct sum"] },
+        { "id": "linear_transformations", "name": "Linear Transformations, Rank & Nullity", "keywords": ["linear transformation", "linear map", "rank and nullity", "rank-nullity", "nullity", "kernel", "matrix of a linear transformation", "null space", "range space"] },
+        { "id": "matrix_algebra", "name": "Matrix Algebra, Echelon Form & Rank", "keywords": ["echelon form", "row reduction", "column reduction", "congruence", "similarity", "rank of the matrix", "rank of a matrix", "inverse of the matrix", "adjoint", "elementary row", "elementary operations"] },
+        { "id": "systems_of_equations", "name": "Systems of Linear Equations", "keywords": ["system of linear equations", "system of equations", "consistent", "inconsistent", "homogeneous system", "augmented matrix", "solve the system"] },
+        { "id": "eigen_theory", "name": "Eigenvalues, Eigenvectors & Cayley-Hamilton", "keywords": ["eigen value", "eigenvalue", "eigen vector", "eigenvector", "characteristic polynomial", "characteristic equation", "cayley-hamilton", "cayley hamilton", "diagonalizable", "diagonalisable", "minimal polynomial", "characteristic roots"] },
+        { "id": "special_matrices", "name": "Symmetric, Hermitian, Orthogonal & Unitary Matrices", "keywords": ["symmetric matrix", "skew-symmetric", "skew symmetric", "hermitian", "skew-hermitian", "orthogonal matrix", "unitary matrix", "quadratic form", "positive definite", "signature", "index of the quadratic"] }
+      ]
+    },
+    {
+      "id": "calculus", "name": "Calculus", "paper": "I", "section": "A", "order": 2,
+      "subtopics": [
+        { "id": "limits_continuity_mvt", "name": "Limits, Continuity, Differentiability & Mean Value Theorems", "keywords": ["mean value theorem", "rolle", "lagrange's mean value", "taylor's theorem", "maclaurin", "indeterminate form", "l'hospital", "l hospital", "continuity", "differentiability", "remainder"] },
+        { "id": "maxima_minima_curves", "name": "Maxima-Minima, Asymptotes & Curve Tracing", "keywords": ["asymptote", "curve tracing", "trace the curve", "maxima and minima", "point of inflexion", "extreme value", "greatest and least"] },
+        { "id": "multivariable_calculus", "name": "Functions of Several Variables, Jacobian & Lagrange Multipliers", "keywords": ["partial derivative", "lagrange's method of multipliers", "lagrange multiplier", "jacobian", "euler's theorem on homogeneous", "homogeneous function", "functions of two variables", "functions of three variables", "stationary point"] },
+        { "id": "integration", "name": "Riemann, Indefinite & Improper Integrals", "keywords": ["riemann's definition", "definite integral", "indefinite integral", "improper integral", "infinite integral", "beta function", "gamma function", "convergence of the integral"] },
+        { "id": "multiple_integrals", "name": "Double & Triple Integrals, Areas, Surfaces, Volumes", "keywords": ["double integral", "triple integral", "change the order of integration", "change of order", "area bounded", "volume of the solid", "surface area", "evaluate the integral over"] }
+      ]
+    },
+    {
+      "id": "analytic_geometry", "name": "Analytic Geometry", "paper": "I", "section": "A", "order": 3,
+      "subtopics": [
+        { "id": "lines_and_planes", "name": "Straight Lines, Planes & Skew Lines", "keywords": ["shortest distance", "skew lines", "straight line", "the plane", "coplanar", "direction cosines", "direction ratios", "line of intersection"] },
+        { "id": "sphere", "name": "Sphere", "keywords": ["sphere", "tangent plane", "orthogonally", "radical plane", "great circle"] },
+        { "id": "cone_and_cylinder", "name": "Cone & Cylinder", "keywords": ["cone", "cylinder", "generator", "right circular cone", "right circular cylinder", "enveloping cylinder", "guiding curve", "reciprocal cone"] },
+        { "id": "conicoids", "name": "Conicoids: Ellipsoid, Paraboloid, Hyperboloid & Canonical Forms", "keywords": ["conicoid", "ellipsoid", "paraboloid", "hyperboloid", "canonical form", "second degree equation", "central conicoid", "reduce the equation", "nature of the conic", "generating lines"] }
+      ]
+    },
+    {
+      "id": "ordinary_differential_equations", "name": "Ordinary Differential Equations", "paper": "I", "section": "B", "order": 4,
+      "subtopics": [
+        { "id": "first_order_first_degree", "name": "First Order First Degree, Integrating Factor & Orthogonal Trajectories", "keywords": ["integrating factor", "exact differential equation", "orthogonal trajectory", "bernoulli", "first order and first degree", "formulation of differential"] },
+        { "id": "first_order_higher_degree", "name": "First Order Higher Degree, Clairaut's Equation & Singular Solutions", "keywords": ["clairaut", "singular solution", "not of first degree", "higher degree", "solvable for p", "solvable for x", "solvable for y", "general solution and singular"] },
+        { "id": "linear_constant_coefficients", "name": "Higher Order Linear Equations with Constant Coefficients", "keywords": ["complementary function", "particular integral", "constant coefficients", "higher order linear", "second order linear equation with constant"] },
+        { "id": "variable_coefficients", "name": "Variable Coefficients, Euler-Cauchy & Variation of Parameters", "keywords": ["euler-cauchy", "cauchy-euler", "variation of parameters", "one solution is known", "reduction of order", "variable coefficients", "method of undetermined"] },
+        { "id": "laplace_transform", "name": "Laplace & Inverse Laplace Transforms", "keywords": ["laplace transform", "inverse laplace", "convolution theorem", "initial value problem", "unit step function", "heaviside"] }
+      ]
+    },
+    {
+      "id": "dynamics_and_statics", "name": "Dynamics & Statics", "paper": "I", "section": "B", "order": 5,
+      "subtopics": [
+        { "id": "rectilinear_and_shm", "name": "Rectilinear Motion & Simple Harmonic Motion", "keywords": ["rectilinear motion", "simple harmonic motion", "s.h.m", "damped", "resisting medium", "amplitude", "periodic time"] },
+        { "id": "plane_motion_projectiles", "name": "Motion in a Plane & Projectiles", "keywords": ["projectile", "motion in a plane", "horizontal range", "trajectory", "angle of projection", "inclined plane"] },
+        { "id": "work_energy_constrained", "name": "Constrained Motion, Work, Energy & Conservation", "keywords": ["constrained motion", "work and energy", "conservation of energy", "kinetic energy", "impulse"] },
+        { "id": "central_orbits", "name": "Central Forces, Orbits & Kepler's Laws", "keywords": ["kepler", "central force", "central orbit", "apse", "areal velocity", "under a force to the centre", "inverse square"] },
+        { "id": "statics_equilibrium", "name": "Equilibrium, Friction, Potential Energy & Stability", "keywords": ["equilibrium of a system of particles", "stability of equilibrium", "friction", "potential energy", "equilibrium of forces in three dimensions", "rough", "in equilibrium"] },
+        { "id": "catenary_virtual_work", "name": "Common Catenary & Principle of Virtual Work", "keywords": ["catenary", "virtual work", "principle of virtual work", "uniform chain", "hangs"] }
+      ]
+    },
+    {
+      "id": "vector_analysis", "name": "Vector Analysis", "paper": "I", "section": "B", "order": 6,
+      "subtopics": [
+        { "id": "vector_differentiation", "name": "Gradient, Divergence, Curl & Vector Identities", "keywords": ["gradient", "divergence", "curl", "solenoidal", "irrotational", "scalar field", "vector field", "laplacian", "directional derivative", "vector identity", "del operator"] },
+        { "id": "curves_in_space", "name": "Curves in Space, Curvature, Torsion & Serret-Frenet", "keywords": ["curvature", "torsion", "serret-frenet", "serret frenet", "osculating plane", "binormal", "principal normal", "unit tangent", "space curve"] },
+        { "id": "integral_theorems", "name": "Gauss, Stokes & Green's Theorems", "keywords": ["divergence theorem", "gauss's theorem", "gauss theorem", "stokes", "green's theorem", "green's identities", "line integral", "surface integral", "verify the theorem"] }
+      ]
+    },
+    {
+      "id": "algebra", "name": "Algebra", "paper": "II", "section": "A", "order": 1,
+      "subtopics": [
+        { "id": "groups_subgroups", "name": "Groups, Subgroups, Cyclic Groups & Lagrange's Theorem", "keywords": ["group", "subgroup", "cyclic group", "coset", "lagrange's theorem", "order of an element", "abelian", "finite group", "generator of the group"] },
+        { "id": "normal_quotient_homomorphism", "name": "Normal Subgroups, Quotient Groups & Homomorphisms", "keywords": ["normal subgroup", "quotient group", "factor group", "homomorphism", "isomorphism theorem", "kernel of the homomorphism", "simple group"] },
+        { "id": "permutation_groups", "name": "Permutation Groups, Cayley's Theorem & Sylow Theory", "keywords": ["permutation group", "cayley's theorem", "symmetric group", "alternating group", "sylow", "transposition", "cycle structure", "p-group"] },
+        { "id": "rings_and_ideals", "name": "Rings, Subrings, Ideals & Ring Homomorphisms", "keywords": ["ring", "subring", "ideal", "maximal ideal", "prime ideal", "ring homomorphism", "integral domain", "nilpotent", "characteristic of the ring", "zero divisor"] },
+        { "id": "pid_ed_ufd", "name": "PID, Euclidean Domain & Unique Factorization Domain", "keywords": ["principal ideal domain", "euclidean domain", "unique factorization", "irreducible element", "prime element", "u.f.d", "p.i.d"] },
+        { "id": "fields", "name": "Fields & Quotient Fields", "keywords": ["field", "quotient field", "field of quotients", "finite field", "extension field", "splitting field"] }
+      ]
+    },
+    {
+      "id": "real_analysis", "name": "Real Analysis", "paper": "II", "section": "A", "order": 2,
+      "subtopics": [
+        { "id": "real_number_system", "name": "Real Number System & Completeness", "keywords": ["ordered field", "least upper bound", "supremum", "infimum", "completeness", "archimedean", "real number system", "dense"] },
+        { "id": "sequences", "name": "Sequences & Cauchy Criterion", "keywords": ["sequence", "limit of the sequence", "cauchy sequence", "monotone", "bolzano-weierstrass", "limit superior", "limit inferior", "subsequence"] },
+        { "id": "series", "name": "Series, Absolute & Conditional Convergence", "keywords": ["series", "absolute convergence", "conditionally convergent", "rearrangement", "comparison test", "ratio test", "root test", "convergent series", "divergent"] },
+        { "id": "continuity_uniform_continuity", "name": "Continuity, Uniform Continuity & Compactness", "keywords": ["uniformly continuous", "uniform continuity", "compact set", "intermediate value", "continuous function on", "bounded and attains"] },
+        { "id": "riemann_integration", "name": "Riemann Integral & Improper Integrals", "keywords": ["riemann integrable", "riemann integral", "improper integral", "fundamental theorem of integral calculus", "upper sum", "lower sum", "partition"] },
+        { "id": "uniform_convergence", "name": "Uniform Convergence of Sequences & Series of Functions", "keywords": ["uniform convergence", "uniformly convergent", "sequence of functions", "series of functions", "weierstrass m-test", "pointwise convergence"] },
+        { "id": "several_variables_analysis", "name": "Functions of Several Variables & Extrema", "keywords": ["several variables", "partial derivatives of functions of", "maxima and minima of functions of two", "saddle point"] }
+      ]
+    },
+    {
+      "id": "complex_analysis", "name": "Complex Analysis", "paper": "II", "section": "A", "order": 3,
+      "subtopics": [
+        { "id": "analytic_functions", "name": "Analytic Functions & Cauchy-Riemann Equations", "keywords": ["analytic function", "cauchy-riemann", "cauchy riemann", "harmonic", "harmonic conjugate", "conformal", "entire function", "holomorphic"] },
+        { "id": "cauchy_theory", "name": "Cauchy's Theorem & Integral Formula", "keywords": ["cauchy's theorem", "cauchy's integral formula", "morera", "liouville", "maximum modulus"] },
+        { "id": "series_expansions", "name": "Power, Taylor & Laurent Series", "keywords": ["power series", "taylor series", "laurent series", "laurent's series", "radius of convergence", "expand the function"] },
+        { "id": "singularities_residues", "name": "Singularities & Residue Theorem", "keywords": ["singularity", "singularities", "pole of order", "essential singularity", "removable singularity", "residue", "residue theorem", "isolated singular"] },
+        { "id": "contour_integration", "name": "Contour Integration", "keywords": ["contour integration", "contour", "by the method of contour", "evaluate using residues", "unit circle"] }
+      ]
+    },
+    {
+      "id": "linear_programming", "name": "Linear Programming", "paper": "II", "section": "A", "order": 4,
+      "subtopics": [
+        { "id": "lpp_graphical", "name": "LPP Formulation, Basic Feasible & Graphical Method", "keywords": ["linear programming", "graphical method", "feasible region", "basic feasible solution", "optimal solution", "basic solution", "formulate the"] },
+        { "id": "simplex", "name": "Simplex Method", "keywords": ["simplex method", "simplex", "big-m", "big m method", "two phase", "artificial variable", "slack variable"] },
+        { "id": "duality", "name": "Duality", "keywords": ["dual of the", "duality", "dual simplex", "dual problem", "write the dual"] },
+        { "id": "transportation_assignment", "name": "Transportation & Assignment Problems", "keywords": ["transportation problem", "assignment problem", "hungarian method", "vogel", "north-west corner", "least cost method", "degeneracy"] }
+      ]
+    },
+    {
+      "id": "partial_differential_equations", "name": "Partial Differential Equations", "paper": "II", "section": "B", "order": 5,
+      "subtopics": [
+        { "id": "pde_formulation", "name": "Family of Surfaces & Formulation of PDEs", "keywords": ["family of surfaces", "form the partial differential", "eliminating the arbitrary", "arbitrary function", "arbitrary constants"] },
+        { "id": "first_order_pde", "name": "First Order Quasilinear PDEs & Characteristics", "keywords": ["quasilinear", "cauchy's method of characteristics", "characteristics", "lagrange", "charpit", "complete integral", "first order partial differential"] },
+        { "id": "second_order_canonical", "name": "Second Order PDEs & Canonical Forms", "keywords": ["canonical form", "second order with constant coefficients", "classify the", "hyperbolic", "parabolic", "elliptic", "reduce to canonical"] },
+        { "id": "classical_equations", "name": "Wave, Heat & Laplace Equations", "keywords": ["vibrating string", "wave equation", "heat equation", "laplace equation", "separation of variables", "boundary conditions", "one dimensional heat", "diffusion equation"] }
+      ]
+    },
+    {
+      "id": "numerical_analysis_and_computer_programming", "name": "Numerical Analysis & Computer Programming", "paper": "II", "section": "B", "order": 6,
+      "subtopics": [
+        { "id": "root_finding", "name": "Roots of Algebraic & Transcendental Equations", "keywords": ["bisection", "regula-falsi", "regula falsi", "newton-raphson", "newton raphson", "secant method", "transcendental equation", "correct to three decimal", "real root"] },
+        { "id": "linear_systems_numerical", "name": "Numerical Solution of Linear Systems", "keywords": ["gaussian elimination", "gauss-jordan", "gauss jordan", "gauss-seidel", "gauss seidel", "jacobi iteration", "iterative method"] },
+        { "id": "interpolation", "name": "Interpolation: Newton & Lagrange", "keywords": ["newton's forward", "newton's backward", "lagrange's interpolation", "lagrange interpolation", "divided difference", "interpolation formula", "interpolating polynomial"] },
+        { "id": "numerical_integration", "name": "Numerical Integration", "keywords": ["trapezoidal rule", "simpson's rule", "simpson", "gaussian quadrature", "numerical integration", "quadrature formula"] },
+        { "id": "numerical_ode", "name": "Numerical Solution of ODEs: Euler & Runge-Kutta", "keywords": ["euler's method", "modified euler", "runge-kutta", "runge kutta", "numerical solution of the differential", "step size"] },
+        { "id": "number_systems", "name": "Binary, Octal & Hexadecimal Number Systems", "keywords": ["binary", "octal", "hexadecimal", "decimal system", "convert the number", "signed integer", "unsigned integer", "double precision", "floating point", "two's complement"] },
+        { "id": "boolean_logic", "name": "Logic Gates, Truth Tables & Boolean Algebra", "keywords": ["logic gate", "truth table", "boolean algebra", "normal form", "karnaugh", "nand", "nor", "boolean expression", "disjunctive normal"] },
+        { "id": "algorithms_flowcharts", "name": "Algorithms & Flow Charts", "keywords": ["algorithm", "flow chart", "flowchart", "draw a flow"] }
+      ]
+    },
+    {
+      "id": "mechanics_and_fluid_dynamics", "name": "Mechanics & Fluid Dynamics", "paper": "II", "section": "B", "order": 7,
+      "subtopics": [
+        { "id": "lagrangian_hamiltonian", "name": "Generalised Coordinates, Lagrange & Hamilton Equations", "keywords": ["generalised coordinates", "generalized coordinates", "d'alembert", "lagrange's equations", "hamilton's equation", "hamiltonian", "lagrangian", "degrees of freedom"] },
+        { "id": "rigid_body_motion", "name": "Moment of Inertia & Rigid Body Motion", "keywords": ["moment of inertia", "rigid body", "product of inertia", "principal axes", "motion of a rigid body", "rolling without slipping"] },
+        { "id": "fluid_kinematics", "name": "Continuity Equation, Streamlines & Potential Flow", "keywords": ["equation of continuity", "stream line", "streamline", "path line", "velocity potential", "stream function", "potential flow", "path of a particle", "incompressible"] },
+        { "id": "inviscid_flow", "name": "Euler's Equation of Motion for Inviscid Flow", "keywords": ["euler's equation of motion", "inviscid", "bernoulli", "pressure equation", "irrotational motion of the fluid"] },
+        { "id": "sources_sinks_vortex", "name": "Sources, Sinks & Vortex Motion", "keywords": ["source", "sink", "doublet", "vortex", "image system", "two-dimensional motion", "axisymmetric", "circulation"] },
+        { "id": "viscous_flow", "name": "Navier-Stokes Equation for Viscous Flow", "keywords": ["navier-stokes", "navier stokes", "viscous fluid", "viscosity", "reynolds number", "laminar"] }
+      ]
+    }
+  ]
+}

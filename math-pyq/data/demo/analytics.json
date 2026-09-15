@@ -1,0 +1,2327 @@
+{
+  "generated_at": "2026-09-15T04:05:00+00:00",
+  "coverage": {
+    "years": [
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "year_from": 2014,
+    "year_to": 2025,
+    "papers": [
+      "I",
+      "II"
+    ],
+    "question_parts": 672,
+    "total_marks": 9600
+  },
+  "by_topic": [
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "paper": "I",
+      "section": "B",
+      "order": 4,
+      "marks": 940,
+      "count": 64,
+      "share_pct": 9.79,
+      "avg_marks_per_year": 78.3,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 220,
+      "optional_marks": 720
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "paper": "II",
+      "section": "B",
+      "order": 6,
+      "marks": 925,
+      "count": 66,
+      "share_pct": 9.64,
+      "avg_marks_per_year": 77.1,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 230,
+      "optional_marks": 695
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "paper": "I",
+      "section": "A",
+      "order": 2,
+      "marks": 915,
+      "count": 63,
+      "share_pct": 9.53,
+      "avg_marks_per_year": 76.2,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 200,
+      "optional_marks": 715
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "paper": "I",
+      "section": "A",
+      "order": 1,
+      "marks": 875,
+      "count": 63,
+      "share_pct": 9.11,
+      "avg_marks_per_year": 72.9,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 250,
+      "optional_marks": 625
+    },
+    {
+      "topic_id": "partial_differential_equations",
+      "topic": "Partial Differential Equations",
+      "paper": "II",
+      "section": "B",
+      "order": 5,
+      "marks": 840,
+      "count": 57,
+      "share_pct": 8.75,
+      "avg_marks_per_year": 70.0,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 200,
+      "optional_marks": 640
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "paper": "I",
+      "section": "B",
+      "order": 5,
+      "marks": 780,
+      "count": 55,
+      "share_pct": 8.12,
+      "avg_marks_per_year": 65.0,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 210,
+      "optional_marks": 570
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "paper": "II",
+      "section": "A",
+      "order": 2,
+      "marks": 720,
+      "count": 49,
+      "share_pct": 7.5,
+      "avg_marks_per_year": 60.0,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 140,
+      "optional_marks": 580
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "paper": "II",
+      "section": "A",
+      "order": 3,
+      "marks": 705,
+      "count": 48,
+      "share_pct": 7.34,
+      "avg_marks_per_year": 58.8,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 140,
+      "optional_marks": 565
+    },
+    {
+      "topic_id": "vector_analysis",
+      "topic": "Vector Analysis",
+      "paper": "I",
+      "section": "B",
+      "order": 6,
+      "marks": 680,
+      "count": 49,
+      "share_pct": 7.08,
+      "avg_marks_per_year": 56.7,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 170,
+      "optional_marks": 510
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "paper": "II",
+      "section": "A",
+      "order": 1,
+      "marks": 675,
+      "count": 50,
+      "share_pct": 7.03,
+      "avg_marks_per_year": 56.2,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 260,
+      "optional_marks": 415
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "paper": "II",
+      "section": "B",
+      "order": 7,
+      "marks": 635,
+      "count": 45,
+      "share_pct": 6.61,
+      "avg_marks_per_year": 52.9,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 170,
+      "optional_marks": 465
+    },
+    {
+      "topic_id": "analytic_geometry",
+      "topic": "Analytic Geometry",
+      "paper": "I",
+      "section": "A",
+      "order": 3,
+      "marks": 610,
+      "count": 42,
+      "share_pct": 6.35,
+      "avg_marks_per_year": 50.8,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 150,
+      "optional_marks": 460
+    },
+    {
+      "topic_id": "linear_programming",
+      "topic": "Linear Programming",
+      "paper": "II",
+      "section": "A",
+      "order": 4,
+      "marks": 300,
+      "count": 21,
+      "share_pct": 3.12,
+      "avg_marks_per_year": 25.0,
+      "years_present": 12,
+      "years_total": 12,
+      "consistency_pct": 100.0,
+      "compulsory_marks": 60,
+      "optional_marks": 240
+    }
+  ],
+  "by_subtopic": [
+    {
+      "topic_id": "partial_differential_equations",
+      "topic": "Partial Differential Equations",
+      "subtopic_id": "pde_formulation",
+      "subtopic": "Family of Surfaces & Formulation of PDEs",
+      "paper": "II",
+      "marks": 320,
+      "count": 20,
+      "years": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "vector_analysis",
+      "topic": "Vector Analysis",
+      "subtopic_id": "integral_theorems",
+      "subtopic": "Gauss, Stokes & Green's Theorems",
+      "paper": "I",
+      "marks": 285,
+      "count": 21,
+      "years": [
+        2014,
+        2015,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "partial_differential_equations",
+      "topic": "Partial Differential Equations",
+      "subtopic_id": "first_order_pde",
+      "subtopic": "First Order Quasilinear PDEs & Characteristics",
+      "paper": "II",
+      "marks": 270,
+      "count": 18,
+      "years": [
+        2014,
+        2016,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "subtopic_id": "variable_coefficients",
+      "subtopic": "Variable Coefficients, Euler-Cauchy & Variation of Parameters",
+      "paper": "I",
+      "marks": 255,
+      "count": 17,
+      "years": [
+        2014,
+        2016,
+        2018,
+        2019,
+        2020,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "subtopic_id": "fields",
+      "subtopic": "Fields & Quotient Fields",
+      "paper": "II",
+      "marks": 250,
+      "count": 17,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2019,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "subtopic_id": "vector_spaces",
+      "subtopic": "Vector Spaces, Basis & Dimension",
+      "paper": "I",
+      "marks": 240,
+      "count": 17,
+      "years": [
+        2015,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "subtopic_id": "linear_constant_coefficients",
+      "subtopic": "Higher Order Linear Equations with Constant Coefficients",
+      "paper": "I",
+      "marks": 235,
+      "count": 16,
+      "years": [
+        2014,
+        2017,
+        2019,
+        2020,
+        2021,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "vector_analysis",
+      "topic": "Vector Analysis",
+      "subtopic_id": "vector_differentiation",
+      "subtopic": "Gradient, Divergence, Curl & Vector Identities",
+      "paper": "I",
+      "marks": 225,
+      "count": 16,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "analytic_geometry",
+      "topic": "Analytic Geometry",
+      "subtopic_id": "lines_and_planes",
+      "subtopic": "Straight Lines, Planes & Skew Lines",
+      "paper": "I",
+      "marks": 220,
+      "count": 15,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "subtopic_id": "maxima_minima_curves",
+      "subtopic": "Maxima-Minima, Asymptotes & Curve Tracing",
+      "paper": "I",
+      "marks": 205,
+      "count": 13,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2019,
+        2021,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "subtopic_id": "multivariable_calculus",
+      "subtopic": "Functions of Several Variables, Jacobian & Lagrange Multipliers",
+      "paper": "I",
+      "marks": 200,
+      "count": 14,
+      "years": [
+        2014,
+        2016,
+        2017,
+        2018,
+        2019,
+        2021,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "continuity_uniform_continuity",
+      "subtopic": "Continuity, Uniform Continuity & Compactness",
+      "paper": "II",
+      "marks": 200,
+      "count": 13,
+      "years": [
+        2014,
+        2017,
+        2019,
+        2020,
+        2021,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "subtopic_id": "limits_continuity_mvt",
+      "subtopic": "Limits, Continuity, Differentiability & Mean Value Theorems",
+      "paper": "I",
+      "marks": 180,
+      "count": 12,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2022,
+        2023
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "number_systems",
+      "subtopic": "Binary, Octal & Hexadecimal Number Systems",
+      "paper": "II",
+      "marks": 175,
+      "count": 12,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "subtopic_id": "matrix_algebra",
+      "subtopic": "Matrix Algebra, Echelon Form & Rank",
+      "paper": "I",
+      "marks": 170,
+      "count": 11,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2019,
+        2021,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "subtopic_id": "work_energy_constrained",
+      "subtopic": "Constrained Motion, Work, Energy & Conservation",
+      "paper": "I",
+      "marks": 170,
+      "count": 12,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2021,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "subtopic_id": "integration",
+      "subtopic": "Riemann, Indefinite & Improper Integrals",
+      "paper": "I",
+      "marks": 170,
+      "count": 12,
+      "years": [
+        2015,
+        2017,
+        2018,
+        2019,
+        2020,
+        2023,
+        2024
+      ]
+    },
+    {
+      "topic_id": "vector_analysis",
+      "topic": "Vector Analysis",
+      "subtopic_id": "curves_in_space",
+      "subtopic": "Curves in Space, Curvature, Torsion & Serret-Frenet",
+      "paper": "I",
+      "marks": 170,
+      "count": 12,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2021,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "subtopic_id": "sources_sinks_vortex",
+      "subtopic": "Sources, Sinks & Vortex Motion",
+      "paper": "II",
+      "marks": 170,
+      "count": 11,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "subtopic_id": "laplace_transform",
+      "subtopic": "Laplace & Inverse Laplace Transforms",
+      "paper": "I",
+      "marks": 165,
+      "count": 12,
+      "years": [
+        2015,
+        2017,
+        2019,
+        2021,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "subtopic_id": "series_expansions",
+      "subtopic": "Power, Taylor & Laurent Series",
+      "paper": "II",
+      "marks": 165,
+      "count": 11,
+      "years": [
+        2016,
+        2018,
+        2019,
+        2021,
+        2022,
+        2023
+      ]
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "subtopic_id": "multiple_integrals",
+      "subtopic": "Double & Triple Integrals, Areas, Surfaces, Volumes",
+      "paper": "I",
+      "marks": 160,
+      "count": 12,
+      "years": [
+        2014,
+        2016,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "subtopic_id": "cauchy_theory",
+      "subtopic": "Cauchy's Theorem & Integral Formula",
+      "paper": "II",
+      "marks": 160,
+      "count": 10,
+      "years": [
+        2015,
+        2016,
+        2018,
+        2019,
+        2020,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "subtopic_id": "first_order_higher_degree",
+      "subtopic": "First Order Higher Degree, Clairaut's Equation & Singular Solutions",
+      "paper": "I",
+      "marks": 160,
+      "count": 10,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2021,
+        2022,
+        2024
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "subtopic_id": "central_orbits",
+      "subtopic": "Central Forces, Orbits & Kepler's Laws",
+      "paper": "I",
+      "marks": 155,
+      "count": 13,
+      "years": [
+        2014,
+        2015,
+        2017,
+        2019,
+        2020,
+        2021,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "partial_differential_equations",
+      "topic": "Partial Differential Equations",
+      "subtopic_id": "second_order_canonical",
+      "subtopic": "Second Order PDEs & Canonical Forms",
+      "paper": "II",
+      "marks": 155,
+      "count": 12,
+      "years": [
+        2014,
+        2015,
+        2017,
+        2018,
+        2020,
+        2021,
+        2022,
+        2023
+      ]
+    },
+    {
+      "topic_id": "analytic_geometry",
+      "topic": "Analytic Geometry",
+      "subtopic_id": "sphere",
+      "subtopic": "Sphere",
+      "paper": "I",
+      "marks": 155,
+      "count": 11,
+      "years": [
+        2016,
+        2018,
+        2019,
+        2020,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "subtopic_id": "statics_equilibrium",
+      "subtopic": "Equilibrium, Friction, Potential Energy & Stability",
+      "paper": "I",
+      "marks": 150,
+      "count": 9,
+      "years": [
+        2015,
+        2016,
+        2018,
+        2019,
+        2020,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "subtopic_id": "contour_integration",
+      "subtopic": "Contour Integration",
+      "paper": "II",
+      "marks": 145,
+      "count": 10,
+      "years": [
+        2014,
+        2016,
+        2017,
+        2020,
+        2021,
+        2022,
+        2025
+      ]
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "subtopic_id": "analytic_functions",
+      "subtopic": "Analytic Functions & Cauchy-Riemann Equations",
+      "paper": "II",
+      "marks": 145,
+      "count": 11,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2019,
+        2021,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "subtopic_id": "fluid_kinematics",
+      "subtopic": "Continuity Equation, Streamlines & Potential Flow",
+      "paper": "II",
+      "marks": 145,
+      "count": 11,
+      "years": [
+        2014,
+        2017,
+        2018,
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "numerical_ode",
+      "subtopic": "Numerical Solution of ODEs: Euler & Runge-Kutta",
+      "paper": "II",
+      "marks": 140,
+      "count": 10,
+      "years": [
+        2014,
+        2015,
+        2017,
+        2020,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "subtopic_id": "special_matrices",
+      "subtopic": "Symmetric, Hermitian, Orthogonal & Unitary Matrices",
+      "paper": "I",
+      "marks": 135,
+      "count": 10,
+      "years": [
+        2014,
+        2017,
+        2018,
+        2021,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "subtopic_id": "viscous_flow",
+      "subtopic": "Navier-Stokes Equation for Viscous Flow",
+      "paper": "II",
+      "marks": 135,
+      "count": 10,
+      "years": [
+        2014,
+        2015,
+        2017,
+        2019,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "linear_systems_numerical",
+      "subtopic": "Numerical Solution of Linear Systems",
+      "paper": "II",
+      "marks": 135,
+      "count": 9,
+      "years": [
+        2014,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "subtopic_id": "eigen_theory",
+      "subtopic": "Eigenvalues, Eigenvectors & Cayley-Hamilton",
+      "paper": "I",
+      "marks": 130,
+      "count": 9,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2020,
+        2021,
+        2025
+      ]
+    },
+    {
+      "topic_id": "analytic_geometry",
+      "topic": "Analytic Geometry",
+      "subtopic_id": "conicoids",
+      "subtopic": "Conicoids: Ellipsoid, Paraboloid, Hyperboloid & Canonical Forms",
+      "paper": "I",
+      "marks": 130,
+      "count": 9,
+      "years": [
+        2014,
+        2017,
+        2019,
+        2021,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "boolean_logic",
+      "subtopic": "Logic Gates, Truth Tables & Boolean Algebra",
+      "paper": "II",
+      "marks": 130,
+      "count": 10,
+      "years": [
+        2014,
+        2015,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "uniform_convergence",
+      "subtopic": "Uniform Convergence of Sequences & Series of Functions",
+      "paper": "II",
+      "marks": 130,
+      "count": 9,
+      "years": [
+        2016,
+        2017,
+        2018,
+        2020,
+        2021,
+        2022,
+        2024
+      ]
+    },
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "subtopic_id": "first_order_first_degree",
+      "subtopic": "First Order First Degree, Integrating Factor & Orthogonal Trajectories",
+      "paper": "I",
+      "marks": 125,
+      "count": 9,
+      "years": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "subtopic_id": "catenary_virtual_work",
+      "subtopic": "Common Catenary & Principle of Virtual Work",
+      "paper": "I",
+      "marks": 125,
+      "count": 9,
+      "years": [
+        2015,
+        2018,
+        2019,
+        2020,
+        2021,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "subtopic_id": "normal_quotient_homomorphism",
+      "subtopic": "Normal Subgroups, Quotient Groups & Homomorphisms",
+      "paper": "II",
+      "marks": 120,
+      "count": 9,
+      "years": [
+        2015,
+        2017,
+        2018,
+        2020,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "subtopic_id": "permutation_groups",
+      "subtopic": "Permutation Groups, Cayley's Theorem & Sylow Theory",
+      "paper": "II",
+      "marks": 115,
+      "count": 9,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2021,
+        2025
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "real_number_system",
+      "subtopic": "Real Number System & Completeness",
+      "paper": "II",
+      "marks": 115,
+      "count": 8,
+      "years": [
+        2014,
+        2015,
+        2018,
+        2019,
+        2020,
+        2022
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "algorithms_flowcharts",
+      "subtopic": "Algorithms & Flow Charts",
+      "paper": "II",
+      "marks": 115,
+      "count": 9,
+      "years": [
+        2014,
+        2018,
+        2020,
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "subtopic_id": "rectilinear_and_shm",
+      "subtopic": "Rectilinear Motion & Simple Harmonic Motion",
+      "paper": "I",
+      "marks": 110,
+      "count": 7,
+      "years": [
+        2014,
+        2016,
+        2017,
+        2018,
+        2022,
+        2024
+      ]
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "subtopic_id": "systems_of_equations",
+      "subtopic": "Systems of Linear Equations",
+      "paper": "I",
+      "marks": 105,
+      "count": 8,
+      "years": [
+        2014,
+        2018,
+        2021,
+        2022,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "linear_programming",
+      "topic": "Linear Programming",
+      "subtopic_id": "transportation_assignment",
+      "subtopic": "Transportation & Assignment Problems",
+      "paper": "II",
+      "marks": 105,
+      "count": 7,
+      "years": [
+        2014,
+        2015,
+        2016,
+        2018,
+        2019,
+        2020,
+        2024
+      ]
+    },
+    {
+      "topic_id": "analytic_geometry",
+      "topic": "Analytic Geometry",
+      "subtopic_id": "cone_and_cylinder",
+      "subtopic": "Cone & Cylinder",
+      "paper": "I",
+      "marks": 105,
+      "count": 7,
+      "years": [
+        2015,
+        2017,
+        2018,
+        2020,
+        2021,
+        2024
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "riemann_integration",
+      "subtopic": "Riemann Integral & Improper Integrals",
+      "paper": "II",
+      "marks": 100,
+      "count": 7,
+      "years": [
+        2014,
+        2020,
+        2021,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "subtopic_id": "linear_transformations",
+      "subtopic": "Linear Transformations, Rank & Nullity",
+      "paper": "I",
+      "marks": 95,
+      "count": 8,
+      "years": [
+        2015,
+        2016,
+        2017,
+        2020,
+        2022,
+        2023,
+        2025
+      ]
+    },
+    {
+      "topic_id": "partial_differential_equations",
+      "topic": "Partial Differential Equations",
+      "subtopic_id": "classical_equations",
+      "subtopic": "Wave, Heat & Laplace Equations",
+      "paper": "II",
+      "marks": 95,
+      "count": 7,
+      "years": [
+        2016,
+        2020,
+        2021,
+        2022,
+        2024
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "subtopic_id": "rigid_body_motion",
+      "subtopic": "Moment of Inertia & Rigid Body Motion",
+      "paper": "II",
+      "marks": 95,
+      "count": 6,
+      "years": [
+        2016,
+        2018,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "subtopic_id": "singularities_residues",
+      "subtopic": "Singularities & Residue Theorem",
+      "paper": "II",
+      "marks": 90,
+      "count": 6,
+      "years": [
+        2014,
+        2017,
+        2021,
+        2023,
+        2024
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "root_finding",
+      "subtopic": "Roots of Algebraic & Transcendental Equations",
+      "paper": "II",
+      "marks": 90,
+      "count": 7,
+      "years": [
+        2015,
+        2016,
+        2018,
+        2019,
+        2023
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "subtopic_id": "rings_and_ideals",
+      "subtopic": "Rings, Subrings, Ideals & Ring Homomorphisms",
+      "paper": "II",
+      "marks": 85,
+      "count": 6,
+      "years": [
+        2014,
+        2017,
+        2019,
+        2020,
+        2024
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "series",
+      "subtopic": "Series, Absolute & Conditional Convergence",
+      "paper": "II",
+      "marks": 85,
+      "count": 6,
+      "years": [
+        2016,
+        2020,
+        2021,
+        2022,
+        2024
+      ]
+    },
+    {
+      "topic_id": "linear_programming",
+      "topic": "Linear Programming",
+      "subtopic_id": "duality",
+      "subtopic": "Duality",
+      "paper": "II",
+      "marks": 75,
+      "count": 5,
+      "years": [
+        2015,
+        2018,
+        2019,
+        2022,
+        2023
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "numerical_integration",
+      "subtopic": "Numerical Integration",
+      "paper": "II",
+      "marks": 70,
+      "count": 4,
+      "years": [
+        2015,
+        2016,
+        2017,
+        2025
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "subtopic_id": "plane_motion_projectiles",
+      "subtopic": "Motion in a Plane & Projectiles",
+      "paper": "I",
+      "marks": 70,
+      "count": 5,
+      "years": [
+        2016,
+        2017,
+        2021,
+        2023,
+        2024
+      ]
+    },
+    {
+      "topic_id": "linear_programming",
+      "topic": "Linear Programming",
+      "subtopic_id": "simplex",
+      "subtopic": "Simplex Method",
+      "paper": "II",
+      "marks": 70,
+      "count": 5,
+      "years": [
+        2016,
+        2021,
+        2024,
+        2025
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "subtopic_id": "interpolation",
+      "subtopic": "Interpolation: Newton & Lagrange",
+      "paper": "II",
+      "marks": 70,
+      "count": 5,
+      "years": [
+        2016,
+        2017,
+        2021,
+        2024
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "several_variables_analysis",
+      "subtopic": "Functions of Several Variables & Extrema",
+      "paper": "II",
+      "marks": 60,
+      "count": 4,
+      "years": [
+        2014,
+        2015,
+        2018,
+        2019
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "subtopic_id": "pid_ed_ufd",
+      "subtopic": "PID, Euclidean Domain & Unique Factorization Domain",
+      "paper": "II",
+      "marks": 55,
+      "count": 5,
+      "years": [
+        2015,
+        2017,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "subtopic_id": "inviscid_flow",
+      "subtopic": "Euler's Equation of Motion for Inviscid Flow",
+      "paper": "II",
+      "marks": 50,
+      "count": 4,
+      "years": [
+        2016,
+        2019,
+        2020,
+        2025
+      ]
+    },
+    {
+      "topic_id": "linear_programming",
+      "topic": "Linear Programming",
+      "subtopic_id": "lpp_graphical",
+      "subtopic": "LPP Formulation, Basic Feasible & Graphical Method",
+      "paper": "II",
+      "marks": 50,
+      "count": 4,
+      "years": [
+        2017,
+        2020,
+        2022,
+        2025
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "subtopic_id": "groups_subgroups",
+      "subtopic": "Groups, Subgroups, Cyclic Groups & Lagrange's Theorem",
+      "paper": "II",
+      "marks": 50,
+      "count": 4,
+      "years": [
+        2017,
+        2018,
+        2023
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "subtopic_id": "lagrangian_hamiltonian",
+      "subtopic": "Generalised Coordinates, Lagrange & Hamilton Equations",
+      "paper": "II",
+      "marks": 40,
+      "count": 3,
+      "years": [
+        2015,
+        2020,
+        2024
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "subtopic_id": "sequences",
+      "subtopic": "Sequences & Cauchy Criterion",
+      "paper": "II",
+      "marks": 30,
+      "count": 2,
+      "years": [
+        2017,
+        2023
+      ]
+    }
+  ],
+  "topic_year": [
+    {
+      "topic_id": "linear_algebra",
+      "topic": "Linear Algebra",
+      "paper": "I",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 75
+        },
+        {
+          "year": 2015,
+          "marks": 80
+        },
+        {
+          "year": 2016,
+          "marks": 50
+        },
+        {
+          "year": 2017,
+          "marks": 60
+        },
+        {
+          "year": 2018,
+          "marks": 80
+        },
+        {
+          "year": 2019,
+          "marks": 65
+        },
+        {
+          "year": 2020,
+          "marks": 75
+        },
+        {
+          "year": 2021,
+          "marks": 90
+        },
+        {
+          "year": 2022,
+          "marks": 75
+        },
+        {
+          "year": 2023,
+          "marks": 75
+        },
+        {
+          "year": 2024,
+          "marks": 60
+        },
+        {
+          "year": 2025,
+          "marks": 90
+        }
+      ]
+    },
+    {
+      "topic_id": "calculus",
+      "topic": "Calculus",
+      "paper": "I",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 75
+        },
+        {
+          "year": 2015,
+          "marks": 70
+        },
+        {
+          "year": 2016,
+          "marks": 110
+        },
+        {
+          "year": 2017,
+          "marks": 90
+        },
+        {
+          "year": 2018,
+          "marks": 85
+        },
+        {
+          "year": 2019,
+          "marks": 60
+        },
+        {
+          "year": 2020,
+          "marks": 55
+        },
+        {
+          "year": 2021,
+          "marks": 65
+        },
+        {
+          "year": 2022,
+          "marks": 80
+        },
+        {
+          "year": 2023,
+          "marks": 80
+        },
+        {
+          "year": 2024,
+          "marks": 75
+        },
+        {
+          "year": 2025,
+          "marks": 70
+        }
+      ]
+    },
+    {
+      "topic_id": "analytic_geometry",
+      "topic": "Analytic Geometry",
+      "paper": "I",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 50
+        },
+        {
+          "year": 2015,
+          "marks": 50
+        },
+        {
+          "year": 2016,
+          "marks": 40
+        },
+        {
+          "year": 2017,
+          "marks": 50
+        },
+        {
+          "year": 2018,
+          "marks": 35
+        },
+        {
+          "year": 2019,
+          "marks": 75
+        },
+        {
+          "year": 2020,
+          "marks": 70
+        },
+        {
+          "year": 2021,
+          "marks": 45
+        },
+        {
+          "year": 2022,
+          "marks": 45
+        },
+        {
+          "year": 2023,
+          "marks": 45
+        },
+        {
+          "year": 2024,
+          "marks": 65
+        },
+        {
+          "year": 2025,
+          "marks": 40
+        }
+      ]
+    },
+    {
+      "topic_id": "ordinary_differential_equations",
+      "topic": "Ordinary Differential Equations",
+      "paper": "I",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 75
+        },
+        {
+          "year": 2015,
+          "marks": 60
+        },
+        {
+          "year": 2016,
+          "marks": 90
+        },
+        {
+          "year": 2017,
+          "marks": 55
+        },
+        {
+          "year": 2018,
+          "marks": 95
+        },
+        {
+          "year": 2019,
+          "marks": 70
+        },
+        {
+          "year": 2020,
+          "marks": 80
+        },
+        {
+          "year": 2021,
+          "marks": 90
+        },
+        {
+          "year": 2022,
+          "marks": 85
+        },
+        {
+          "year": 2023,
+          "marks": 85
+        },
+        {
+          "year": 2024,
+          "marks": 75
+        },
+        {
+          "year": 2025,
+          "marks": 80
+        }
+      ]
+    },
+    {
+      "topic_id": "dynamics_and_statics",
+      "topic": "Dynamics & Statics",
+      "paper": "I",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 70
+        },
+        {
+          "year": 2015,
+          "marks": 95
+        },
+        {
+          "year": 2016,
+          "marks": 50
+        },
+        {
+          "year": 2017,
+          "marks": 85
+        },
+        {
+          "year": 2018,
+          "marks": 75
+        },
+        {
+          "year": 2019,
+          "marks": 65
+        },
+        {
+          "year": 2020,
+          "marks": 50
+        },
+        {
+          "year": 2021,
+          "marks": 45
+        },
+        {
+          "year": 2022,
+          "marks": 45
+        },
+        {
+          "year": 2023,
+          "marks": 75
+        },
+        {
+          "year": 2024,
+          "marks": 60
+        },
+        {
+          "year": 2025,
+          "marks": 65
+        }
+      ]
+    },
+    {
+      "topic_id": "vector_analysis",
+      "topic": "Vector Analysis",
+      "paper": "I",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 55
+        },
+        {
+          "year": 2015,
+          "marks": 45
+        },
+        {
+          "year": 2016,
+          "marks": 60
+        },
+        {
+          "year": 2017,
+          "marks": 60
+        },
+        {
+          "year": 2018,
+          "marks": 30
+        },
+        {
+          "year": 2019,
+          "marks": 65
+        },
+        {
+          "year": 2020,
+          "marks": 70
+        },
+        {
+          "year": 2021,
+          "marks": 65
+        },
+        {
+          "year": 2022,
+          "marks": 70
+        },
+        {
+          "year": 2023,
+          "marks": 40
+        },
+        {
+          "year": 2024,
+          "marks": 65
+        },
+        {
+          "year": 2025,
+          "marks": 55
+        }
+      ]
+    },
+    {
+      "topic_id": "algebra",
+      "topic": "Algebra",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 55
+        },
+        {
+          "year": 2015,
+          "marks": 60
+        },
+        {
+          "year": 2016,
+          "marks": 40
+        },
+        {
+          "year": 2017,
+          "marks": 95
+        },
+        {
+          "year": 2018,
+          "marks": 50
+        },
+        {
+          "year": 2019,
+          "marks": 65
+        },
+        {
+          "year": 2020,
+          "marks": 30
+        },
+        {
+          "year": 2021,
+          "marks": 50
+        },
+        {
+          "year": 2022,
+          "marks": 45
+        },
+        {
+          "year": 2023,
+          "marks": 80
+        },
+        {
+          "year": 2024,
+          "marks": 55
+        },
+        {
+          "year": 2025,
+          "marks": 50
+        }
+      ]
+    },
+    {
+      "topic_id": "real_analysis",
+      "topic": "Real Analysis",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 75
+        },
+        {
+          "year": 2015,
+          "marks": 40
+        },
+        {
+          "year": 2016,
+          "marks": 50
+        },
+        {
+          "year": 2017,
+          "marks": 40
+        },
+        {
+          "year": 2018,
+          "marks": 65
+        },
+        {
+          "year": 2019,
+          "marks": 60
+        },
+        {
+          "year": 2020,
+          "marks": 65
+        },
+        {
+          "year": 2021,
+          "marks": 80
+        },
+        {
+          "year": 2022,
+          "marks": 60
+        },
+        {
+          "year": 2023,
+          "marks": 60
+        },
+        {
+          "year": 2024,
+          "marks": 65
+        },
+        {
+          "year": 2025,
+          "marks": 60
+        }
+      ]
+    },
+    {
+      "topic_id": "complex_analysis",
+      "topic": "Complex Analysis",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 50
+        },
+        {
+          "year": 2015,
+          "marks": 70
+        },
+        {
+          "year": 2016,
+          "marks": 85
+        },
+        {
+          "year": 2017,
+          "marks": 55
+        },
+        {
+          "year": 2018,
+          "marks": 45
+        },
+        {
+          "year": 2019,
+          "marks": 55
+        },
+        {
+          "year": 2020,
+          "marks": 70
+        },
+        {
+          "year": 2021,
+          "marks": 60
+        },
+        {
+          "year": 2022,
+          "marks": 70
+        },
+        {
+          "year": 2023,
+          "marks": 50
+        },
+        {
+          "year": 2024,
+          "marks": 50
+        },
+        {
+          "year": 2025,
+          "marks": 45
+        }
+      ]
+    },
+    {
+      "topic_id": "linear_programming",
+      "topic": "Linear Programming",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 20
+        },
+        {
+          "year": 2015,
+          "marks": 30
+        },
+        {
+          "year": 2016,
+          "marks": 25
+        },
+        {
+          "year": 2017,
+          "marks": 10
+        },
+        {
+          "year": 2018,
+          "marks": 40
+        },
+        {
+          "year": 2019,
+          "marks": 20
+        },
+        {
+          "year": 2020,
+          "marks": 35
+        },
+        {
+          "year": 2021,
+          "marks": 10
+        },
+        {
+          "year": 2022,
+          "marks": 25
+        },
+        {
+          "year": 2023,
+          "marks": 10
+        },
+        {
+          "year": 2024,
+          "marks": 30
+        },
+        {
+          "year": 2025,
+          "marks": 45
+        }
+      ]
+    },
+    {
+      "topic_id": "partial_differential_equations",
+      "topic": "Partial Differential Equations",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 55
+        },
+        {
+          "year": 2015,
+          "marks": 60
+        },
+        {
+          "year": 2016,
+          "marks": 80
+        },
+        {
+          "year": 2017,
+          "marks": 60
+        },
+        {
+          "year": 2018,
+          "marks": 70
+        },
+        {
+          "year": 2019,
+          "marks": 60
+        },
+        {
+          "year": 2020,
+          "marks": 80
+        },
+        {
+          "year": 2021,
+          "marks": 70
+        },
+        {
+          "year": 2022,
+          "marks": 80
+        },
+        {
+          "year": 2023,
+          "marks": 75
+        },
+        {
+          "year": 2024,
+          "marks": 70
+        },
+        {
+          "year": 2025,
+          "marks": 80
+        }
+      ]
+    },
+    {
+      "topic_id": "numerical_analysis_and_computer_programming",
+      "topic": "Numerical Analysis & Computer Programming",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 95
+        },
+        {
+          "year": 2015,
+          "marks": 90
+        },
+        {
+          "year": 2016,
+          "marks": 80
+        },
+        {
+          "year": 2017,
+          "marks": 85
+        },
+        {
+          "year": 2018,
+          "marks": 80
+        },
+        {
+          "year": 2019,
+          "marks": 75
+        },
+        {
+          "year": 2020,
+          "marks": 60
+        },
+        {
+          "year": 2021,
+          "marks": 95
+        },
+        {
+          "year": 2022,
+          "marks": 55
+        },
+        {
+          "year": 2023,
+          "marks": 65
+        },
+        {
+          "year": 2024,
+          "marks": 75
+        },
+        {
+          "year": 2025,
+          "marks": 70
+        }
+      ]
+    },
+    {
+      "topic_id": "mechanics_and_fluid_dynamics",
+      "topic": "Mechanics & Fluid Dynamics",
+      "paper": "II",
+      "series": [
+        {
+          "year": 2014,
+          "marks": 50
+        },
+        {
+          "year": 2015,
+          "marks": 50
+        },
+        {
+          "year": 2016,
+          "marks": 40
+        },
+        {
+          "year": 2017,
+          "marks": 55
+        },
+        {
+          "year": 2018,
+          "marks": 50
+        },
+        {
+          "year": 2019,
+          "marks": 65
+        },
+        {
+          "year": 2020,
+          "marks": 60
+        },
+        {
+          "year": 2021,
+          "marks": 35
+        },
+        {
+          "year": 2022,
+          "marks": 65
+        },
+        {
+          "year": 2023,
+          "marks": 60
+        },
+        {
+          "year": 2024,
+          "marks": 55
+        },
+        {
+          "year": 2025,
+          "marks": 50
+        }
+      ]
+    }
+  ],
+  "by_year": [
+    {
+      "year": 2014,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2015,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2016,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2017,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2018,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2019,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2020,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2021,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2022,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2023,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2024,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    },
+    {
+      "year": 2025,
+      "marks": 800,
+      "count": 56,
+      "papers": [
+        "I",
+        "II"
+      ]
+    }
+  ],
+  "by_paper": [
+    {
+      "paper": "I",
+      "marks": 4800,
+      "count": 336
+    },
+    {
+      "paper": "II",
+      "marks": 4800,
+      "count": 336
+    }
+  ],
+  "marks_mix": [
+    {
+      "marks": 10,
+      "count": 300
+    },
+    {
+      "marks": 15,
+      "count": 168
+    },
+    {
+      "marks": 20,
+      "count": 204
+    }
+  ],
+  "syllabus_gaps": [],
+  "synthetic": true,
+  "synthetic_warning": "SYNTHETIC DEMO DATA - structure is faithful to the real paper format, but topic weights are invented. Do NOT use for exam strategy. Run the ingest pipeline on the official PDFs for real numbers."
+}

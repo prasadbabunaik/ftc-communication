@@ -1,0 +1,8 @@
+# Downloaded question papers - fetch them with scripts/download_papers.py
+papers/*.pdf
+
+# Intermediate extraction output
+data/questions_raw.json
+
+__pycache__/
+*.pyc

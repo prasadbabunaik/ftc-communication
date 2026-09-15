@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-09-15T04:05:00+00:00",
+  "questions": 672,
+  "unclassified": 0,
+  "low_confidence": 0,
+  "marks_inferred": 0,
+  "years_seen": [
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "papers_missing": [],
+  "paper_marks_anomalies": [],
+  "note": "paper_marks_anomalies flag papers whose extracted marks differ from the official printed 400. Usually a PDF-layout parse miss - review those papers before trusting their topic split.",
+  "synthetic": true
+}

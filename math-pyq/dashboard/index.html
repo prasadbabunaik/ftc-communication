@@ -1,0 +1,749 @@
+<title>Maths Optional PYQ Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#f3f6fa; --surface:#ffffff; --surface-2:#eaeff6; --surface-3:#f7f9fc;
+  --ink:#10151c; --ink-2:#46505e; --ink-3:#6d7786;
+  --line:#dde3ec; --line-2:#c4cdda;
+  --p1:#2a78d6; --p2:#eb6834; --accent:#2a78d6; --accent-soft:#e7f0fc;
+  --warn-bg:#fdf3e3; --warn-ink:#7d4711; --warn-line:#e8c495;
+  --lv0:#eef3fb; --lv0i:#59626f; --lv1:#cde2fb; --lv1i:#1f3f6b;
+  --lv2:#9ec5f4; --lv2i:#143055; --lv3:#5598e7; --lv3i:#ffffff;
+  --lv4:#2a78d6; --lv4i:#ffffff; --lv5:#184f95; --lv5i:#ffffff;
+  --shadow:0 1px 2px rgba(16,21,28,.06), 0 6px 20px -12px rgba(16,21,28,.25);
+  --r:10px;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-ui:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0d1117; --surface:#161b22; --surface-2:#1e242d; --surface-3:#121820;
+    --ink:#e9eef5; --ink-2:#a5b0bf; --ink-3:#7b8695;
+    --line:#252c36; --line-2:#37404c;
+    --p1:#3987e5; --p2:#d95926; --accent:#3987e5; --accent-soft:#16283e;
+    --warn-bg:#2c2113; --warn-ink:#e9c48c; --warn-line:#5a441f;
+    --lv0:#1b2430; --lv0i:#8d97a5; --lv1:#1c3a5e; --lv1i:#b7cdea;
+    --lv2:#21507f; --lv2i:#d3e3f7; --lv3:#2a78d6; --lv3i:#ffffff;
+    --lv4:#3987e5; --lv4i:#08131f; --lv5:#86b6ef; --lv5i:#08131f;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0d1117; --surface:#161b22; --surface-2:#1e242d; --surface-3:#121820;
+  --ink:#e9eef5; --ink-2:#a5b0bf; --ink-3:#7b8695;
+  --line:#252c36; --line-2:#37404c;
+  --p1:#3987e5; --p2:#d95926; --accent:#3987e5; --accent-soft:#16283e;
+  --warn-bg:#2c2113; --warn-ink:#e9c48c; --warn-line:#5a441f;
+  --lv0:#1b2430; --lv0i:#8d97a5; --lv1:#1c3a5e; --lv1i:#b7cdea;
+  --lv2:#21507f; --lv2i:#d3e3f7; --lv3:#2a78d6; --lv3i:#ffffff;
+  --lv4:#3987e5; --lv4i:#08131f; --lv5:#86b6ef; --lv5i:#08131f;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-ui);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:24px 56px}
+h1,h2,h3{margin:0;text-wrap:balance}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- masthead ---------- */
+.mast{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;
+  padding-bottom:18px;border-bottom:1px solid var(--line)}
+.mast h1{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,3.4vw,38px);
+  letter-spacing:-.015em;line-height:1.1}
+.mast .lede{color:var(--ink-2);font-size:13.5px;margin-top:6px;max-width:62ch}
+.eyebrow{font-family:var(--f-mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3)}
+.themebtn{font:inherit;font-size:12px;padding:7px 12px;border:1px solid var(--line-2);
+  border-radius:99px;background:var(--surface);color:var(--ink-2);cursor:pointer}
+.themebtn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ---------- provenance banner ---------- */
+.banner{margin-top:18px;border:1px solid var(--warn-line);background:var(--warn-bg);
+  color:var(--warn-ink);border-radius:var(--r);padding:12px 14px;display:flex;gap:11px;align-items:flex-start}
+.banner.ok{border-color:var(--line);background:var(--surface);color:var(--ink-2)}
+.banner b{font-weight:700}
+.banner .tag{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.1em;
+  border:1px solid currentColor;border-radius:4px;padding:2px 6px;white-space:nowrap;margin-top:1px}
+.banner p{margin:0;font-size:12.5px}
+
+/* ---------- controls ---------- */
+.controls{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-end;margin-top:22px;
+  padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl > span{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3)}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;padding:6px 14px;border:0;background:var(--surface);
+  color:var(--ink-2);cursor:pointer;border-right:1px solid var(--line-2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+select{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line-2);
+  border-radius:8px;background:var(--surface);color:var(--ink);font-variant-numeric:tabular-nums}
+.ctl-note{margin-left:auto;font-size:12px;color:var(--ink-3);max-width:34ch}
+
+/* ---------- stat tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-top:16px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.tile .k{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3)}
+.tile .v{font-family:var(--f-display);font-size:30px;font-weight:600;line-height:1.15;margin-top:6px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tile .n{font-size:12px;color:var(--ink-2);margin-top:3px}
+
+/* ---------- section chrome ---------- */
+section{margin-top:30px}
+.shead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:baseline;justify-content:space-between;
+  margin-bottom:12px}
+.shead h2{font-family:var(--f-display);font-size:20px;font-weight:600;letter-spacing:-.01em}
+.shead p{margin:2px 0 0;font-size:12.5px;color:var(--ink-3);max-width:70ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+
+/* ---------- legend ---------- */
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;
+  vertical-align:-1px}
+
+/* ---------- ranking chart ---------- */
+.spine{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.spine{grid-template-columns:1fr}}
+.rank{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.row{display:grid;grid-template-columns:minmax(120px,1.35fr) minmax(0,2.4fr) 60px 52px;
+  gap:10px;align-items:center;padding:5px 7px;border:0;border-radius:7px;background:none;
+  width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.row:hover{background:var(--surface-2)}
+.row[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.row .nm{font-size:12.5px;line-height:1.25;overflow-wrap:anywhere}
+.row .nm small{display:block;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.08em;
+  color:var(--ink-3);text-transform:uppercase;margin-top:2px}
+.track{height:14px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.fill{height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.row .mk,.row .pc{font-family:var(--f-mono);font-size:12px;text-align:right;
+  font-variant-numeric:tabular-nums}
+.row .pc{color:var(--ink-3)}
+
+/* ---------- detail panel ---------- */
+.detail{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px)}
+@media (max-width:900px){.detail{position:static}}
+.detail h3{font-family:var(--f-display);font-size:19px;font-weight:600;line-height:1.2}
+.detail .meta{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);margin-top:5px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:14px}
+.kpi{background:var(--surface-3);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.kpi .k{font-size:11px;color:var(--ink-3)}
+.kpi .v{font-family:var(--f-mono);font-size:17px;font-weight:600;margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.subhead{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);margin:18px 0 8px}
+.subs{display:flex;flex-direction:column;gap:7px}
+.sub{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:9px;align-items:center}
+.sub .sn{font-size:12px;overflow-wrap:anywhere}
+.sub .sv{font-family:var(--f-mono);font-size:11.5px;text-align:right;color:var(--ink-2);
+  font-variant-numeric:tabular-nums}
+.sub .strack{grid-column:1/-1;height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.sub .sfill{height:100%;background:var(--accent);border-radius:0 3px 3px 0}
+.sub.never .sn{color:var(--ink-3);font-style:italic}
+
+/* ---------- trend ---------- */
+.trend{margin-top:16px}
+.trend svg{display:block;width:100%;height:auto;overflow:visible}
+
+/* ---------- heatmap ---------- */
+.hm-scroll{overflow-x:auto}
+.hm{display:grid;gap:2px;min-width:640px;margin-top:4px}
+.hm .hlab{font-family:var(--f-mono);font-size:10px;color:var(--ink-3);text-align:center;
+  padding-bottom:3px;font-variant-numeric:tabular-nums}
+.hm .rlab{font-size:11.5px;color:var(--ink-2);padding-right:10px;text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:center}
+.cell{height:26px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-size:10.5px;font-variant-numeric:tabular-nums;cursor:default}
+.lv-0{background:var(--lv0);color:var(--lv0i)} .lv-1{background:var(--lv1);color:var(--lv1i)}
+.lv-2{background:var(--lv2);color:var(--lv2i)} .lv-3{background:var(--lv3);color:var(--lv3i)}
+.lv-4{background:var(--lv4);color:var(--lv4i)} .lv-5{background:var(--lv5);color:var(--lv5i)}
+.ramp{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)}
+.ramp .sw{display:flex;gap:2px}
+.ramp .sw i{width:20px;height:10px;border-radius:2px}
+
+/* ---------- gaps + table ---------- */
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.gaps{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:11.5px;border:1px solid var(--line-2);border-radius:99px;padding:4px 11px;
+  color:var(--ink-2);background:var(--surface-3)}
+.chip b{font-weight:600;color:var(--ink)}
+.mixbars{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.mixrow{display:grid;grid-template-columns:62px minmax(0,1fr) 46px;gap:10px;align-items:center}
+.mixrow .ml,.mixrow .mv{font-family:var(--f-mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+.mixrow .mv{text-align:right;color:var(--ink-3)}
+details.tableview{margin-top:14px}
+details.tableview summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:500}
+table{border-collapse:collapse;width:100%;margin-top:12px;font-size:12.5px}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tbl-scroll{overflow-x:auto}
+
+/* ---------- tooltip ---------- */
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);
+  border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font-size:12px;
+  box-shadow:var(--shadow);max-width:250px}
+#tip[hidden]{display:none}
+#tip .tt{font-weight:600;margin-bottom:3px}
+#tip .tv{font-family:var(--f-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+footer code{font-family:var(--f-mono);font-size:11.5px;background:var(--surface-2);
+  padding:1px 5px;border-radius:4px;color:var(--ink-2)}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="eyebrow">UPSC Civil Services Mains &middot; Optional Subject</div>
+      <h1>Mathematics PYQ Analysis</h1>
+      <p class="lede">Topic-wise weight of every printed question part across Paper&nbsp;I and Paper&nbsp;II,
+        mapped onto the official syllabus. Marks shown are <b>marks offered</b> &mdash; each paper prints
+        8&nbsp;questions &times; 50 = 400 marks, of which a candidate attempts 250.</p>
+    </div>
+    <button class="themebtn" id="themeBtn" type="button">Theme</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="controls">
+    <label class="ctl"><span>Paper</span>
+      <div class="seg" id="paperSeg" role="group" aria-label="Filter by paper">
+        <button type="button" data-p="all" aria-pressed="true">Both</button>
+        <button type="button" data-p="I" aria-pressed="false">Paper I</button>
+        <button type="button" data-p="II" aria-pressed="false">Paper II</button>
+      </div>
+    </label>
+    <label class="ctl"><span>Question type</span>
+      <div class="seg" id="compSeg" role="group" aria-label="Filter by question type">
+        <button type="button" data-c="all" aria-pressed="true">All</button>
+        <button type="button" data-c="1" aria-pressed="false">Compulsory</button>
+        <button type="button" data-c="0" aria-pressed="false">Optional</button>
+      </div>
+    </label>
+    <label class="ctl" for="yFrom"><span>From</span><select id="yFrom"></select></label>
+    <label class="ctl" for="yTo"><span>To</span><select id="yTo"></select></label>
+    <p class="ctl-note">Q1 and Q5 are compulsory (five 10-mark parts each); the rest are the
+      candidate&rsquo;s choice.</p>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section>
+    <div class="shead">
+      <div>
+        <h2>Topic ranking</h2>
+        <p>Every syllabus topic by marks offered in the selected range. Select a topic for its
+          sub-topic split and year-on-year trend.</p>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--p1)"></i>Paper I</span>
+        <span><i style="background:var(--p2)"></i>Paper II</span>
+      </div>
+    </div>
+    <div class="spine">
+      <div class="panel">
+        <div class="rank" id="rank"></div>
+        <details class="tableview">
+          <summary>View as table</summary>
+          <div class="tbl-scroll"><table id="rankTable"></table></div>
+        </details>
+      </div>
+      <div class="panel detail" id="detail"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <div>
+        <h2>Topic &times; year heatmap</h2>
+        <p>Marks offered per topic per year. Reads across a row for consistency, down a column for
+          how a single paper was balanced.</p>
+      </div>
+      <div class="ramp">
+        <span>Fewer marks</span>
+        <span class="sw"><i class="lv-0"></i><i class="lv-1"></i><i class="lv-2"></i><i class="lv-3"></i><i class="lv-4"></i><i class="lv-5"></i></span>
+        <span>More</span>
+      </div>
+    </div>
+    <div class="panel"><div class="hm-scroll"><div class="hm" id="heat"></div></div></div>
+  </section>
+
+  <section class="two">
+    <div>
+      <div class="shead"><div><h2>Mark-value mix</h2>
+        <p>How the marks per question part are distributed.</p></div></div>
+      <div class="panel"><div class="mixbars" id="mix"></div></div>
+    </div>
+    <div>
+      <div class="shead"><div><h2>Untouched sub-topics</h2>
+        <p>In the syllabus, never asked in the selected range. Low-yield &mdash; but still examinable.</p></div></div>
+      <div class="panel"><div class="gaps" id="gaps"></div></div>
+    </div>
+  </section>
+
+  <footer>
+    <span id="prov"></span>
+    <span>Rebuild: <code>download_papers.py</code> &rarr; <code>extract_questions.py</code>
+      &rarr; <code>build_dataset.py</code> &rarr; <code>build_dashboard.py</code></span>
+  </footer>
+</div>
+
+<div id="tip" hidden></div>
+
+<script id="pyq-data" type="application/json">{"meta":{"synthetic":true,"generated_at":"2026-09-15T04:05:00+00:00","low_confidence":0,"sources":"UPSC CSE Mains Mathematics papers 2014-2025"},"topics":[{"id":"linear_algebra","name":"Linear Algebra","paper":"I","section":"A","subs":[{"id":"vector_spaces","name":"Vector Spaces, Basis & Dimension"},{"id":"linear_transformations","name":"Linear Transformations, Rank & Nullity"},{"id":"matrix_algebra","name":"Matrix Algebra, Echelon Form & Rank"},{"id":"systems_of_equations","name":"Systems of Linear Equations"},{"id":"eigen_theory","name":"Eigenvalues, Eigenvectors & Cayley-Hamilton"},{"id":"special_matrices","name":"Symmetric, Hermitian, Orthogonal & Unitary Matrices"}]},{"id":"calculus","name":"Calculus","paper":"I","section":"A","subs":[{"id":"limits_continuity_mvt","name":"Limits, Continuity, Differentiability & Mean Value Theorems"},{"id":"maxima_minima_curves","name":"Maxima-Minima, Asymptotes & Curve Tracing"},{"id":"multivariable_calculus","name":"Functions of Several Variables, Jacobian & Lagrange Multipliers"},{"id":"integration","name":"Riemann, Indefinite & Improper Integrals"},{"id":"multiple_integrals","name":"Double & Triple Integrals, Areas, Surfaces, Volumes"}]},{"id":"analytic_geometry","name":"Analytic Geometry","paper":"I","section":"A","subs":[{"id":"lines_and_planes","name":"Straight Lines, Planes & Skew Lines"},{"id":"sphere","name":"Sphere"},{"id":"cone_and_cylinder","name":"Cone & Cylinder"},{"id":"conicoids","name":"Conicoids: Ellipsoid, Paraboloid, Hyperboloid & Canonical Forms"}]},{"id":"ordinary_differential_equations","name":"Ordinary Differential Equations","paper":"I","section":"B","subs":[{"id":"first_order_first_degree","name":"First Order First Degree, Integrating Factor & Orthogonal Trajectories"},{"id":"first_order_higher_degree","name":"First Order Higher Degree, Clairaut's Equation & Singular Solutions"},{"id":"linear_constant_coefficients","name":"Higher Order Linear Equations with Constant Coefficients"},{"id":"variable_coefficients","name":"Variable Coefficients, Euler-Cauchy & Variation of Parameters"},{"id":"laplace_transform","name":"Laplace & Inverse Laplace Transforms"}]},{"id":"dynamics_and_statics","name":"Dynamics & Statics","paper":"I","section":"B","subs":[{"id":"rectilinear_and_shm","name":"Rectilinear Motion & Simple Harmonic Motion"},{"id":"plane_motion_projectiles","name":"Motion in a Plane & Projectiles"},{"id":"work_energy_constrained","name":"Constrained Motion, Work, Energy & Conservation"},{"id":"central_orbits","name":"Central Forces, Orbits & Kepler's Laws"},{"id":"statics_equilibrium","name":"Equilibrium, Friction, Potential Energy & Stability"},{"id":"catenary_virtual_work","name":"Common Catenary & Principle of Virtual Work"}]},{"id":"vector_analysis","name":"Vector Analysis","paper":"I","section":"B","subs":[{"id":"vector_differentiation","name":"Gradient, Divergence, Curl & Vector Identities"},{"id":"curves_in_space","name":"Curves in Space, Curvature, Torsion & Serret-Frenet"},{"id":"integral_theorems","name":"Gauss, Stokes & Green's Theorems"}]},{"id":"algebra","name":"Algebra","paper":"II","section":"A","subs":[{"id":"groups_subgroups","name":"Groups, Subgroups, Cyclic Groups & Lagrange's Theorem"},{"id":"normal_quotient_homomorphism","name":"Normal Subgroups, Quotient Groups & Homomorphisms"},{"id":"permutation_groups","name":"Permutation Groups, Cayley's Theorem & Sylow Theory"},{"id":"rings_and_ideals","name":"Rings, Subrings, Ideals & Ring Homomorphisms"},{"id":"pid_ed_ufd","name":"PID, Euclidean Domain & Unique Factorization Domain"},{"id":"fields","name":"Fields & Quotient Fields"}]},{"id":"real_analysis","name":"Real Analysis","paper":"II","section":"A","subs":[{"id":"real_number_system","name":"Real Number System & Completeness"},{"id":"sequences","name":"Sequences & Cauchy Criterion"},{"id":"series","name":"Series, Absolute & Conditional Convergence"},{"id":"continuity_uniform_continuity","name":"Continuity, Uniform Continuity & Compactness"},{"id":"riemann_integration","name":"Riemann Integral & Improper Integrals"},{"id":"uniform_convergence","name":"Uniform Convergence of Sequences & Series of Functions"},{"id":"several_variables_analysis","name":"Functions of Several Variables & Extrema"}]},{"id":"complex_analysis","name":"Complex Analysis","paper":"II","section":"A","subs":[{"id":"analytic_functions","name":"Analytic Functions & Cauchy-Riemann Equations"},{"id":"cauchy_theory","name":"Cauchy's Theorem & Integral Formula"},{"id":"series_expansions","name":"Power, Taylor & Laurent Series"},{"id":"singularities_residues","name":"Singularities & Residue Theorem"},{"id":"contour_integration","name":"Contour Integration"}]},{"id":"linear_programming","name":"Linear Programming","paper":"II","section":"A","subs":[{"id":"lpp_graphical","name":"LPP Formulation, Basic Feasible & Graphical Method"},{"id":"simplex","name":"Simplex Method"},{"id":"duality","name":"Duality"},{"id":"transportation_assignment","name":"Transportation & Assignment Problems"}]},{"id":"partial_differential_equations","name":"Partial Differential Equations","paper":"II","section":"B","subs":[{"id":"pde_formulation","name":"Family of Surfaces & Formulation of PDEs"},{"id":"first_order_pde","name":"First Order Quasilinear PDEs & Characteristics"},{"id":"second_order_canonical","name":"Second Order PDEs & Canonical Forms"},{"id":"classical_equations","name":"Wave, Heat & Laplace Equations"}]},{"id":"numerical_analysis_and_computer_programming","name":"Numerical Analysis & Computer Programming","paper":"II","section":"B","subs":[{"id":"root_finding","name":"Roots of Algebraic & Transcendental Equations"},{"id":"linear_systems_numerical","name":"Numerical Solution of Linear Systems"},{"id":"interpolation","name":"Interpolation: Newton & Lagrange"},{"id":"numerical_integration","name":"Numerical Integration"},{"id":"numerical_ode","name":"Numerical Solution of ODEs: Euler & Runge-Kutta"},{"id":"number_systems","name":"Binary, Octal & Hexadecimal Number Systems"},{"id":"boolean_logic","name":"Logic Gates, Truth Tables & Boolean Algebra"},{"id":"algorithms_flowcharts","name":"Algorithms & Flow Charts"}]},{"id":"mechanics_and_fluid_dynamics","name":"Mechanics & Fluid Dynamics","paper":"II","section":"B","subs":[{"id":"lagrangian_hamiltonian","name":"Generalised Coordinates, Lagrange & Hamilton Equations"},{"id":"rigid_body_motion","name":"Moment of Inertia & Rigid Body Motion"},{"id":"fluid_kinematics","name":"Continuity Equation, Streamlines & Potential Flow"},{"id":"inviscid_flow","name":"Euler's Equation of Motion for Inviscid Flow"},{"id":"sources_sinks_vortex","name":"Sources, Sinks & Vortex Motion"},{"id":"viscous_flow","name":"Navier-Stokes Equation for Viscous Flow"}]}],"questions":[{"y":2014,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"calculus","st":"limits_continuity_mvt"},{"y":2014,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2014,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"calculus","st":"limits_continuity_mvt"},{"y":2014,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"eigen_theory"},{"y":2014,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"calculus","st":"multiple_integrals"},{"y":2014,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"linear_algebra","st":"eigen_theory"},{"y":2014,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"matrix_algebra"},{"y":2014,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"calculus","st":"limits_continuity_mvt"},{"y":2014,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"analytic_geometry","st":"conicoids"},{"y":2014,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"systems_of_equations"},{"y":2014,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2014,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"calculus","st":"maxima_minima_curves"},{"y":2014,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"special_matrices"},{"y":2014,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"analytic_geometry","st":"conicoids"},{"y":2014,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2014,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2014,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2014,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2014,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2014,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2014,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2014,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2014,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2014,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2014,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"vector_differentiation"},{"y":2014,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2014,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2014,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2014,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"real_analysis","st":"several_variables_analysis"},{"y":2014,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"algebra","st":"permutation_groups"},{"y":2014,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"complex_analysis","st":"contour_integration"},{"y":2014,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2014,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"real_analysis","st":"riemann_integration"},{"y":2014,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"algebra","st":"permutation_groups"},{"y":2014,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2014,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2014,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"algebra","st":"rings_and_ideals"},{"y":2014,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"real_analysis","st":"real_number_system"},{"y":2014,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2014,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2014,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"linear_programming","st":"transportation_assignment"},{"y":2014,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"complex_analysis","st":"singularities_residues"},{"y":2014,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2014,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2014,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2014,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2014,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2014,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2014,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2014,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2014,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2014,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2014,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":15,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2014,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2014,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2014,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2015,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2015,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2015,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"linear_algebra","st":"eigen_theory"},{"y":2015,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"calculus","st":"integration"},{"y":2015,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"linear_transformations"},{"y":2015,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2015,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2015,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"calculus","st":"limits_continuity_mvt"},{"y":2015,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"calculus","st":"integration"},{"y":2015,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2015,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"calculus","st":"maxima_minima_curves"},{"y":2015,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"linear_algebra","st":"matrix_algebra"},{"y":2015,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"linear_algebra","st":"matrix_algebra"},{"y":2015,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":10,"t":"calculus","st":"maxima_minima_curves"},{"y":2015,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2015,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2015,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2015,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2015,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2015,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2015,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2015,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2015,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2015,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2015,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":10,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2015,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2015,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2015,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"vector_analysis","st":"integral_theorems"},{"y":2015,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"linear_programming","st":"transportation_assignment"},{"y":2015,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2015,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2015,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2015,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"algebra","st":"pid_ed_ufd"},{"y":2015,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"real_analysis","st":"real_number_system"},{"y":2015,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"complex_analysis","st":"cauchy_theory"},{"y":2015,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"algebra","st":"permutation_groups"},{"y":2015,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"complex_analysis","st":"cauchy_theory"},{"y":2015,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"complex_analysis","st":"analytic_functions"},{"y":2015,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"linear_programming","st":"duality"},{"y":2015,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"cauchy_theory"},{"y":2015,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"real_analysis","st":"real_number_system"},{"y":2015,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"real_analysis","st":"several_variables_analysis"},{"y":2015,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2015,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2015,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2015,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2015,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2015,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2015,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2015,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2015,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2015,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2015,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"lagrangian_hamiltonian"},{"y":2015,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"numerical_integration"},{"y":2015,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2015,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2016,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"calculus","st":"maxima_minima_curves"},{"y":2016,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"linear_algebra","st":"matrix_algebra"},{"y":2016,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2016,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"linear_transformations"},{"y":2016,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"analytic_geometry","st":"sphere"},{"y":2016,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"linear_algebra","st":"eigen_theory"},{"y":2016,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"calculus","st":"maxima_minima_curves"},{"y":2016,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"calculus","st":"multivariable_calculus"},{"y":2016,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"calculus","st":"maxima_minima_curves"},{"y":2016,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"calculus","st":"limits_continuity_mvt"},{"y":2016,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":10,"t":"calculus","st":"maxima_minima_curves"},{"y":2016,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"analytic_geometry","st":"sphere"},{"y":2016,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"calculus","st":"multiple_integrals"},{"y":2016,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"linear_algebra","st":"eigen_theory"},{"y":2016,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2016,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2016,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2016,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2016,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2016,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2016,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2016,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"dynamics_and_statics","st":"plane_motion_projectiles"},{"y":2016,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2016,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"curves_in_space"},{"y":2016,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"vector_analysis","st":"vector_differentiation"},{"y":2016,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2016,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2016,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"curves_in_space"},{"y":2016,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2016,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"complex_analysis","st":"series_expansions"},{"y":2016,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2016,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"permutation_groups"},{"y":2016,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_programming","st":"transportation_assignment"},{"y":2016,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2016,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"cauchy_theory"},{"y":2016,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"complex_analysis","st":"contour_integration"},{"y":2016,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"analytic_functions"},{"y":2016,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"real_analysis","st":"uniform_convergence"},{"y":2016,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"complex_analysis","st":"contour_integration"},{"y":2016,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"linear_programming","st":"simplex"},{"y":2016,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"real_analysis","st":"series"},{"y":2016,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"real_analysis","st":"series"},{"y":2016,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2016,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"partial_differential_equations","st":"classical_equations"},{"y":2016,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2016,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2016,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"rigid_body_motion"},{"y":2016,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2016,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"classical_equations"},{"y":2016,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2016,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"interpolation"},{"y":2016,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"numerical_integration"},{"y":2016,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2016,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2016,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"inviscid_flow"},{"y":2016,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"interpolation"},{"y":2017,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2017,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"calculus","st":"integration"},{"y":2017,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2017,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2017,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"special_matrices"},{"y":2017,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"calculus","st":"integration"},{"y":2017,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"calculus","st":"maxima_minima_curves"},{"y":2017,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":10,"t":"linear_algebra","st":"linear_transformations"},{"y":2017,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"calculus","st":"multivariable_calculus"},{"y":2017,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"linear_algebra","st":"vector_spaces"},{"y":2017,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":10,"t":"linear_algebra","st":"eigen_theory"},{"y":2017,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"calculus","st":"limits_continuity_mvt"},{"y":2017,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2017,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":10,"t":"analytic_geometry","st":"conicoids"},{"y":2017,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2017,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2017,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"vector_analysis","st":"curves_in_space"},{"y":2017,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2017,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"vector_analysis","st":"curves_in_space"},{"y":2017,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"vector_analysis","st":"vector_differentiation"},{"y":2017,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2017,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2017,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2017,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"dynamics_and_statics","st":"plane_motion_projectiles"},{"y":2017,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2017,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2017,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2017,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2017,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2017,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"real_analysis","st":"sequences"},{"y":2017,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"complex_analysis","st":"singularities_residues"},{"y":2017,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"permutation_groups"},{"y":2017,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_programming","st":"lpp_graphical"},{"y":2017,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2017,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2017,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"uniform_convergence"},{"y":2017,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":15,"t":"complex_analysis","st":"contour_integration"},{"y":2017,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"algebra","st":"rings_and_ideals"},{"y":2017,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2017,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"analytic_functions"},{"y":2017,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"algebra","st":"pid_ed_ufd"},{"y":2017,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"algebra","st":"groups_subgroups"},{"y":2017,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2017,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2017,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2017,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2017,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2017,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"interpolation"},{"y":2017,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2017,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2017,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2017,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"numerical_integration"},{"y":2017,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2017,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2017,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2017,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2018,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"calculus","st":"multiple_integrals"},{"y":2018,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"linear_algebra","st":"special_matrices"},{"y":2018,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"analytic_geometry","st":"sphere"},{"y":2018,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"special_matrices"},{"y":2018,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"systems_of_equations"},{"y":2018,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"calculus","st":"multivariable_calculus"},{"y":2018,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"calculus","st":"integration"},{"y":2018,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":10,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2018,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":15,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2018,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"calculus","st":"multiple_integrals"},{"y":2018,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"vector_spaces"},{"y":2018,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":10,"t":"linear_algebra","st":"systems_of_equations"},{"y":2018,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"calculus","st":"integration"},{"y":2018,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"vector_spaces"},{"y":2018,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"vector_analysis","st":"curves_in_space"},{"y":2018,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2018,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2018,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2018,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2018,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2018,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2018,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2018,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2018,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2018,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2018,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2018,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2018,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2018,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"algebra","st":"groups_subgroups"},{"y":2018,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"real_analysis","st":"real_number_system"},{"y":2018,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"complex_analysis","st":"series_expansions"},{"y":2018,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"groups_subgroups"},{"y":2018,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"algebra","st":"permutation_groups"},{"y":2018,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"real_analysis","st":"uniform_convergence"},{"y":2018,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"linear_programming","st":"duality"},{"y":2018,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"complex_analysis","st":"cauchy_theory"},{"y":2018,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":15,"t":"real_analysis","st":"uniform_convergence"},{"y":2018,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"real_analysis","st":"several_variables_analysis"},{"y":2018,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"linear_programming","st":"transportation_assignment"},{"y":2018,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"real_analysis","st":"uniform_convergence"},{"y":2018,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"series_expansions"},{"y":2018,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2018,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2018,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2018,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2018,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2018,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2018,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2018,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2018,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2018,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2018,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2018,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2018,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":10,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2018,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"rigid_body_motion"},{"y":2018,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2019,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"sphere"},{"y":2019,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2019,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"calculus","st":"integration"},{"y":2019,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"calculus","st":"multiple_integrals"},{"y":2019,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"calculus","st":"maxima_minima_curves"},{"y":2019,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"linear_algebra","st":"vector_spaces"},{"y":2019,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"matrix_algebra"},{"y":2019,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2019,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2019,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"sphere"},{"y":2019,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"calculus","st":"multivariable_calculus"},{"y":2019,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"linear_algebra","st":"vector_spaces"},{"y":2019,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"linear_algebra","st":"vector_spaces"},{"y":2019,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"analytic_geometry","st":"conicoids"},{"y":2019,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2019,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2019,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2019,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2019,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2019,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2019,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2019,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2019,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"vector_analysis","st":"vector_differentiation"},{"y":2019,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2019,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":10,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2019,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2019,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"vector_analysis","st":"curves_in_space"},{"y":2019,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"curves_in_space"},{"y":2019,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"complex_analysis","st":"series_expansions"},{"y":2019,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"linear_programming","st":"duality"},{"y":2019,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"real_analysis","st":"real_number_system"},{"y":2019,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"rings_and_ideals"},{"y":2019,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_programming","st":"transportation_assignment"},{"y":2019,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2019,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"real_analysis","st":"several_variables_analysis"},{"y":2019,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"real_number_system"},{"y":2019,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2019,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2019,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"complex_analysis","st":"series_expansions"},{"y":2019,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"complex_analysis","st":"cauchy_theory"},{"y":2019,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"algebra","st":"fields"},{"y":2019,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"algebra","st":"rings_and_ideals"},{"y":2019,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2019,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2019,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"inviscid_flow"},{"y":2019,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2019,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2019,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2019,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2019,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2019,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2019,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2019,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2019,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2019,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2019,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2020,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2020,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"analytic_geometry","st":"sphere"},{"y":2020,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"calculus","st":"integration"},{"y":2020,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"linear_transformations"},{"y":2020,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2020,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"calculus","st":"integration"},{"y":2020,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"linear_algebra","st":"eigen_theory"},{"y":2020,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"linear_algebra","st":"linear_transformations"},{"y":2020,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"calculus","st":"multiple_integrals"},{"y":2020,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"sphere"},{"y":2020,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"vector_spaces"},{"y":2020,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"calculus","st":"integration"},{"y":2020,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2020,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2020,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2020,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2020,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2020,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2020,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2020,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2020,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2020,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2020,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2020,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"vector_analysis","st":"integral_theorems"},{"y":2020,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2020,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2020,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"vector_analysis","st":"integral_theorems"},{"y":2020,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2020,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2020,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"real_analysis","st":"riemann_integration"},{"y":2020,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"rings_and_ideals"},{"y":2020,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"pid_ed_ufd"},{"y":2020,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"real_analysis","st":"real_number_system"},{"y":2020,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"contour_integration"},{"y":2020,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"cauchy_theory"},{"y":2020,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"complex_analysis","st":"cauchy_theory"},{"y":2020,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"contour_integration"},{"y":2020,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"real_analysis","st":"series"},{"y":2020,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2020,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"linear_programming","st":"transportation_assignment"},{"y":2020,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"linear_programming","st":"lpp_graphical"},{"y":2020,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"real_analysis","st":"uniform_convergence"},{"y":2020,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2020,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"inviscid_flow"},{"y":2020,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2020,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2020,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"lagrangian_hamiltonian"},{"y":2020,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2020,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2020,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":10,"t":"partial_differential_equations","st":"classical_equations"},{"y":2020,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2020,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2020,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"rigid_body_motion"},{"y":2020,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2020,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"classical_equations"},{"y":2020,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2021,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2021,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2021,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2021,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"matrix_algebra"},{"y":2021,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2021,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"analytic_geometry","st":"conicoids"},{"y":2021,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"calculus","st":"maxima_minima_curves"},{"y":2021,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"linear_algebra","st":"special_matrices"},{"y":2021,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"linear_algebra","st":"systems_of_equations"},{"y":2021,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"calculus","st":"multivariable_calculus"},{"y":2021,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"calculus","st":"multiple_integrals"},{"y":2021,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2021,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"matrix_algebra"},{"y":2021,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"eigen_theory"},{"y":2021,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2021,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2021,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2021,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2021,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2021,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2021,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"vector_differentiation"},{"y":2021,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2021,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2021,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"dynamics_and_statics","st":"plane_motion_projectiles"},{"y":2021,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"vector_differentiation"},{"y":2021,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"vector_analysis","st":"integral_theorems"},{"y":2021,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2021,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"curves_in_space"},{"y":2021,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"linear_programming","st":"simplex"},{"y":2021,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"algebra","st":"pid_ed_ufd"},{"y":2021,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2021,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2021,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2021,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"series_expansions"},{"y":2021,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"complex_analysis","st":"singularities_residues"},{"y":2021,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":10,"t":"complex_analysis","st":"contour_integration"},{"y":2021,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"real_analysis","st":"uniform_convergence"},{"y":2021,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"algebra","st":"permutation_groups"},{"y":2021,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"algebra","st":"permutation_groups"},{"y":2021,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":10,"t":"real_analysis","st":"series"},{"y":2021,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2021,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"riemann_integration"},{"y":2021,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"partial_differential_equations","st":"classical_equations"},{"y":2021,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2021,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"rigid_body_motion"},{"y":2021,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2021,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2021,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2021,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2021,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2021,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2021,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2021,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2021,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"rigid_body_motion"},{"y":2021,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2021,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"interpolation"},{"y":2022,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"linear_algebra","st":"systems_of_equations"},{"y":2022,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"analytic_geometry","st":"sphere"},{"y":2022,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"calculus","st":"limits_continuity_mvt"},{"y":2022,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2022,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2022,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"calculus","st":"multiple_integrals"},{"y":2022,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2022,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"special_matrices"},{"y":2022,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":15,"t":"calculus","st":"multiple_integrals"},{"y":2022,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2022,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"linear_transformations"},{"y":2022,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"calculus","st":"maxima_minima_curves"},{"y":2022,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"special_matrices"},{"y":2022,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"calculus","st":"limits_continuity_mvt"},{"y":2022,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2022,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"first_order_first_degree"},{"y":2022,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2022,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2022,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2022,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2022,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"vector_analysis","st":"vector_differentiation"},{"y":2022,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":10,"t":"vector_analysis","st":"curves_in_space"},{"y":2022,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2022,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"curves_in_space"},{"y":2022,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2022,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2022,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2022,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":15,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2022,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"real_analysis","st":"uniform_convergence"},{"y":2022,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"complex_analysis","st":"series_expansions"},{"y":2022,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"pid_ed_ufd"},{"y":2022,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"complex_analysis","st":"contour_integration"},{"y":2022,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"real_analysis","st":"series"},{"y":2022,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"contour_integration"},{"y":2022,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"series_expansions"},{"y":2022,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":15,"t":"algebra","st":"fields"},{"y":2022,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"real_analysis","st":"real_number_system"},{"y":2022,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2022,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":10,"t":"linear_programming","st":"lpp_graphical"},{"y":2022,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"linear_programming","st":"duality"},{"y":2022,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"series_expansions"},{"y":2022,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2022,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2022,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2022,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"partial_differential_equations","st":"classical_equations"},{"y":2022,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2022,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2022,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2022,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2022,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"rigid_body_motion"},{"y":2022,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2022,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2022,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2022,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"linear_systems_numerical"},{"y":2022,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2022,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":10,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2023,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"sphere"},{"y":2023,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"calculus","st":"multiple_integrals"},{"y":2023,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"calculus","st":"limits_continuity_mvt"},{"y":2023,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"calculus","st":"integration"},{"y":2023,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"linear_transformations"},{"y":2023,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"calculus","st":"limits_continuity_mvt"},{"y":2023,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"linear_algebra","st":"matrix_algebra"},{"y":2023,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"calculus","st":"limits_continuity_mvt"},{"y":2023,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":15,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2023,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"linear_algebra","st":"vector_spaces"},{"y":2023,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"calculus","st":"limits_continuity_mvt"},{"y":2023,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"linear_algebra","st":"special_matrices"},{"y":2023,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"sphere"},{"y":2023,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":10,"t":"linear_algebra","st":"matrix_algebra"},{"y":2023,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2023,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2023,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2023,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2023,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2023,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2023,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2023,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2023,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2023,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"vector_differentiation"},{"y":2023,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":15,"t":"vector_analysis","st":"curves_in_space"},{"y":2023,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"dynamics_and_statics","st":"plane_motion_projectiles"},{"y":2023,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2023,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2023,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2023,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"real_analysis","st":"riemann_integration"},{"y":2023,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2023,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"complex_analysis","st":"singularities_residues"},{"y":2023,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2023,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"linear_programming","st":"duality"},{"y":2023,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"complex_analysis","st":"series_expansions"},{"y":2023,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"sequences"},{"y":2023,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2023,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"real_analysis","st":"riemann_integration"},{"y":2023,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":15,"t":"real_analysis","st":"riemann_integration"},{"y":2023,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2023,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"complex_analysis","st":"series_expansions"},{"y":2023,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"algebra","st":"groups_subgroups"},{"y":2023,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2023,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2023,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2023,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2023,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2023,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2023,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"partial_differential_equations","st":"second_order_canonical"},{"y":2023,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"root_finding"},{"y":2023,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":10,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2023,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2023,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2023,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":10,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2023,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2023,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2024,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2024,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2024,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"linear_algebra","st":"systems_of_equations"},{"y":2024,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"systems_of_equations"},{"y":2024,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"analytic_geometry","st":"conicoids"},{"y":2024,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"analytic_geometry","st":"sphere"},{"y":2024,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"calculus","st":"integration"},{"y":2024,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"analytic_geometry","st":"cone_and_cylinder"},{"y":2024,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"analytic_geometry","st":"conicoids"},{"y":2024,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"linear_algebra","st":"matrix_algebra"},{"y":2024,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2024,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"calculus","st":"maxima_minima_curves"},{"y":2024,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"calculus","st":"multivariable_calculus"},{"y":2024,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"calculus","st":"multivariable_calculus"},{"y":2024,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2024,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2024,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"dynamics_and_statics","st":"rectilinear_and_shm"},{"y":2024,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"dynamics_and_statics","st":"plane_motion_projectiles"},{"y":2024,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2024,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2024,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2024,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":20,"t":"vector_analysis","st":"vector_differentiation"},{"y":2024,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2024,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2024,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2024,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2024,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2024,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"ordinary_differential_equations","st":"first_order_higher_degree"},{"y":2024,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"real_analysis","st":"uniform_convergence"},{"y":2024,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"complex_analysis","st":"cauchy_theory"},{"y":2024,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"complex_analysis","st":"analytic_functions"},{"y":2024,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2024,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2024,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":15,"t":"real_analysis","st":"series"},{"y":2024,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":15,"t":"linear_programming","st":"simplex"},{"y":2024,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2024,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":15,"t":"algebra","st":"rings_and_ideals"},{"y":2024,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":15,"t":"linear_programming","st":"transportation_assignment"},{"y":2024,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2024,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":15,"t":"complex_analysis","st":"singularities_residues"},{"y":2024,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"singularities_residues"},{"y":2024,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2024,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"lagrangian_hamiltonian"},{"y":2024,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2024,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2024,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"interpolation"},{"y":2024,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2024,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2024,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"partial_differential_equations","st":"classical_equations"},{"y":2024,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2024,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2024,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2024,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2024,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":15,"t":"numerical_analysis_and_computer_programming","st":"number_systems"},{"y":2024,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":15,"t":"mechanics_and_fluid_dynamics","st":"fluid_kinematics"},{"y":2024,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2025,"p":"I","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"analytic_geometry","st":"conicoids"},{"y":2025,"p":"I","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"linear_algebra","st":"vector_spaces"},{"y":2025,"p":"I","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"linear_algebra","st":"eigen_theory"},{"y":2025,"p":"I","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"linear_algebra","st":"linear_transformations"},{"y":2025,"p":"I","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"linear_algebra","st":"special_matrices"},{"y":2025,"p":"I","s":"A","q":2,"pt":"a","c":0,"m":10,"t":"calculus","st":"multivariable_calculus"},{"y":2025,"p":"I","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"calculus","st":"multiple_integrals"},{"y":2025,"p":"I","s":"A","q":2,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"matrix_algebra"},{"y":2025,"p":"I","s":"A","q":3,"pt":"a","c":0,"m":20,"t":"calculus","st":"maxima_minima_curves"},{"y":2025,"p":"I","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"analytic_geometry","st":"lines_and_planes"},{"y":2025,"p":"I","s":"A","q":3,"pt":"c","c":0,"m":10,"t":"analytic_geometry","st":"conicoids"},{"y":2025,"p":"I","s":"A","q":4,"pt":"a","c":0,"m":10,"t":"linear_algebra","st":"special_matrices"},{"y":2025,"p":"I","s":"A","q":4,"pt":"b","c":0,"m":20,"t":"calculus","st":"multiple_integrals"},{"y":2025,"p":"I","s":"A","q":4,"pt":"c","c":0,"m":20,"t":"linear_algebra","st":"systems_of_equations"},{"y":2025,"p":"I","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2025,"p":"I","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2025,"p":"I","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"vector_analysis","st":"vector_differentiation"},{"y":2025,"p":"I","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"dynamics_and_statics","st":"work_energy_constrained"},{"y":2025,"p":"I","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"dynamics_and_statics","st":"central_orbits"},{"y":2025,"p":"I","s":"B","q":6,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2025,"p":"I","s":"B","q":6,"pt":"b","c":0,"m":20,"t":"vector_analysis","st":"curves_in_space"},{"y":2025,"p":"I","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"dynamics_and_statics","st":"catenary_virtual_work"},{"y":2025,"p":"I","s":"B","q":7,"pt":"a","c":0,"m":15,"t":"ordinary_differential_equations","st":"laplace_transform"},{"y":2025,"p":"I","s":"B","q":7,"pt":"b","c":0,"m":15,"t":"vector_analysis","st":"integral_theorems"},{"y":2025,"p":"I","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"dynamics_and_statics","st":"statics_equilibrium"},{"y":2025,"p":"I","s":"B","q":8,"pt":"a","c":0,"m":20,"t":"ordinary_differential_equations","st":"variable_coefficients"},{"y":2025,"p":"I","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"ordinary_differential_equations","st":"linear_constant_coefficients"},{"y":2025,"p":"I","s":"B","q":8,"pt":"c","c":0,"m":10,"t":"vector_analysis","st":"integral_theorems"},{"y":2025,"p":"II","s":"A","q":1,"pt":"a","c":1,"m":10,"t":"algebra","st":"fields"},{"y":2025,"p":"II","s":"A","q":1,"pt":"b","c":1,"m":10,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2025,"p":"II","s":"A","q":1,"pt":"c","c":1,"m":10,"t":"algebra","st":"normal_quotient_homomorphism"},{"y":2025,"p":"II","s":"A","q":1,"pt":"d","c":1,"m":10,"t":"algebra","st":"permutation_groups"},{"y":2025,"p":"II","s":"A","q":1,"pt":"e","c":1,"m":10,"t":"complex_analysis","st":"contour_integration"},{"y":2025,"p":"II","s":"A","q":2,"pt":"a","c":0,"m":20,"t":"real_analysis","st":"riemann_integration"},{"y":2025,"p":"II","s":"A","q":2,"pt":"b","c":0,"m":20,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2025,"p":"II","s":"A","q":2,"pt":"c","c":0,"m":10,"t":"real_analysis","st":"continuity_uniform_continuity"},{"y":2025,"p":"II","s":"A","q":3,"pt":"a","c":0,"m":10,"t":"linear_programming","st":"simplex"},{"y":2025,"p":"II","s":"A","q":3,"pt":"b","c":0,"m":20,"t":"algebra","st":"fields"},{"y":2025,"p":"II","s":"A","q":3,"pt":"c","c":0,"m":20,"t":"linear_programming","st":"simplex"},{"y":2025,"p":"II","s":"A","q":4,"pt":"a","c":0,"m":20,"t":"complex_analysis","st":"cauchy_theory"},{"y":2025,"p":"II","s":"A","q":4,"pt":"b","c":0,"m":15,"t":"complex_analysis","st":"analytic_functions"},{"y":2025,"p":"II","s":"A","q":4,"pt":"c","c":0,"m":15,"t":"linear_programming","st":"lpp_graphical"},{"y":2025,"p":"II","s":"B","q":5,"pt":"a","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"numerical_ode"},{"y":2025,"p":"II","s":"B","q":5,"pt":"b","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"viscous_flow"},{"y":2025,"p":"II","s":"B","q":5,"pt":"c","c":1,"m":10,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"},{"y":2025,"p":"II","s":"B","q":5,"pt":"d","c":1,"m":10,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2025,"p":"II","s":"B","q":5,"pt":"e","c":1,"m":10,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2025,"p":"II","s":"B","q":6,"pt":"a","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2025,"p":"II","s":"B","q":6,"pt":"b","c":0,"m":15,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2025,"p":"II","s":"B","q":6,"pt":"c","c":0,"m":15,"t":"partial_differential_equations","st":"first_order_pde"},{"y":2025,"p":"II","s":"B","q":7,"pt":"a","c":0,"m":10,"t":"numerical_analysis_and_computer_programming","st":"boolean_logic"},{"y":2025,"p":"II","s":"B","q":7,"pt":"b","c":0,"m":20,"t":"partial_differential_equations","st":"pde_formulation"},{"y":2025,"p":"II","s":"B","q":7,"pt":"c","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"algorithms_flowcharts"},{"y":2025,"p":"II","s":"B","q":8,"pt":"a","c":0,"m":10,"t":"mechanics_and_fluid_dynamics","st":"inviscid_flow"},{"y":2025,"p":"II","s":"B","q":8,"pt":"b","c":0,"m":20,"t":"numerical_analysis_and_computer_programming","st":"numerical_integration"},{"y":2025,"p":"II","s":"B","q":8,"pt":"c","c":0,"m":20,"t":"mechanics_and_fluid_dynamics","st":"sources_sinks_vortex"}]}</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("pyq-data").textContent);
+  var TOPICS = DATA.topics || [], QS = DATA.questions || [], META = DATA.meta || {};
+  var TMAP = {}; TOPICS.forEach(function (t) { TMAP[t.id] = t; });
+
+  var YEARS = Array.from(new Set(QS.map(function (q) { return q.y; }))).sort(function (a, b) { return a - b; });
+  var state = { paper: "all", comp: "all", from: YEARS[0], to: YEARS[YEARS.length - 1], topic: null };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var el = function (tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt !== undefined && txt !== null) n.textContent = txt;
+    return n;
+  };
+  var fmt = function (n) { return n.toLocaleString("en-IN"); };
+
+  /* ---------- theme ---------- */
+  $("themeBtn").addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    var dark = cur ? cur === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  });
+
+  /* ---------- filtering ---------- */
+  function rows() {
+    return QS.filter(function (q) {
+      if (state.paper !== "all" && q.p !== state.paper) return false;
+      if (state.comp !== "all" && String(q.c) !== state.comp) return false;
+      return q.y >= state.from && q.y <= state.to;
+    });
+  }
+  function yearsInRange() {
+    return YEARS.filter(function (y) { return y >= state.from && y <= state.to; });
+  }
+  function activeTopics() {
+    return TOPICS.filter(function (t) { return state.paper === "all" || t.paper === state.paper; });
+  }
+
+  /* ---------- aggregation ---------- */
+  function byTopic(rs) {
+    var m = {};
+    activeTopics().forEach(function (t) {
+      m[t.id] = { id: t.id, name: t.name, paper: t.paper, section: t.section,
+                  marks: 0, count: 0, comp: 0, years: {} };
+    });
+    rs.forEach(function (q) {
+      var r = m[q.t]; if (!r) return;
+      r.marks += q.m; r.count += 1;
+      if (q.c) r.comp += q.m;
+      r.years[q.y] = (r.years[q.y] || 0) + q.m;
+    });
+    return Object.keys(m).map(function (k) { return m[k]; })
+      .sort(function (a, b) { return b.marks - a.marks || a.name.localeCompare(b.name); });
+  }
+
+  /* ---------- tooltip ---------- */
+  var tip = $("tip");
+  function showTip(e, title, value) {
+    tip.innerHTML = "";
+    tip.appendChild(el("div", "tt", title));
+    tip.appendChild(el("div", "tv", value));
+    tip.hidden = false;
+    var r = tip.getBoundingClientRect();
+    var x = Math.min(e.clientX + 14, window.innerWidth - r.width - 8);
+    var y = Math.max(e.clientY - r.height - 12, 8);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.hidden = true; }
+  function bindTip(node, title, value) {
+    node.addEventListener("mousemove", function (e) { showTip(e, title, value); });
+    node.addEventListener("mouseleave", hideTip);
+  }
+
+  /* ---------- banner ---------- */
+  function renderBanner() {
+    var b = $("banner"); b.innerHTML = "";
+    if (META.synthetic) {
+      b.className = "banner";
+      b.appendChild(el("span", "tag", "SYNTHETIC"));
+      var p = el("p");
+      p.innerHTML = "<b>Demo data, not real UPSC papers.</b> The paper structure is faithful " +
+        "(8 questions, Q1/Q5 compulsory, 400 printed marks), but the topic weights are invented " +
+        "so the console can be reviewed before ingest. Run the pipeline on the official PDFs " +
+        "for figures you can plan against.";
+      b.appendChild(p);
+    } else {
+      b.className = "banner ok";
+      b.appendChild(el("span", "tag", "OFFICIAL PDFS"));
+      var p2 = el("p");
+      p2.textContent = "Extracted from " + (META.sources || "the official UPSC question papers") +
+        (META.generated_at ? " · built " + META.generated_at.slice(0, 10) : "") +
+        (META.low_confidence ? " · " + META.low_confidence +
+          " part(s) flagged for manual topic review" : "");
+      b.appendChild(p2);
+    }
+  }
+
+  /* ---------- tiles ---------- */
+  function renderTiles(rs, agg) {
+    var t = $("tiles"); t.innerHTML = "";
+    var marks = rs.reduce(function (s, q) { return s + q.m; }, 0);
+    var yrs = yearsInRange();
+    var examined = agg.filter(function (r) { return r.marks > 0; }).length;
+    var top = agg[0];
+    [
+      ["Years covered", yrs.length ? yrs[0] + "–" + yrs[yrs.length - 1] : "—",
+       yrs.length + " exam cycle" + (yrs.length === 1 ? "" : "s")],
+      ["Question parts", fmt(rs.length), "individually classified"],
+      ["Marks offered", fmt(marks), "printed, not attempted"],
+      ["Heaviest topic", top && top.marks ? top.name : "—",
+       top && top.marks ? fmt(top.marks) + " marks · " +
+         (marks ? (100 * top.marks / marks).toFixed(1) : "0") + "% of the range" :
+         "no data in range"]
+    ].forEach(function (row) {
+      var d = el("div", "tile");
+      d.appendChild(el("div", "k", row[0]));
+      var v = el("div", "v", row[1]);
+      if (String(row[1]).length > 14) v.style.fontSize = "19px";
+      d.appendChild(v);
+      d.appendChild(el("div", "n", row[2]));
+      t.appendChild(d);
+    });
+    $("tiles").dataset.examined = examined;
+  }
+
+  /* ---------- ranking ---------- */
+  function renderRank(agg, total) {
+    var host = $("rank"); host.innerHTML = "";
+    var max = agg.length ? Math.max.apply(null, agg.map(function (r) { return r.marks; })) : 0;
+    agg.forEach(function (r) {
+      var b = el("button", "row");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(state.topic === r.id));
+      var nm = el("div", "nm", r.name);
+      nm.appendChild(el("small", null, "Paper " + r.paper + " · Section " + r.section));
+      b.appendChild(nm);
+      var tr = el("div", "track");
+      var f = el("div", "fill");
+      f.style.width = (max ? Math.max(100 * r.marks / max, r.marks ? 1.2 : 0) : 0) + "%";
+      f.style.background = r.paper === "I" ? "var(--p1)" : "var(--p2)";
+      tr.appendChild(f); b.appendChild(tr);
+      b.appendChild(el("div", "mk", fmt(r.marks)));
+      b.appendChild(el("div", "pc", total ? (100 * r.marks / total).toFixed(1) + "%" : "—"));
+      bindTip(b, r.name, fmt(r.marks) + " marks · " + r.count + " parts · Paper " + r.paper);
+      b.addEventListener("click", function () {
+        state.topic = state.topic === r.id ? null : r.id;
+        render();
+      });
+      host.appendChild(b);
+    });
+    if (!agg.length) host.appendChild(el("p", null, "No questions match these filters."));
+
+    var tb = $("rankTable"); tb.innerHTML = "";
+    var head = tb.insertRow();
+    ["Topic", "Paper", "Sec", "Marks", "Parts", "Share", "Years seen"].forEach(function (h, i) {
+      var th = document.createElement("th");
+      th.textContent = h; if (i >= 3) th.className = "num";
+      head.appendChild(th);
+    });
+    var nYears = yearsInRange().length;
+    agg.forEach(function (r) {
+      var tr = tb.insertRow();
+      [r.name, r.paper, r.section, fmt(r.marks), r.count,
+       (total ? (100 * r.marks / total).toFixed(1) : "0") + "%",
+       Object.keys(r.years).length + "/" + nYears].forEach(function (v, i) {
+        var td = tr.insertCell(); td.textContent = v;
+        if (i >= 3) td.className = "num";
+      });
+    });
+  }
+
+  /* ---------- trend sparkline ---------- */
+  function trendSVG(series, color) {
+    var W = 320, H = 96, PL = 30, PR = 8, PT = 10, PB = 20;
+    var max = Math.max.apply(null, series.map(function (p) { return p.v; }).concat([1]));
+    var nice = Math.ceil(max / 10) * 10 || 10;
+    var iw = W - PL - PR, ih = H - PT - PB;
+    var n = series.length;
+    var X = function (i) { return PL + (n === 1 ? iw / 2 : iw * i / (n - 1)); };
+    var Y = function (v) { return PT + ih - ih * v / nice; };
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Marks per year: " +
+      series.map(function (p) { return p.y + ": " + p.v; }).join(", "));
+    function mk(tag, attrs) {
+      var e = document.createElementNS(ns, tag);
+      Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+      return e;
+    }
+    [0, nice / 2, nice].forEach(function (v) {
+      svg.appendChild(mk("line", { x1: PL, x2: W - PR, y1: Y(v), y2: Y(v),
+        stroke: "var(--line)", "stroke-width": 1 }));
+      var t = mk("text", { x: PL - 6, y: Y(v) + 3.5, "text-anchor": "end",
+        fill: "var(--ink-3)", "font-size": 9, "font-family": "var(--f-mono)" });
+      t.textContent = v; svg.appendChild(t);
+    });
+    var d = series.map(function (p, i) { return (i ? "L" : "M") + X(i) + " " + Y(p.v); }).join(" ");
+    svg.appendChild(mk("path", { d: d, fill: "none", stroke: color, "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    series.forEach(function (p, i) {
+      var last = i === n - 1;
+      svg.appendChild(mk("circle", { cx: X(i), cy: Y(p.v), r: last ? 4 : 3, fill: color,
+        stroke: "var(--surface)", "stroke-width": 2 }));
+      if (i === 0 || last || n <= 6) {
+        var t = mk("text", { x: X(i), y: H - 6, "text-anchor": "middle", fill: "var(--ink-3)",
+          "font-size": 9, "font-family": "var(--f-mono)" });
+        t.textContent = String(p.y).slice(2);
+        svg.appendChild(t);
+      }
+    });
+    return svg;
+  }
+
+  /* ---------- detail ---------- */
+  function renderDetail(rs, agg, total) {
+    var host = $("detail"); host.innerHTML = "";
+    var yrs = yearsInRange();
+    if (!state.topic) {
+      host.appendChild(el("div", "eyebrow", "Selection"));
+      host.appendChild(el("h3", null, "Pick a topic"));
+      var p = el("p");
+      p.style.cssText = "color:var(--ink-2);font-size:13px;margin:10px 0 0";
+      p.textContent = "Select any row in the ranking to see how its marks break down across " +
+        "sub-topics, which sub-topics have never been asked, and how its weight has moved " +
+        "year to year.";
+      host.appendChild(p);
+      var strongest = agg.filter(function (r) { return r.marks > 0; });
+      if (strongest.length) {
+        host.appendChild(el("div", "subhead", "Most consistent topics"));
+        var list = el("div", "subs");
+        strongest.slice().sort(function (a, b) {
+          return Object.keys(b.years).length - Object.keys(a.years).length ||
+                 b.marks - a.marks;
+        }).slice(0, 5).forEach(function (r) {
+          var s = el("div", "sub");
+          s.appendChild(el("div", "sn", r.name));
+          s.appendChild(el("div", "sv", Object.keys(r.years).length + "/" + yrs.length + " yrs"));
+          var tr = el("div", "strack"), f = el("div", "sfill");
+          f.style.width = (yrs.length ? 100 * Object.keys(r.years).length / yrs.length : 0) + "%";
+          tr.appendChild(f); s.appendChild(tr);
+          list.appendChild(s);
+        });
+        host.appendChild(list);
+      }
+      return;
+    }
+
+    var t = TMAP[state.topic];
+    var r = agg.filter(function (x) { return x.id === state.topic; })[0];
+    if (!t || !r) { state.topic = null; return renderDetail(rs, agg, total); }
+    var color = t.paper === "I" ? "var(--p1)" : "var(--p2)";
+
+    host.appendChild(el("div", "eyebrow", "Paper " + t.paper + " · Section " + t.section));
+    host.appendChild(el("h3", null, t.name));
+    var seen = Object.keys(r.years).length;
+    host.appendChild(el("div", "meta",
+      fmt(r.marks) + " marks · " + r.count + " parts · " +
+      (total ? (100 * r.marks / total).toFixed(1) : "0") + "% of range"));
+
+    var kp = el("div", "kpis");
+    [["Avg / year", seen ? Math.round(r.marks / yrs.length) + "" : "0"],
+     ["Appeared in", seen + " / " + yrs.length + " yrs"],
+     ["Compulsory", fmt(r.comp) + " mk"],
+     ["Optional", fmt(r.marks - r.comp) + " mk"]].forEach(function (k) {
+      var d = el("div", "kpi");
+      d.appendChild(el("div", "k", k[0]));
+      d.appendChild(el("div", "v", k[1]));
+      kp.appendChild(d);
+    });
+    host.appendChild(kp);
+
+    host.appendChild(el("div", "subhead", "Marks per year"));
+    var tw = el("div", "trend");
+    tw.appendChild(trendSVG(yrs.map(function (y) { return { y: y, v: r.years[y] || 0 }; }), color));
+    host.appendChild(tw);
+
+    var subAgg = {};
+    (t.subs || []).forEach(function (s) { subAgg[s.id] = { name: s.name, marks: 0, count: 0 }; });
+    rs.forEach(function (q) {
+      if (q.t !== t.id) return;
+      var s = subAgg[q.st]; if (s) { s.marks += q.m; s.count += 1; }
+    });
+    var list = Object.keys(subAgg).map(function (k) { return subAgg[k]; })
+      .sort(function (a, b) { return b.marks - a.marks || a.name.localeCompare(b.name); });
+    var smax = Math.max.apply(null, list.map(function (s) { return s.marks; }).concat([1]));
+    host.appendChild(el("div", "subhead", "Sub-topic split"));
+    var wrap = el("div", "subs");
+    list.forEach(function (s) {
+      var d = el("div", "sub" + (s.marks ? "" : " never"));
+      d.appendChild(el("div", "sn", s.name));
+      d.appendChild(el("div", "sv", s.marks ? fmt(s.marks) + " mk" : "never"));
+      var tr = el("div", "strack"), f = el("div", "sfill");
+      f.style.width = (100 * s.marks / smax) + "%";
+      f.style.background = color;
+      tr.appendChild(f); d.appendChild(tr);
+      wrap.appendChild(d);
+    });
+    host.appendChild(wrap);
+  }
+
+  /* ---------- heatmap ---------- */
+  function renderHeat(agg) {
+    var host = $("heat"); host.innerHTML = "";
+    var yrs = yearsInRange();
+    host.style.gridTemplateColumns = "minmax(112px,190px) repeat(" + yrs.length + ",minmax(34px,1fr))";
+    host.appendChild(el("div"));
+    yrs.forEach(function (y) { host.appendChild(el("div", "hlab", String(y).slice(2))); });
+    var max = 0;
+    agg.forEach(function (r) {
+      yrs.forEach(function (y) { max = Math.max(max, r.years[y] || 0); });
+    });
+    agg.forEach(function (r) {
+      host.appendChild(el("div", "rlab", r.name));
+      yrs.forEach(function (y) {
+        var v = r.years[y] || 0;
+        var lv = v === 0 ? 0 : Math.min(5, 1 + Math.floor(4.999 * (v / (max || 1))));
+        var c = el("div", "cell lv-" + lv, v ? String(v) : "");
+        bindTip(c, r.name + " · " + y, v ? v + " marks offered" : "not asked");
+        host.appendChild(c);
+      });
+    });
+  }
+
+  /* ---------- mark mix + gaps ---------- */
+  function renderMix(rs) {
+    var host = $("mix"); host.innerHTML = "";
+    var m = {};
+    rs.forEach(function (q) { m[q.m] = (m[q.m] || 0) + 1; });
+    var keys = Object.keys(m).map(Number).sort(function (a, b) { return a - b; });
+    var max = Math.max.apply(null, keys.map(function (k) { return m[k]; }).concat([1]));
+    keys.forEach(function (k) {
+      var row = el("div", "mixrow");
+      row.appendChild(el("div", "ml", k + " mk"));
+      var tr = el("div", "track"), f = el("div", "fill");
+      f.style.width = (100 * m[k] / max) + "%";
+      f.style.background = "var(--accent)";
+      tr.appendChild(f); row.appendChild(tr);
+      row.appendChild(el("div", "mv", m[k]));
+      bindTip(row, k + "-mark parts", m[k] + " of " + rs.length + " parts");
+      host.appendChild(row);
+    });
+    if (!keys.length) host.appendChild(el("p", null, "No questions in range."));
+  }
+
+  function renderGaps(rs) {
+    var host = $("gaps"); host.innerHTML = "";
+    var asked = {};
+    rs.forEach(function (q) { asked[q.t + "|" + q.st] = 1; });
+    var out = [];
+    activeTopics().forEach(function (t) {
+      (t.subs || []).forEach(function (s) {
+        if (!asked[t.id + "|" + s.id]) out.push({ t: t.name, s: s.name });
+      });
+    });
+    if (!out.length) {
+      host.appendChild(el("p", null,
+        "Every sub-topic in the syllabus was examined at least once in this range."));
+      return;
+    }
+    out.forEach(function (g) {
+      var c = el("span", "chip");
+      c.appendChild(el("b", null, g.s));
+      c.appendChild(document.createTextNode(" · " + g.t));
+      host.appendChild(c);
+    });
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    var rs = rows();
+    var agg = byTopic(rs);
+    var total = rs.reduce(function (s, q) { return s + q.m; }, 0);
+    renderTiles(rs, agg);
+    renderRank(agg, total);
+    renderDetail(rs, agg, total);
+    renderHeat(agg);
+    renderMix(rs);
+    renderGaps(rs);
+    hideTip();
+  }
+
+  /* ---------- controls ---------- */
+  function seg(id, key) {
+    $(id).addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      state[key] = b.dataset.p || b.dataset.c;
+      Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) {
+        x.setAttribute("aria-pressed", String(x === b));
+      });
+      if (key === "paper" && state.topic && TMAP[state.topic] &&
+          state.paper !== "all" && TMAP[state.topic].paper !== state.paper) {
+        state.topic = null;
+      }
+      render();
+    });
+  }
+  seg("paperSeg", "paper");
+  seg("compSeg", "comp");
+
+  function fillYears() {
+    [["yFrom", "from"], ["yTo", "to"]].forEach(function (pair) {
+      var s = $(pair[0]);
+      YEARS.forEach(function (y) {
+        var o = document.createElement("option");
+        o.value = String(y); o.textContent = String(y);
+        if (y === state[pair[1]]) o.selected = true;
+        s.appendChild(o);
+      });
+      s.addEventListener("change", function () {
+        state[pair[1]] = Number(s.value);
+        if (state.from > state.to) {
+          if (pair[1] === "from") { state.to = state.from; $("yTo").value = String(state.to); }
+          else { state.from = state.to; $("yFrom").value = String(state.from); }
+        }
+        render();
+      });
+    });
+  }
+
+  $("prov").textContent = META.synthetic
+    ? "Synthetic demo dataset · " + QS.length + " generated parts"
+    : "Source: official UPSC question papers · " + QS.length + " extracted parts";
+
+  if (!QS.length) {
+    document.querySelector(".controls").hidden = true;
+    $("banner").className = "banner";
+    $("banner").innerHTML = '<span class="tag">NO DATA</span><p>No dataset is embedded yet. ' +
+      'Run <b>download_papers.py &rarr; extract_questions.py &rarr; build_dataset.py &rarr; ' +
+      'build_dashboard.py</b> to populate this console.</p>';
+  } else {
+    renderBanner();
+    fillYears();
+    render();
+  }
+})();
+</script>
