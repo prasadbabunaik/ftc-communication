@@ -1,6 +1,10 @@
 'use client';
 
-import { FileText, X } from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FileText, X, Pencil, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { updateProjectCapacities } from '@/app/actions/grid';
 import { Contd4Card } from '@/components/grid/Contd4Card';
 import { HybridCapacityEditor } from '@/components/grid/HybridCapacityEditor';
 import { Contd4Attachments } from '@/components/grid/Contd4Attachments';
@@ -14,6 +18,76 @@ function InfoRow({ label, value }) {
     <div>
       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
       <p className="text-sm text-foreground">{value ?? '—'}</p>
+    </div>
+  );
+}
+
+// Total Capacity is the ceiling the server enforces on CONTD-4 Issued, so it has
+// to be adjustable from here — otherwise raising the issued figure is a dead end
+// (the only other edit surfaces are the FTC phase editor and an unlinked page).
+// Hybrids are excluded: their total is derived from the per-component editor
+// below, so editing it standalone would desync the two.
+function TotalCapacityCell({ project, canEdit }) {
+  const router = useRouter();
+  const current = Number(project.totalCapacityMw ?? 0);
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const isHybrid = !!project.plantType?.isHybrid;
+  const canChange = canEdit && !isHybrid;
+
+  async function save() {
+    const n = parseFloat(val);
+    if (!Number.isFinite(n) || n <= 0) { toast.error('Total Capacity must be a positive number.'); return; }
+    if (Math.abs(n - current) < 0.001) { setEditing(false); return; }
+    setSaving(true);
+    const res = await updateProjectCapacities(project.id, { totalCapacityMw: n });
+    setSaving(false);
+    if (res?.error) { toast.error(res.error); return; }
+    toast.success('Total Capacity updated.');
+    setEditing(false);
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">Total Capacity</p>
+      {editing ? (
+        <span className="flex items-center gap-1.5">
+          <input
+            autoFocus
+            type="number"
+            step="0.01"
+            min="0"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
+            disabled={saving}
+            className="w-28 rounded-md border border-input px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <span className="text-xs text-muted-foreground">MW</span>
+          <button type="button" onClick={save} disabled={saving} title="Save" className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50"><Check className="size-4" /></button>
+          <button type="button" onClick={() => setEditing(false)} disabled={saving} title="Cancel" className="text-muted-foreground hover:text-foreground"><X className="size-4" /></button>
+        </span>
+      ) : (
+        <span className="flex items-center gap-1.5">
+          <span className="text-sm text-foreground">{current.toFixed(1)} MW</span>
+          {canChange && (
+            <button
+              type="button"
+              onClick={() => { setVal(String(current)); setEditing(true); }}
+              title="Edit total capacity"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+          )}
+        </span>
+      )}
+      {isHybrid && canEdit && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">Set via the component breakdown below</p>
+      )}
     </div>
   );
 }
@@ -67,7 +141,7 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
           <div className="rounded-xl border bg-muted/20 px-5 py-4 grid grid-cols-3 gap-6">
             <InfoRow label="Region"          value={`${project.region.code} — ${project.region.name}`} />
             <InfoRow label="Pooling Station" value={project.poolingStation?.name} />
-            <InfoRow label="Total Capacity"  value={`${Number(project.totalCapacityMw).toFixed(1)} MW`} />
+            <TotalCapacityCell project={project} canEdit={canEdit} />
           </div>
 
           {/* Hybrid breakdown — editable (Wind/Solar/BESS) */}
@@ -83,6 +157,7 @@ export function Contd4DetailModal({ project, open, onOpenChange, canEdit, userRo
             userRole={userRole}
             regionCode={project.region.code}
             notes={project.notes ?? []}
+            totalCapacityMw={project.totalCapacityMw}
             onClose={() => onOpenChange(false)}
           />
 
